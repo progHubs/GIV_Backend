@@ -1,0 +1,559 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  fullName          String    @map("full_name") @db.VarChar(100)
+  email             String    @unique @db.VarChar(255)
+  phone             String?   @db.VarChar(20)
+  passwordHash      String    @map("password_hash") @db.VarChar(255)
+  role              UserRole
+  profileImageUrl   String?   @map("profile_image_url") @db.VarChar(512)
+  languagePreference Language @map("language_preference") @default(en)
+  emailVerified     Boolean   @map("email_verified") @default(false)
+  createdAt         DateTime  @map("created_at") @default(now())
+  updatedAt         DateTime  @map("updated_at") @default(now()) @updatedAt
+  deletedAt         DateTime? @map("deleted_at")
+
+  // Relations
+  volunteerProfile    VolunteerProfile?
+  donorProfile        DonorProfile?
+  createdCampaigns    Campaign[]        @relation("CampaignCreator")
+  createdEvents       Event[]           @relation("EventCreator")
+  createdPrograms     Program[]         @relation("ProgramCreator")
+  createdPosts        Post[]            @relation("PostAuthor")
+  uploadedMedia       Media[]           @relation("MediaUploader")
+  uploadedDocuments   Document[]        @relation("DocumentUploader")
+  donations           Donation[]
+  eventParticipants   EventParticipant[]
+  volunteerSkills     VolunteerSkill[]
+  siteInteractions    SiteInteraction[]
+
+  @@map("users")
+}
+
+model VolunteerProfile {
+  userId                    BigInt              @id @db.UnsignedBigInt
+  areaOfExpertise           String?             @map("area_of_expertise") @db.VarChar(100)
+  location                  String?             @db.VarChar(255)
+  availability              Json?
+  motivation                String?             @db.Text
+  totalHours                Int                 @map("total_hours") @default(0) @db.UnsignedInt
+  certificateUrl            String?             @map("certificate_url") @db.VarChar(512)
+  registeredEventsCount     Int                 @map("registered_events_count") @default(0) @db.UnsignedInt
+  trainingCompleted         Boolean             @map("training_completed") @default(false)
+  backgroundCheckStatus     BackgroundCheckStatus @map("background_check_status") @default(pending)
+  emergencyContactName      String?             @map("emergency_contact_name") @db.VarChar(100)
+  emergencyContactPhone     String?             @map("emergency_contact_phone") @db.VarChar(20)
+  rating                    Decimal             @default(0.00) @db.Decimal(3, 2)
+  createdAt                 DateTime            @map("created_at") @default(now())
+  updatedAt                 DateTime            @map("updated_at") @default(now()) @updatedAt
+
+  // Relations
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  volunteerSkills  VolunteerSkill[]
+
+  @@map("volunteer_profiles")
+}
+
+model DonorProfile {
+  userId                  BigInt           @id @db.UnsignedBigInt
+  isRecurringDonor        Boolean          @map("is_recurring_donor") @default(false)
+  preferredPaymentMethod  String?          @map("preferred_payment_method") @db.VarChar(50)
+  totalDonated            Decimal          @map("total_donated") @default(0.00) @db.Decimal(15, 2)
+  donationFrequency       DonationFrequency? @map("donation_frequency")
+  taxReceiptEmail         String?          @map("tax_receipt_email") @db.VarChar(255)
+  isAnonymous             Boolean          @map("is_anonymous") @default(false)
+  lastDonationDate        DateTime?        @map("last_donation_date")
+  donationTier            DonationTier?    @map("donation_tier")
+  createdAt               DateTime         @map("created_at") @default(now())
+  updatedAt               DateTime         @map("updated_at") @default(now()) @updatedAt
+
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  donations Donation[]
+
+  @@map("donor_profiles")
+}
+
+model Campaign {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title               String    @db.VarChar(255)
+  slug                String    @unique @db.VarChar(255)
+  description         String?   @db.Text
+  goalAmount          Decimal   @map("goal_amount") @db.Decimal(15, 2)
+  currentAmount       Decimal   @map("current_amount") @default(0.00) @db.Decimal(15, 2)
+  startDate           DateTime  @map("start_date") @db.Date
+  endDate             DateTime? @map("end_date") @db.Date
+  isActive            Boolean   @map("is_active") @default(true)
+  isFeatured          Boolean   @map("is_featured") @default(false)
+  category            String?   @db.VarChar(50)
+  progressBarColor    String?   @map("progress_bar_color") @db.VarChar(20)
+  imageUrl            String?   @map("image_url") @db.VarChar(512)
+  videoUrl            String?   @map("video_url") @db.VarChar(512)
+  donorCount          Int       @map("donor_count") @default(0) @db.UnsignedInt
+  successStories      Json?     @map("success_stories")
+  createdBy           BigInt?   @map("created_by") @db.UnsignedBigInt
+  language            Language  @default(en)
+  translationGroupId  String?   @map("translation_group_id") @db.VarChar(36)
+  createdAt           DateTime  @map("created_at") @default(now())
+  updatedAt           DateTime  @map("updated_at") @default(now()) @updatedAt
+  deletedAt           DateTime? @map("deleted_at")
+
+  // Relations
+  creator   User       @relation("CampaignCreator", fields: [createdBy], references: [id])
+  donations Donation[]
+
+  @@map("campaigns")
+}
+
+model Donation {
+  id              BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  donorId         BigInt         @map("donor_id") @db.UnsignedBigInt
+  campaignId      BigInt         @map("campaign_id") @db.UnsignedBigInt
+  amount          Decimal        @db.Decimal(15, 2)
+  currency        String         @default("USD") @db.VarChar(3)
+  donationType    DonationType   @map("donation_type")
+  paymentMethod   String?        @map("payment_method") @db.VarChar(50)
+  paymentStatus   PaymentStatus  @map("payment_status")
+  transactionId   String?        @unique @map("transaction_id") @db.VarChar(100)
+  receiptUrl      String?        @map("receipt_url") @db.VarChar(512)
+  isAcknowledged  Boolean        @map("is_acknowledged") @default(false)
+  isTaxDeductible Boolean        @map("is_tax_deductible") @default(true)
+  isAnonymous     Boolean        @map("is_anonymous") @default(false)
+  notes           String?        @db.Text
+  donatedAt       DateTime       @map("donated_at") @default(now())
+  createdAt       DateTime       @map("created_at") @default(now())
+  updatedAt       DateTime       @map("updated_at") @default(now()) @updatedAt
+
+  // Relations
+  donor     DonorProfile @relation(fields: [donorId], references: [userId])
+  campaign  Campaign     @relation(fields: [campaignId], references: [id])
+
+  @@map("donations")
+}
+
+model Event {
+  id                    BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title                 String    @db.VarChar(255)
+  slug                  String    @unique @db.VarChar(255)
+  description           String?   @db.Text
+  eventDate             DateTime  @map("event_date") @db.Date
+  eventTime             DateTime  @map("event_time") @db.Time
+  timezone              String    @default("UTC") @db.VarChar(50)
+  location              String?   @db.VarChar(255)
+  latitude              Decimal?  @db.Decimal(10, 8)
+  longitude             Decimal?  @db.Decimal(11, 8)
+  category              String?   @db.VarChar(50)
+  capacity              Int?      @db.UnsignedInt
+  registeredCount       Int       @map("registered_count") @default(0) @db.UnsignedInt
+  status                EventStatus @default(upcoming)
+  registrationDeadline  DateTime? @map("registration_deadline")
+  registrationLink      String?   @map("registration_link") @db.VarChar(512)
+  mapEmbedUrl           String?   @map("map_embed_url") @db.VarChar(512)
+  agenda                String?   @db.Text
+  speakerInfo           Json?     @map("speaker_info")
+  requirements          String?   @db.Text
+  ticketPrice           Decimal?  @map("ticket_price") @db.Decimal(10, 2)
+  ticketLink            String?   @map("ticket_link") @db.VarChar(512)
+  isFeatured            Boolean   @map("is_featured") @default(false)
+  createdBy             BigInt?   @map("created_by") @db.UnsignedBigInt
+  language              Language  @default(en)
+  translationGroupId    String?   @map("translation_group_id") @db.VarChar(36)
+  createdAt             DateTime  @map("created_at") @default(now())
+  updatedAt             DateTime  @map("updated_at") @default(now()) @updatedAt
+  deletedAt             DateTime? @map("deleted_at")
+
+  // Relations
+  creator       User               @relation("EventCreator", fields: [createdBy], references: [id])
+  participants  EventParticipant[]
+  media         Media[]
+
+  @@map("events")
+}
+
+model EventParticipant {
+  eventId           BigInt           @db.UnsignedBigInt
+  userId            BigInt           @db.UnsignedBigInt
+  role              ParticipantRole
+  status            ParticipantStatus @default(registered)
+  hoursContributed  Decimal?         @map("hours_contributed") @db.Decimal(5, 2)
+  feedback          String?          @db.Text
+  rating            Int?             @db.UnsignedInt
+  registeredAt      DateTime         @map("registered_at") @default(now())
+  attendedAt        DateTime?        @map("attended_at")
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+  @@map("event_participants")
+}
+
+model Program {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title               String    @db.VarChar(255)
+  category            ProgramCategory
+  description         String?   @db.Text
+  startDate           DateTime? @map("start_date") @db.Date
+  endDate             DateTime? @map("end_date") @db.Date
+  location            String?   @db.VarChar(255)
+  impactStats         Json?     @map("impact_stats")
+  isFeatured          Boolean   @map("is_featured") @default(false)
+  createdBy           BigInt?   @map("created_by") @db.UnsignedBigInt
+  language            Language  @default(en)
+  translationGroupId  String?   @map("translation_group_id") @db.VarChar(36)
+  createdAt           DateTime  @map("created_at") @default(now())
+  updatedAt           DateTime  @map("updated_at") @default(now()) @updatedAt
+  deletedAt           DateTime? @map("deleted_at")
+
+  // Relations
+  creator User   @relation("ProgramCreator", fields: [createdBy], references: [id])
+  media   Media[]
+
+  @@map("programs")
+}
+
+model Post {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title               String    @db.VarChar(255)
+  slug                String    @unique @db.VarChar(255)
+  content             String?   @db.Text
+  postType            PostType  @map("post_type")
+  authorId            BigInt?   @map("author_id") @db.UnsignedBigInt
+  featureImage        String?   @map("feature_image") @db.VarChar(512)
+  language            Language  @default(en)
+  translationGroupId  String?   @map("translation_group_id") @db.VarChar(36)
+  createdAt           DateTime  @map("created_at") @default(now())
+  updatedAt           DateTime  @map("updated_at") @default(now()) @updatedAt
+
+  // Relations
+  author User @relation("PostAuthor", fields: [authorId], references: [id])
+
+  @@map("posts")
+}
+
+model Media {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  mediaType           MediaType @map("media_type")
+  title               String?   @db.VarChar(255)
+  description         String?   @db.Text
+  fileUrl             String    @map("file_url") @db.VarChar(512)
+  relatedEventId      BigInt?   @map("related_event_id") @db.UnsignedBigInt
+  relatedProgramId    BigInt?   @map("related_program_id") @db.UnsignedBigInt
+  uploadedBy          BigInt?   @map("uploaded_by") @db.UnsignedBigInt
+  language            Language  @default(en)
+  translationGroupId  String?   @map("translation_group_id") @db.VarChar(36)
+  uploadedAt          DateTime  @map("uploaded_at") @default(now())
+
+  // Relations
+  relatedEvent   Event?   @relation(fields: [relatedEventId], references: [id], onDelete: SetNull)
+  relatedProgram Program? @relation(fields: [relatedProgramId], references: [id], onDelete: SetNull)
+  uploader       User?    @relation("MediaUploader", fields: [uploadedBy], references: [id])
+
+  @@map("media")
+}
+
+model Document {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  title               String    @db.VarChar(255)
+  description         String?   @db.Text
+  category            String?   @db.VarChar(50)
+  fileUrl             String    @map("file_url") @db.VarChar(512)
+  fileSize            BigInt?   @map("file_size") @db.UnsignedBigInt
+  fileType            String?   @map("file_type") @db.VarChar(50)
+  uploadedBy          BigInt?   @map("uploaded_by") @db.UnsignedBigInt
+  language            Language  @default(en)
+  translationGroupId  String?   @map("translation_group_id") @db.VarChar(36)
+  isPublic            Boolean   @map("is_public") @default(false)
+  downloadCount       Int       @map("download_count") @default(0) @db.UnsignedInt
+  uploadedAt          DateTime  @map("uploaded_at") @default(now())
+  updatedAt           DateTime  @map("updated_at") @default(now()) @updatedAt
+
+  // Relations
+  uploader User @relation("DocumentUploader", fields: [uploadedBy], references: [id])
+
+  @@map("documents")
+}
+
+model Testimonial {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name                String    @db.VarChar(100)
+  role                String?   @db.VarChar(100)
+  message             String    @db.Text
+  imageUrl            String?   @map("image_url") @db.VarChar(512)
+  type                TestimonialType
+  language            Language  @default(en)
+  translationGroupId  String?   @map("translation_group_id") @db.VarChar(36)
+  isFeatured          Boolean   @map("is_featured") @default(false)
+  createdAt           DateTime  @map("created_at") @default(now())
+  updatedAt           DateTime  @map("updated_at") @default(now()) @updatedAt
+
+  @@map("testimonials")
+}
+
+model FAQ {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  question            String    @db.Text
+  answer              String    @db.Text
+  category            String?   @db.VarChar(50)
+  language            Language  @default(en)
+  translationGroupId  String?   @map("translation_group_id") @db.VarChar(36)
+  isActive            Boolean   @map("is_active") @default(true)
+  sortOrder           Int       @map("sort_order") @default(0) @db.UnsignedInt
+  createdAt           DateTime  @map("created_at") @default(now())
+  updatedAt           DateTime  @map("updated_at") @default(now()) @updatedAt
+
+  @@map("faqs")
+}
+
+model Partner {
+  id                    BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name                  String    @db.VarChar(255)
+  logoUrl               String?   @map("logo_url") @db.VarChar(512)
+  type                  PartnerType
+  website               String?   @db.VarChar(512)
+  contactEmail          String?   @map("contact_email") @db.VarChar(255)
+  quote                 String?   @db.Text
+  language              Language  @default(en)
+  translationGroupId    String?   @map("translation_group_id") @db.VarChar(36)
+  isActive              Boolean   @map("is_active") @default(true)
+  partnershipStartDate  DateTime? @map("partnership_start_date") @db.Date
+  partnershipEndDate    DateTime? @map("partnership_end_date") @db.Date
+  createdAt             DateTime  @map("created_at") @default(now())
+  updatedAt             DateTime  @map("updated_at") @default(now()) @updatedAt
+
+  @@map("partners")
+}
+
+model ContactMessage {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String    @db.VarChar(100)
+  email       String    @db.VarChar(255)
+  subject     String?   @db.VarChar(255)
+  message     String    @db.Text
+  reason      ContactReason
+  status      MessageStatus @default(new)
+  ipAddress   String?   @map("ip_address") @db.VarChar(45)
+  userAgent   String?   @map("user_agent") @db.Text
+  submittedAt DateTime  @map("submitted_at") @default(now())
+  repliedAt   DateTime? @map("replied_at")
+
+  @@map("contact_messages")
+}
+
+model NewsletterSubscriber {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  email               String    @unique @db.VarChar(255)
+  firstName           String?   @map("first_name") @db.VarChar(100)
+  lastName            String?   @map("last_name") @db.VarChar(100)
+  isActive            Boolean   @map("is_active") @default(true)
+  languagePreference  Language  @map("language_preference") @default(en)
+  subscribedAt        DateTime  @map("subscribed_at") @default(now())
+  unsubscribedAt      DateTime? @map("unsubscribed_at")
+
+  @@map("newsletter_subscribers")
+}
+
+model RolePermission {
+  role       UserRole
+  permission String    @db.VarChar(100)
+  createdAt  DateTime  @map("created_at") @default(now())
+
+  @@id([role, permission])
+  @@map("role_permissions")
+}
+
+model EmailLog {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  recipient    String    @db.VarChar(255)
+  subject      String?   @db.VarChar(255)
+  templateUsed String?   @map("template_used") @db.VarChar(100)
+  content      String?   @db.Text
+  status       EmailStatus
+  errorMessage String?   @map("error_message") @db.Text
+  sentAt       DateTime  @map("sent_at") @default(now())
+  openedAt     DateTime? @map("opened_at")
+  clickedAt    DateTime? @map("clicked_at")
+
+  @@map("email_logs")
+}
+
+model SiteInteraction {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  userId     BigInt?   @map("user_id") @db.UnsignedBigInt
+  sessionId  String?   @map("session_id") @db.VarChar(100)
+  page       String?   @db.VarChar(255)
+  action     String?   @db.VarChar(100)
+  metadata   Json?
+  ipAddress  String?   @map("ip_address") @db.VarChar(45)
+  userAgent  String?   @map("user_agent") @db.Text
+  occurredAt DateTime  @map("occurred_at") @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("site_interactions")
+}
+
+model Skill {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String    @unique @db.VarChar(100)
+  category    String?   @db.VarChar(50)
+  description String?   @db.Text
+  createdAt   DateTime  @map("created_at") @default(now())
+
+  // Relations
+  volunteerSkills VolunteerSkill[]
+
+  @@map("skills")
+}
+
+model VolunteerSkill {
+  volunteerId       BigInt           @db.UnsignedBigInt
+  skillId           BigInt           @db.UnsignedBigInt
+  proficiencyLevel  ProficiencyLevel @map("proficiency_level")
+  isVerified        Boolean          @map("is_verified") @default(false)
+  createdAt         DateTime         @map("created_at") @default(now())
+
+  // Relations
+  volunteer VolunteerProfile @relation(fields: [volunteerId], references: [userId], onDelete: Cascade)
+  skill     Skill           @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([volunteerId, skillId])
+  @@map("volunteer_skills")
+}
+
+// Enums
+enum UserRole {
+  admin
+  volunteer
+  donor
+  editor
+}
+
+enum Language {
+  en
+  am
+}
+
+enum BackgroundCheckStatus {
+  pending
+  approved
+  rejected
+}
+
+enum DonationFrequency {
+  monthly
+  quarterly
+  yearly
+}
+
+enum DonationTier {
+  bronze
+  silver
+  gold
+  platinum
+}
+
+enum DonationType {
+  one_time
+  recurring
+  in_kind
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+}
+
+enum EventStatus {
+  upcoming
+  ongoing
+  completed
+  cancelled
+}
+
+enum ParticipantRole {
+  volunteer
+  attendee
+  organizer
+}
+
+enum ParticipantStatus {
+  registered
+  confirmed
+  attended
+  no_show
+}
+
+enum ProgramCategory {
+  medical_outreach
+  mental_health
+  youth_development
+  disease_prevention
+}
+
+enum PostType {
+  blog
+  news
+  press_release
+}
+
+enum MediaType {
+  image
+  video
+  pdf
+}
+
+enum TestimonialType {
+  volunteer
+  beneficiary
+  partner
+}
+
+enum ContactReason {
+  general
+  volunteering
+  media
+  donations
+}
+
+enum MessageStatus {
+  new
+  read
+  replied
+  closed
+}
+
+enum EmailStatus {
+  sent
+  failed
+  bounced
+  opened
+  clicked
+}
+
+enum PartnerType {
+  ngo
+  corporate
+  government
+  diaspora
+}
+
+enum ProficiencyLevel {
+  beginner
+  intermediate
+  expert
+} 
