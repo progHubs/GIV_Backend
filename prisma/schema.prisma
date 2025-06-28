@@ -1,8 +1,12 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -33,9 +37,7 @@ model User {
   createdPosts        Post[]            @relation("PostAuthor")
   uploadedMedia       Media[]           @relation("MediaUploader")
   uploadedDocuments   Document[]        @relation("DocumentUploader")
-  donations           Donation[]
   eventParticipants   EventParticipant[]
-  volunteerSkills     VolunteerSkill[]
   siteInteractions    SiteInteraction[]
 
   @@map("users")
@@ -110,7 +112,7 @@ model Campaign {
   deletedAt           DateTime? @map("deleted_at")
 
   // Relations
-  creator   User       @relation("CampaignCreator", fields: [createdBy], references: [id])
+  creator   User?      @relation("CampaignCreator", fields: [createdBy], references: [id])
   donations Donation[]
 
   @@map("campaigns")
@@ -174,7 +176,7 @@ model Event {
   deletedAt             DateTime? @map("deleted_at")
 
   // Relations
-  creator       User               @relation("EventCreator", fields: [createdBy], references: [id])
+  creator       User?              @relation("EventCreator", fields: [createdBy], references: [id])
   participants  EventParticipant[]
   media         Media[]
 
@@ -218,7 +220,7 @@ model Program {
   deletedAt           DateTime? @map("deleted_at")
 
   // Relations
-  creator User   @relation("ProgramCreator", fields: [createdBy], references: [id])
+  creator User?  @relation("ProgramCreator", fields: [createdBy], references: [id])
   media   Media[]
 
   @@map("programs")
@@ -238,7 +240,7 @@ model Post {
   updatedAt           DateTime  @map("updated_at") @default(now()) @updatedAt
 
   // Relations
-  author User @relation("PostAuthor", fields: [authorId], references: [id])
+  author User? @relation("PostAuthor", fields: [authorId], references: [id])
 
   @@map("posts")
 }
@@ -281,7 +283,7 @@ model Document {
   updatedAt           DateTime  @map("updated_at") @default(now()) @updatedAt
 
   // Relations
-  uploader User @relation("DocumentUploader", fields: [uploadedBy], references: [id])
+  uploader User? @relation("DocumentUploader", fields: [uploadedBy], references: [id])
 
   @@map("documents")
 }
@@ -556,4 +558,4 @@ enum ProficiencyLevel {
   beginner
   intermediate
   expert
-} 
+}

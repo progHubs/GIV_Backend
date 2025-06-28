@@ -140,3 +140,4 @@ coverage/
 
 
 pre
+/src/generated/prisma

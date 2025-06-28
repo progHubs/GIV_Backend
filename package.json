@@ -29,6 +29,7 @@
   "author": "GIV Society Development Team",
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^6.10.1",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
