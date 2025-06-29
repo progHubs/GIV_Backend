@@ -243,7 +243,7 @@ const handleUploadError = (err, req, res, next) => {
 
   if (err) {
     return res.status(400).json({
-      error: "Upload Error",
+      error: "Upload Error, Please try again later.",
       message: err.message,
     });
   }
