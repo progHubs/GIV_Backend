@@ -1,103 +1,188 @@
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const express = require("express");
+const router = express.Router();
+const path = require("path");
+const { cloudinary } = require("./src/config/cloudinary.config");
+const {
+  uploadImage,
+  uploadDocument,
+  uploadSpreadsheet,
+  uploadVideo,
+  uploadAudio,
+  handleUploadError,
+} = require("./src/middlewares/uploadMiddleware");
 
-async function seedUsers() {
+// Set up EJS as the view engine
+router.set("view engine", "ejs");
+router.set("views", path.join(__dirname, "src/views"));
+
+// Render the upload test page
+router.get("/test-upload", (req, res) => {
+  res.render("Test");
+});
+
+// Handle image upload
+router.post(
+  "/upload/image",
+  uploadImage.single("image"),
+  handleUploadError,
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Upload to Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "giv-society/images",
+        resource_type: "image",
+      });
+
+      res.json({
+        message: "Image uploaded successfully",
+        data: {
+          url: result.secure_url,
+          public_id: result.public_id,
+        },
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Failed to upload image" });
+    }
+  }
+);
+
+// Handle document upload
+router.post(
+  "/upload/document",
+  uploadDocument.single("document"),
+  handleUploadError,
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "giv-society/documents",
+        resource_type: "raw",
+      });
+
+      res.json({
+        message: "Document uploaded successfully",
+        data: {
+          url: result.secure_url,
+          public_id: result.public_id,
+        },
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  }
+);
+
+// Handle spreadsheet upload
+router.post(
+  "/upload/spreadsheet",
+  uploadSpreadsheet.single("spreadsheet"),
+  handleUploadError,
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "giv-society/spreadsheets",
+        resource_type: "raw",
+      });
+
+      res.json({
+        message: "Spreadsheet uploaded successfully",
+        data: {
+          url: result.secure_url,
+          public_id: result.public_id,
+        },
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Failed to upload spreadsheet" });
+    }
+  }
+);
+
+// Handle video upload
+router.post(
+  "/upload/video",
+  uploadVideo.single("video"),
+  handleUploadError,
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "giv-society/videos",
+        resource_type: "video",
+      });
+
+      res.json({
+        message: "Video uploaded successfully",
+        data: {
+          url: result.secure_url,
+          public_id: result.public_id,
+        },
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Failed to upload video" });
+    }
+  }
+);
+
+// Handle audio upload
+router.post(
+  "/upload/audio",
+  uploadAudio.single("audio"),
+  handleUploadError,
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "giv-society/audio",
+        resource_type: "video", // Cloudinary uses 'video' type for audio files
+      });
+
+      res.json({
+        message: "Audio uploaded successfully",
+        data: {
+          url: result.secure_url,
+          public_id: result.public_id,
+        },
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Failed to upload audio" });
+    }
+  }
+);
+
+// Delete file from Cloudinary
+router.delete("/delete/:public_id", async (req, res) => {
   try {
-    // Create admin user
-    const admin = await prisma.user.create({
-      data: {
-        fullName: "Haylemesk",
-        email: "haylemesk@gmail.com",
-        phone: "+1234567890",
-        passwordHash:
-          "$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu9.m", // "admin123"
-        role: "admin",
-        profileImageUrl: "https://example.com/admin.jpg",
-        languagePreference: "en",
-        emailVerified: true,
-      },
-    });
-
-    // Create volunteer user with volunteer profile
-    const volunteer = await prisma.user.create({
-      data: {
-        fullName: "John Volunteer",
-        email: "volunteer@example.com",
-        phone: "+1234567891",
-        passwordHash:
-          "$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu9.m", // "volunteer123"
-        role: "volunteer",
-        profileImageUrl: "https://example.com/volunteer.jpg",
-        languagePreference: "en",
-        emailVerified: true,
-        volunteerProfile: {
-          create: {
-            areaOfExpertise: "Healthcare",
-            location: "New York",
-            availability: {
-              weekdays: true,
-              weekends: false,
-            },
-            motivation: "I want to help people in need",
-            backgroundCheckStatus: "approved",
-            emergencyContactName: "Jane Doe",
-            emergencyContactPhone: "+1234567892",
-          },
-        },
-      },
-    });
-
-    // Create donor user with donor profile
-    const donor = await prisma.user.create({
-      data: {
-        fullName: "Sarah Donor",
-        email: "donor@example.com",
-        phone: "+1234567893",
-        passwordHash:
-          "$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu9.m", // "donor123"
-        role: "donor",
-        profileImageUrl: "https://example.com/donor.jpg",
-        languagePreference: "en",
-        emailVerified: true,
-        donorProfile: {
-          create: {
-            isRecurringDonor: true,
-            preferredPaymentMethod: "credit_card",
-            donationFrequency: "monthly",
-            taxReceiptEmail: "donor@example.com",
-            donationTier: "gold",
-          },
-        },
-      },
-    });
-
-    // Create editor user
-    const editor = await prisma.user.create({
-      data: {
-        fullName: "Mike Editor",
-        email: "editor@example.com",
-        phone: "+1234567894",
-        passwordHash:
-          "$2b$10$K7L1OJ45/4Y2nIvhRVpCe.FSmhDdWoXehVzJptJ/op0lSsvqNu9.m", // "editor123"
-        role: "editor",
-        profileImageUrl: "https://example.com/editor.jpg",
-        languagePreference: "en",
-        emailVerified: true,
-      },
-    });
-
-    console.log("Users created successfully:", {
-      admin: admin.id,
-      volunteer: volunteer.id,
-      donor: donor.id,
-      editor: editor.id,
+    const result = await cloudinary.uploader.destroy(req.params.public_id);
+    res.json({
+      message: "File deleted successfully",
+      result,
     });
   } catch (error) {
-    console.error("Error seeding users:", error);
-  } finally {
-    await prisma.$disconnect();
+    console.error("Delete error:", error);
+    res.status(500).json({ error: "Failed to delete file" });
   }
-}
+});
 
-// Run the seed function
-seedUsers();
+module.exports = router;
