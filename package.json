@@ -13,7 +13,7 @@
     "format": "prettier --write src/",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:seed": "node src/prisma/seed.js",
+    "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio"
   },
   "keywords": [
