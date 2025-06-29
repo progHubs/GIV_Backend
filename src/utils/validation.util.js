@@ -189,72 +189,66 @@ const validatePhone = (phone) => {
 };
 
 /**
- * Validate registration data
- * @param {Object} data - Registration data
- * @returns {Object} - Validation result
+ * Simplified Registration Validation
  */
 const validateRegistrationData = (data) => {
   const errors = [];
   const sanitized = {};
-  
-  // Validate email
-  const emailValidation = validateEmail(data.email);
-  if (!emailValidation.isValid) {
-    errors.push(...emailValidation.errors);
+
+  // Full name
+  if (!data.full_name || typeof data.full_name !== 'string' || data.full_name.trim().length < 2 || data.full_name.trim().length > 100 || !/^[a-zA-Z\s\-']+$/.test(data.full_name.trim())) {
+    errors.push('Full name is required and must be 2-100 characters (letters, spaces, hyphens, apostrophes)');
   } else {
-    sanitized.email = emailValidation.sanitized;
+    sanitized.full_name = data.full_name.trim();
   }
-  
-  // Validate full name
-  const nameValidation = validateName(data.full_name);
-  if (!nameValidation.isValid) {
-    errors.push(...nameValidation.errors);
+
+  // Email
+  if (!data.email || typeof data.email !== 'string' || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(data.email.trim())) {
+    errors.push('Valid email is required');
   } else {
-    sanitized.full_name = nameValidation.sanitized;
+    sanitized.email = data.email.trim().toLowerCase();
   }
-  
-  // Validate password
+
+  // Password
   const passwordValidation = validatePasswordStrength(data.password);
   if (!passwordValidation.isValid) {
     errors.push(...passwordValidation.errors);
   } else {
-    sanitized.password = data.password; // Don't sanitize password
+    sanitized.password = data.password;
   }
-  
-  // Validate phone (optional)
-  if (data.phone) {
-    const phoneValidation = validatePhone(data.phone);
-    if (!phoneValidation.isValid) {
-      errors.push(...phoneValidation.errors);
-    } else {
-      sanitized.phone = phoneValidation.sanitized;
-    }
-  }
-  
-  // Validate role (optional, defaults to 'donor')
-  if (data.role) {
+
+  // Role (optional)
+  if (data.role !== undefined) {
     const validRoles = ['admin', 'volunteer', 'donor', 'editor'];
     if (!validRoles.includes(data.role)) {
-      errors.push('Invalid role specified');
+      errors.push('Role must be one of: admin, volunteer, donor, editor');
     } else {
       sanitized.role = data.role;
     }
   } else {
-    sanitized.role = 'donor'; // Default role
+    sanitized.role = 'donor';
   }
-  
-  // Validate language preference (optional, defaults to 'en')
-  if (data.language_preference) {
-    const validLanguages = ['en', 'am'];
-    if (!validLanguages.includes(data.language_preference)) {
-      errors.push('Invalid language preference');
+
+  // Language preference (optional)
+  if (data.language_preference !== undefined) {
+    if (!['en', 'am'].includes(data.language_preference)) {
+      errors.push('Language preference must be "en" or "am"');
     } else {
       sanitized.language_preference = data.language_preference;
     }
   } else {
-    sanitized.language_preference = 'en'; // Default language
+    sanitized.language_preference = 'en';
   }
-  
+
+  // Phone (optional)
+  if (data.phone !== undefined && data.phone !== null && data.phone !== '') {
+    if (!/^\+?[1-9]\d{1,14}$/.test(data.phone.replace(/[\s\-\(\)]/g, ''))) {
+      errors.push('Phone number must be in international format (e.g., +1234567890)');
+    } else {
+      sanitized.phone = data.phone.replace(/[\s\-\(\)]/g, '');
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -320,34 +314,32 @@ const validatePasswordResetData = (data) => {
 };
 
 /**
- * Validate password change data
- * @param {Object} data - Password change data
- * @returns {Object} - Validation result
+ * Simplified Password Change Validation
  */
 const validatePasswordChangeData = (data) => {
   const errors = [];
   const sanitized = {};
-  
-  // Validate current password
+
+  // Current password
   if (!data.current_password || typeof data.current_password !== 'string') {
     errors.push('Current password is required');
   } else {
     sanitized.current_password = data.current_password;
   }
-  
-  // Validate new password
+
+  // New password
   const passwordValidation = validatePasswordStrength(data.new_password);
   if (!passwordValidation.isValid) {
     errors.push(...passwordValidation.errors);
   } else {
     sanitized.new_password = data.new_password;
   }
-  
-  // Validate password confirmation
+
+  // Confirm password
   if (data.new_password !== data.confirm_password) {
     errors.push('Password confirmation does not match');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
