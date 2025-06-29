@@ -1,0 +1,639 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generate/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model campaigns {
+  id                   BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  title                String              @db.VarChar(255)
+  slug                 String              @unique(map: "slug") @db.VarChar(255)
+  description          String?             @db.Text
+  goal_amount          Decimal             @db.Decimal(15, 2)
+  current_amount       Decimal?            @default(0.00) @db.Decimal(15, 2)
+  start_date           DateTime            @db.Date
+  end_date             DateTime?           @db.Date
+  is_active            Boolean?            @default(true)
+  is_featured          Boolean?            @default(false)
+  category             String?             @db.VarChar(50)
+  progress_bar_color   String?             @db.VarChar(20)
+  image_url            String?             @db.VarChar(512)
+  video_url            String?             @db.VarChar(512)
+  donor_count          Int?                @default(0) @db.UnsignedInt
+  success_stories      String?             @db.LongText
+  created_by           BigInt?             @db.UnsignedBigInt
+  language             campaigns_language? @default(en)
+  translation_group_id String?             @db.VarChar(36)
+  created_at           DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?           @default(now()) @db.Timestamp(0)
+  deleted_at           DateTime?           @db.Timestamp(0)
+  users                users?              @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "campaigns_ibfk_1")
+  donations            donations[]
+
+  @@index([created_by], map: "created_by")
+  @@index([is_active, is_featured], map: "idx_active_featured")
+  @@index([category], map: "idx_category")
+  @@index([language], map: "idx_language")
+  @@index([slug], map: "idx_slug")
+  @@index([translation_group_id], map: "idx_translation_group")
+}
+
+model contact_messages {
+  id           BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  name         String                   @db.VarChar(100)
+  email        String                   @db.VarChar(255)
+  subject      String?                  @db.VarChar(255)
+  message      String                   @db.Text
+  reason       contact_messages_reason
+  status       contact_messages_status? @default(new)
+  ip_address   String?                  @db.VarChar(45)
+  user_agent   String?                  @db.Text
+  submitted_at DateTime?                @default(now()) @db.Timestamp(0)
+  replied_at   DateTime?                @db.Timestamp(0)
+
+  @@index([reason], map: "idx_reason")
+  @@index([status], map: "idx_status")
+  @@index([submitted_at], map: "idx_submitted_at")
+}
+
+model documents {
+  id                   BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  title                String              @db.VarChar(255)
+  description          String?             @db.Text
+  category             String?             @db.VarChar(50)
+  file_url             String              @db.VarChar(512)
+  file_size            BigInt?             @db.UnsignedBigInt
+  file_type            String?             @db.VarChar(50)
+  uploaded_by          BigInt?             @db.UnsignedBigInt
+  language             documents_language? @default(en)
+  translation_group_id String?             @db.VarChar(36)
+  is_public            Boolean?            @default(false)
+  download_count       Int?                @default(0) @db.UnsignedInt
+  uploaded_at          DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?           @default(now()) @db.Timestamp(0)
+  users                users?              @relation(fields: [uploaded_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "documents_ibfk_1")
+
+  @@index([category], map: "idx_category")
+  @@index([language], map: "idx_language")
+  @@index([is_public], map: "idx_public")
+  @@index([translation_group_id], map: "idx_translation_group")
+  @@index([uploaded_by], map: "uploaded_by")
+}
+
+model donations {
+  id                BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  donor_id          BigInt                   @db.UnsignedBigInt
+  campaign_id       BigInt                   @db.UnsignedBigInt
+  amount            Decimal                  @db.Decimal(15, 2)
+  currency          String                   @default("USD") @db.VarChar(3)
+  donation_type     donations_donation_type
+  payment_method    String?                  @db.VarChar(50)
+  payment_status    donations_payment_status
+  transaction_id    String?                  @unique(map: "transaction_id") @db.VarChar(100)
+  receipt_url       String?                  @db.VarChar(512)
+  is_acknowledged   Boolean?                 @default(false)
+  is_tax_deductible Boolean?                 @default(true)
+  is_anonymous      Boolean?                 @default(false)
+  notes             String?                  @db.Text
+  donated_at        DateTime?                @default(now()) @db.Timestamp(0)
+  created_at        DateTime?                @default(now()) @db.Timestamp(0)
+  updated_at        DateTime?                @default(now()) @db.Timestamp(0)
+  donor_profiles    donor_profiles           @relation(fields: [donor_id], references: [user_id], onUpdate: Restrict, map: "donations_ibfk_1")
+  campaigns         campaigns                @relation(fields: [campaign_id], references: [id], onUpdate: Restrict, map: "donations_ibfk_2")
+
+  @@index([campaign_id], map: "campaign_id")
+  @@index([donor_id], map: "donor_id")
+  @@index([donated_at], map: "idx_donation_date")
+  @@index([payment_status], map: "idx_payment_status")
+}
+
+model donor_profiles {
+  user_id                  BigInt                             @id @db.UnsignedBigInt
+  is_recurring_donor       Boolean?                           @default(false)
+  preferred_payment_method String?                            @db.VarChar(50)
+  total_donated            Decimal?                           @default(0.00) @db.Decimal(15, 2)
+  donation_frequency       donor_profiles_donation_frequency?
+  tax_receipt_email        String?                            @db.VarChar(255)
+  is_anonymous             Boolean?                           @default(false)
+  last_donation_date       DateTime?                          @db.Timestamp(0)
+  donation_tier            donor_profiles_donation_tier?
+  created_at               DateTime?                          @default(now()) @db.Timestamp(0)
+  updated_at               DateTime?                          @default(now()) @db.Timestamp(0)
+  donations                donations[]
+  users                    users                              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "donor_profiles_ibfk_1")
+
+  @@index([donation_tier], map: "idx_donation_tier")
+  @@index([is_recurring_donor], map: "idx_recurring_donor")
+}
+
+model email_logs {
+  id            BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  recipient     String            @db.VarChar(255)
+  subject       String?           @db.VarChar(255)
+  template_used String?           @db.VarChar(100)
+  content       String?           @db.Text
+  status        email_logs_status
+  error_message String?           @db.Text
+  sent_at       DateTime?         @default(now()) @db.Timestamp(0)
+  opened_at     DateTime?         @db.Timestamp(0)
+  clicked_at    DateTime?         @db.Timestamp(0)
+
+  @@index([recipient], map: "idx_recipient")
+  @@index([sent_at], map: "idx_sent_at")
+  @@index([status], map: "idx_status")
+  @@index([template_used], map: "idx_template")
+}
+
+model event_participants {
+  event_id          BigInt                     @db.UnsignedBigInt
+  user_id           BigInt                     @db.UnsignedBigInt
+  role              event_participants_role
+  status            event_participants_status? @default(registered)
+  hours_contributed Decimal?                   @db.Decimal(5, 2)
+  feedback          String?                    @db.Text
+  rating            Int?                       @db.UnsignedTinyInt
+  registered_at     DateTime?                  @default(now()) @db.Timestamp(0)
+  attended_at       DateTime?                  @db.Timestamp(0)
+  events            events                     @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "event_participants_ibfk_1")
+  users             users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "event_participants_ibfk_2")
+
+  @@id([event_id, user_id])
+  @@index([status], map: "idx_status")
+  @@index([user_id], map: "user_id")
+}
+
+model events {
+  id                    BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  title                 String               @db.VarChar(255)
+  slug                  String               @unique(map: "slug") @db.VarChar(255)
+  description           String?              @db.Text
+  event_date            DateTime             @db.Date
+  event_time            DateTime             @db.Time(0)
+  timezone              String?              @default("UTC") @db.VarChar(50)
+  location              String?              @db.VarChar(255)
+  latitude              Decimal?             @db.Decimal(10, 8)
+  longitude             Decimal?             @db.Decimal(11, 8)
+  category              String?              @db.VarChar(50)
+  capacity              Int?                 @db.UnsignedInt
+  registered_count      Int?                 @default(0) @db.UnsignedInt
+  status                events_status?       @default(upcoming)
+  registration_deadline DateTime?            @db.Timestamp(0)
+  registration_link     String?              @db.VarChar(512)
+  map_embed_url         String?              @db.VarChar(512)
+  agenda                String?              @db.Text
+  speaker_info          String?              @db.LongText
+  requirements          String?              @db.Text
+  ticket_price          Decimal?             @db.Decimal(10, 2)
+  ticket_link           String?              @db.VarChar(512)
+  is_featured           Boolean?             @default(false)
+  created_by            BigInt?              @db.UnsignedBigInt
+  language              events_language?     @default(en)
+  translation_group_id  String?              @db.VarChar(36)
+  created_at            DateTime?            @default(now()) @db.Timestamp(0)
+  updated_at            DateTime?            @default(now()) @db.Timestamp(0)
+  deleted_at            DateTime?            @db.Timestamp(0)
+  event_participants    event_participants[]
+  users                 users?               @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "events_ibfk_1")
+  media                 media[]
+
+  @@index([created_by], map: "created_by")
+  @@index([event_date], map: "idx_event_date")
+  @@index([language], map: "idx_language")
+  @@index([latitude, longitude], map: "idx_location_coords")
+  @@index([slug], map: "idx_slug")
+  @@index([status], map: "idx_status")
+  @@index([translation_group_id], map: "idx_translation_group")
+}
+
+model faqs {
+  id                   BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  question             String         @db.Text
+  answer               String         @db.Text
+  category             String?        @db.VarChar(50)
+  language             faqs_language? @default(en)
+  translation_group_id String?        @db.VarChar(36)
+  is_active            Boolean?       @default(true)
+  sort_order           Int?           @default(0) @db.UnsignedInt
+  created_at           DateTime?      @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?      @default(now()) @db.Timestamp(0)
+
+  @@index([is_active, sort_order], map: "idx_active_order")
+  @@index([category], map: "idx_category")
+  @@index([language], map: "idx_language")
+  @@index([translation_group_id], map: "idx_translation_group")
+}
+
+model media {
+  id                   BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  media_type           media_media_type
+  title                String?          @db.VarChar(255)
+  description          String?          @db.Text
+  file_url             String           @db.VarChar(512)
+  related_event_id     BigInt?          @db.UnsignedBigInt
+  related_program_id   BigInt?          @db.UnsignedBigInt
+  uploaded_by          BigInt?          @db.UnsignedBigInt
+  language             media_language?  @default(en)
+  translation_group_id String?          @db.VarChar(36)
+  uploaded_at          DateTime?        @default(now()) @db.Timestamp(0)
+  events               events?          @relation(fields: [related_event_id], references: [id], onUpdate: Restrict, map: "media_ibfk_1")
+  programs             programs?        @relation(fields: [related_program_id], references: [id], onUpdate: Restrict, map: "media_ibfk_2")
+  users                users?           @relation(fields: [uploaded_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "media_ibfk_3")
+
+  @@index([language], map: "idx_language")
+  @@index([media_type], map: "idx_media_type")
+  @@index([translation_group_id], map: "idx_translation_group")
+  @@index([related_event_id], map: "related_event_id")
+  @@index([related_program_id], map: "related_program_id")
+  @@index([uploaded_by], map: "uploaded_by")
+}
+
+model newsletter_subscribers {
+  id                  BigInt                                      @id @default(autoincrement()) @db.UnsignedBigInt
+  email               String                                      @unique(map: "email") @db.VarChar(255)
+  first_name          String?                                     @db.VarChar(100)
+  last_name           String?                                     @db.VarChar(100)
+  is_active           Boolean?                                    @default(true)
+  language_preference newsletter_subscribers_language_preference? @default(en)
+  subscribed_at       DateTime?                                   @default(now()) @db.Timestamp(0)
+  unsubscribed_at     DateTime?                                   @db.Timestamp(0)
+
+  @@index([is_active], map: "idx_active")
+  @@index([email], map: "idx_email")
+}
+
+model partners {
+  id                     BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  name                   String             @db.VarChar(255)
+  logo_url               String?            @db.VarChar(512)
+  type                   partners_type
+  website                String?            @db.VarChar(512)
+  contact_email          String?            @db.VarChar(255)
+  quote                  String?            @db.Text
+  language               partners_language? @default(en)
+  translation_group_id   String?            @db.VarChar(36)
+  is_active              Boolean?           @default(true)
+  partnership_start_date DateTime?          @db.Date
+  partnership_end_date   DateTime?          @db.Date
+  created_at             DateTime?          @default(now()) @db.Timestamp(0)
+  updated_at             DateTime?          @default(now()) @db.Timestamp(0)
+
+  @@index([is_active], map: "idx_active")
+  @@index([language], map: "idx_language")
+  @@index([translation_group_id], map: "idx_translation_group")
+  @@index([type], map: "idx_type")
+}
+
+model posts {
+  id                   BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  title                String          @db.VarChar(255)
+  slug                 String          @unique(map: "slug") @db.VarChar(255)
+  content              String?         @db.Text
+  post_type            posts_post_type
+  author_id            BigInt?         @db.UnsignedBigInt
+  feature_image        String?         @db.VarChar(512)
+  language             posts_language? @default(en)
+  translation_group_id String?         @db.VarChar(36)
+  created_at           DateTime?       @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?       @default(now()) @db.Timestamp(0)
+  users                users?          @relation(fields: [author_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "posts_ibfk_1")
+
+  @@index([author_id], map: "author_id")
+  @@index([language], map: "idx_language")
+  @@index([post_type], map: "idx_post_type")
+  @@index([slug], map: "idx_slug")
+  @@index([translation_group_id], map: "idx_translation_group")
+  @@fulltext([title, content], map: "idx_content")
+}
+
+model programs {
+  id                   BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  title                String             @db.VarChar(255)
+  category             programs_category?
+  description          String?            @db.Text
+  start_date           DateTime?          @db.Date
+  end_date             DateTime?          @db.Date
+  location             String?            @db.VarChar(255)
+  impact_stats         String?            @db.LongText
+  is_featured          Boolean?           @default(false)
+  created_by           BigInt?            @db.UnsignedBigInt
+  language             programs_language? @default(en)
+  translation_group_id String?            @db.VarChar(36)
+  created_at           DateTime?          @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?          @default(now()) @db.Timestamp(0)
+  deleted_at           DateTime?          @db.Timestamp(0)
+  media                media[]
+  users                users?             @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "programs_ibfk_1")
+
+  @@index([created_by], map: "created_by")
+  @@index([category], map: "idx_category")
+  @@index([start_date, end_date], map: "idx_date_range")
+  @@index([language], map: "idx_language")
+  @@index([translation_group_id], map: "idx_translation_group")
+}
+
+model role_permissions {
+  role       role_permissions_role
+  permission String                @db.VarChar(100)
+  created_at DateTime?             @default(now()) @db.Timestamp(0)
+
+  @@id([role, permission])
+  @@index([permission], map: "idx_permission")
+  @@index([role], map: "idx_role")
+}
+
+model site_interactions {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id     BigInt?   @db.UnsignedBigInt
+  session_id  String?   @db.VarChar(100)
+  page        String?   @db.VarChar(255)
+  action      String?   @db.VarChar(100)
+  metadata    String?   @db.LongText
+  ip_address  String?   @db.VarChar(45)
+  user_agent  String?   @db.Text
+  occurred_at DateTime? @default(now()) @db.Timestamp(0)
+  users       users?    @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "site_interactions_ibfk_1")
+
+  @@index([action], map: "idx_action")
+  @@index([occurred_at], map: "idx_occurred_at")
+  @@index([page], map: "idx_page")
+  @@index([session_id], map: "idx_session_id")
+  @@index([user_id], map: "idx_user_id")
+}
+
+model skills {
+  id               BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  name             String             @unique(map: "name") @db.VarChar(100)
+  category         String?            @db.VarChar(50)
+  description      String?            @db.Text
+  created_at       DateTime?          @default(now()) @db.Timestamp(0)
+  volunteer_skills volunteer_skills[]
+
+  @@index([category], map: "idx_category")
+}
+
+model testimonials {
+  id                   BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  name                 String                 @db.VarChar(100)
+  role                 String?                @db.VarChar(100)
+  message              String                 @db.Text
+  image_url            String?                @db.VarChar(512)
+  type                 testimonials_type
+  language             testimonials_language? @default(en)
+  translation_group_id String?                @db.VarChar(36)
+  is_featured          Boolean?               @default(false)
+  created_at           DateTime?              @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?              @default(now()) @db.Timestamp(0)
+
+  @@index([is_featured], map: "idx_featured")
+  @@index([language], map: "idx_language")
+  @@index([translation_group_id], map: "idx_translation_group")
+  @@index([type], map: "idx_type")
+}
+
+model users {
+  id                  BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  full_name           String                     @db.VarChar(100)
+  email               String                     @unique(map: "email") @db.VarChar(255)
+  phone               String?                    @db.VarChar(20)
+  password_hash       String                     @db.VarChar(255)
+  role                users_role
+  profile_image_url   String?                    @db.VarChar(512)
+  language_preference users_language_preference? @default(en)
+  email_verified      Boolean?                   @default(false)
+  created_at          DateTime?                  @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?                  @default(now()) @db.Timestamp(0)
+  deleted_at          DateTime?                  @db.Timestamp(0)
+  campaigns           campaigns[]
+  documents           documents[]
+  donor_profiles      donor_profiles?
+  event_participants  event_participants[]
+  events              events[]
+  media               media[]
+  posts               posts[]
+  programs            programs[]
+  site_interactions   site_interactions[]
+  volunteer_profiles  volunteer_profiles?
+
+  @@index([email], map: "idx_email")
+  @@index([role], map: "idx_role")
+}
+
+model volunteer_profiles {
+  user_id                 BigInt                                      @id @db.UnsignedBigInt
+  area_of_expertise       String?                                     @db.VarChar(100)
+  location                String?                                     @db.VarChar(255)
+  availability            String?                                     @db.LongText
+  motivation              String?                                     @db.Text
+  total_hours             Int?                                        @default(0) @db.UnsignedInt
+  certificate_url         String?                                     @db.VarChar(512)
+  registered_events_count Int?                                        @default(0) @db.UnsignedInt
+  training_completed      Boolean?                                    @default(false)
+  background_check_status volunteer_profiles_background_check_status? @default(pending)
+  emergency_contact_name  String?                                     @db.VarChar(100)
+  emergency_contact_phone String?                                     @db.VarChar(20)
+  rating                  Decimal?                                    @default(0.00) @db.Decimal(3, 2)
+  created_at              DateTime?                                   @default(now()) @db.Timestamp(0)
+  updated_at              DateTime?                                   @default(now()) @db.Timestamp(0)
+  users                   users                                       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "volunteer_profiles_ibfk_1")
+  volunteer_skills        volunteer_skills[]
+
+  @@index([background_check_status], map: "idx_background_check")
+  @@index([location], map: "idx_location")
+}
+
+model volunteer_skills {
+  volunteer_id       BigInt                             @db.UnsignedBigInt
+  skill_id           BigInt                             @db.UnsignedBigInt
+  proficiency_level  volunteer_skills_proficiency_level
+  is_verified        Boolean?                           @default(false)
+  created_at         DateTime?                          @default(now()) @db.Timestamp(0)
+  volunteer_profiles volunteer_profiles                 @relation(fields: [volunteer_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "volunteer_skills_ibfk_1")
+  skills             skills                             @relation(fields: [skill_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "volunteer_skills_ibfk_2")
+
+  @@id([volunteer_id, skill_id])
+  @@index([proficiency_level], map: "idx_proficiency")
+  @@index([skill_id], map: "skill_id")
+}
+
+enum role_permissions_role {
+  admin
+  editor
+  volunteer_manager
+}
+
+enum media_media_type {
+  image
+  video
+  pdf
+}
+
+enum event_participants_role {
+  volunteer
+  attendee
+  organizer
+}
+
+enum volunteer_skills_proficiency_level {
+  beginner
+  intermediate
+  expert
+}
+
+enum programs_category {
+  medical_outreach
+  mental_health
+  youth_development
+  disease_prevention
+}
+
+enum event_participants_status {
+  registered
+  confirmed
+  attended
+  no_show
+}
+
+enum partners_type {
+  ngo
+  corporate
+  government
+  diaspora
+}
+
+enum faqs_language {
+  en
+  am
+}
+
+enum donor_profiles_donation_frequency {
+  monthly
+  quarterly
+  yearly
+}
+
+enum posts_post_type {
+  blog
+  news
+  press_release
+}
+
+enum users_role {
+  admin
+  volunteer
+  donor
+  editor
+}
+
+enum testimonials_type {
+  volunteer
+  beneficiary
+  partner
+}
+
+enum email_logs_status {
+  sent
+  failed
+  bounced
+  opened
+  clicked
+}
+
+enum donations_donation_type {
+  one_time
+  recurring
+  in_kind
+}
+
+enum newsletter_subscribers_language_preference {
+  en
+  am
+}
+
+enum contact_messages_reason {
+  general
+  volunteering
+  media
+  donations
+}
+
+enum testimonials_language {
+  en
+  am
+}
+
+enum contact_messages_status {
+  new
+  read
+  replied
+  closed
+}
+
+enum users_language_preference {
+  en
+  am
+}
+
+enum donations_payment_status {
+  pending
+  completed
+  failed
+}
+
+enum partners_language {
+  en
+  am
+}
+
+enum posts_language {
+  en
+  am
+}
+
+enum media_language {
+  en
+  am
+}
+
+enum donor_profiles_donation_tier {
+  bronze
+  silver
+  gold
+  platinum
+}
+
+enum documents_language {
+  en
+  am
+}
+
+enum volunteer_profiles_background_check_status {
+  pending
+  approved
+  rejected
+}
+
+enum programs_language {
+  en
+  am
+}
+
+enum events_status {
+  upcoming
+  ongoing
+  completed
+  cancelled
+}
+
+enum campaigns_language {
+  en
+  am
+}
+
+enum events_language {
+  en
+  am
+}
