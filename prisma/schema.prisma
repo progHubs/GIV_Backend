@@ -28,8 +28,8 @@ model campaigns {
   created_by           BigInt?             @db.UnsignedBigInt
   language             campaigns_language? @default(en)
   translation_group_id String?             @db.VarChar(36)
-  created_at           DateTime            @default(now()) @db.Timestamp(0)
-  updated_at           DateTime            @default(now()) @db.Timestamp(0)
+  created_at           DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?           @default(now()) @db.Timestamp(0)
   deleted_at           DateTime?           @db.Timestamp(0)
   users                users?              @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "campaigns_ibfk_1")
   donations            donations[]
@@ -52,7 +52,7 @@ model contact_messages {
   status       contact_messages_status? @default(new)
   ip_address   String?                  @db.VarChar(45)
   user_agent   String?                  @db.Text
-  submitted_at DateTime                 @default(now()) @db.Timestamp(0)
+  submitted_at DateTime?                @default(now()) @db.Timestamp(0)
   replied_at   DateTime?                @db.Timestamp(0)
 
   @@index([reason], map: "idx_reason")
@@ -73,8 +73,8 @@ model documents {
   translation_group_id String?             @db.VarChar(36)
   is_public            Boolean?            @default(false)
   download_count       Int?                @default(0) @db.UnsignedInt
-  uploaded_at          DateTime            @default(now()) @db.Timestamp(0)
-  updated_at           DateTime            @default(now()) @db.Timestamp(0)
+  uploaded_at          DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?           @default(now()) @db.Timestamp(0)
   users                users?              @relation(fields: [uploaded_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "documents_ibfk_1")
 
   @@index([category], map: "idx_category")
@@ -99,9 +99,9 @@ model donations {
   is_tax_deductible Boolean?                 @default(true)
   is_anonymous      Boolean?                 @default(false)
   notes             String?                  @db.Text
-  donated_at        DateTime                 @default(now()) @db.Timestamp(0)
-  created_at        DateTime                 @default(now()) @db.Timestamp(0)
-  updated_at        DateTime                 @default(now()) @db.Timestamp(0)
+  donated_at        DateTime?                @default(now()) @db.Timestamp(0)
+  created_at        DateTime?                @default(now()) @db.Timestamp(0)
+  updated_at        DateTime?                @default(now()) @db.Timestamp(0)
   donor_profiles    donor_profiles           @relation(fields: [donor_id], references: [user_id], onUpdate: Restrict, map: "donations_ibfk_1")
   campaigns         campaigns                @relation(fields: [campaign_id], references: [id], onUpdate: Restrict, map: "donations_ibfk_2")
 
@@ -121,8 +121,8 @@ model donor_profiles {
   is_anonymous             Boolean?                           @default(false)
   last_donation_date       DateTime?                          @db.Timestamp(0)
   donation_tier            donor_profiles_donation_tier?
-  created_at               DateTime                           @default(now()) @db.Timestamp(0)
-  updated_at               DateTime                           @default(now()) @db.Timestamp(0)
+  created_at               DateTime?                          @default(now()) @db.Timestamp(0)
+  updated_at               DateTime?                          @default(now()) @db.Timestamp(0)
   donations                donations[]
   users                    users                              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "donor_profiles_ibfk_1")
 
@@ -138,7 +138,7 @@ model email_logs {
   content       String?           @db.Text
   status        email_logs_status
   error_message String?           @db.Text
-  sent_at       DateTime          @default(now()) @db.Timestamp(0)
+  sent_at       DateTime?         @default(now()) @db.Timestamp(0)
   opened_at     DateTime?         @db.Timestamp(0)
   clicked_at    DateTime?         @db.Timestamp(0)
 
@@ -156,7 +156,7 @@ model event_participants {
   hours_contributed Decimal?                   @db.Decimal(5, 2)
   feedback          String?                    @db.Text
   rating            Int?                       @db.UnsignedTinyInt
-  registered_at     DateTime                   @default(now()) @db.Timestamp(0)
+  registered_at     DateTime?                  @default(now()) @db.Timestamp(0)
   attended_at       DateTime?                  @db.Timestamp(0)
   events            events                     @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "event_participants_ibfk_1")
   users             users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "event_participants_ibfk_2")
@@ -181,7 +181,7 @@ model events {
   capacity              Int?                 @db.UnsignedInt
   registered_count      Int?                 @default(0) @db.UnsignedInt
   status                events_status?       @default(upcoming)
-  registration_deadline DateTime             @default(now()) @db.Timestamp(0)
+  registration_deadline DateTime?            @db.Timestamp(0)
   registration_link     String?              @db.VarChar(512)
   map_embed_url         String?              @db.VarChar(512)
   agenda                String?              @db.Text
@@ -193,8 +193,8 @@ model events {
   created_by            BigInt?              @db.UnsignedBigInt
   language              events_language?     @default(en)
   translation_group_id  String?              @db.VarChar(36)
-  created_at            DateTime             @default(now()) @db.Timestamp(0)
-  updated_at            DateTime             @default(now()) @db.Timestamp(0)
+  created_at            DateTime?            @default(now()) @db.Timestamp(0)
+  updated_at            DateTime?            @default(now()) @db.Timestamp(0)
   deleted_at            DateTime?            @db.Timestamp(0)
   event_participants    event_participants[]
   users                 users?               @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "events_ibfk_1")
@@ -218,8 +218,8 @@ model faqs {
   translation_group_id String?        @db.VarChar(36)
   is_active            Boolean?       @default(true)
   sort_order           Int?           @default(0) @db.UnsignedInt
-  created_at           DateTime       @default(now()) @db.Timestamp(0)
-  updated_at           DateTime       @default(now()) @db.Timestamp(0)
+  created_at           DateTime?      @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?      @default(now()) @db.Timestamp(0)
 
   @@index([is_active, sort_order], map: "idx_active_order")
   @@index([category], map: "idx_category")
@@ -238,7 +238,7 @@ model media {
   uploaded_by          BigInt?          @db.UnsignedBigInt
   language             media_language?  @default(en)
   translation_group_id String?          @db.VarChar(36)
-  uploaded_at          DateTime         @default(now()) @db.Timestamp(0)
+  uploaded_at          DateTime?        @default(now()) @db.Timestamp(0)
   events               events?          @relation(fields: [related_event_id], references: [id], onUpdate: Restrict, map: "media_ibfk_1")
   programs             programs?        @relation(fields: [related_program_id], references: [id], onUpdate: Restrict, map: "media_ibfk_2")
   users                users?           @relation(fields: [uploaded_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "media_ibfk_3")
@@ -258,7 +258,7 @@ model newsletter_subscribers {
   last_name           String?                                     @db.VarChar(100)
   is_active           Boolean?                                    @default(true)
   language_preference newsletter_subscribers_language_preference? @default(en)
-  subscribed_at       DateTime                                    @default(now()) @db.Timestamp(0)
+  subscribed_at       DateTime?                                   @default(now()) @db.Timestamp(0)
   unsubscribed_at     DateTime?                                   @db.Timestamp(0)
 
   @@index([is_active], map: "idx_active")
@@ -278,8 +278,8 @@ model partners {
   is_active              Boolean?           @default(true)
   partnership_start_date DateTime?          @db.Date
   partnership_end_date   DateTime?          @db.Date
-  created_at             DateTime           @default(now()) @db.Timestamp(0)
-  updated_at             DateTime           @default(now()) @db.Timestamp(0)
+  created_at             DateTime?          @default(now()) @db.Timestamp(0)
+  updated_at             DateTime?          @default(now()) @db.Timestamp(0)
 
   @@index([is_active], map: "idx_active")
   @@index([language], map: "idx_language")
@@ -297,8 +297,8 @@ model posts {
   feature_image        String?         @db.VarChar(512)
   language             posts_language? @default(en)
   translation_group_id String?         @db.VarChar(36)
-  created_at           DateTime        @default(now()) @db.Timestamp(0)
-  updated_at           DateTime        @default(now()) @db.Timestamp(0)
+  created_at           DateTime?       @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?       @default(now()) @db.Timestamp(0)
   users                users?          @relation(fields: [author_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "posts_ibfk_1")
 
   @@index([author_id], map: "author_id")
@@ -322,8 +322,8 @@ model programs {
   created_by           BigInt?            @db.UnsignedBigInt
   language             programs_language? @default(en)
   translation_group_id String?            @db.VarChar(36)
-  created_at           DateTime           @default(now()) @db.Timestamp(0)
-  updated_at           DateTime           @default(now()) @db.Timestamp(0)
+  created_at           DateTime?          @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?          @default(now()) @db.Timestamp(0)
   deleted_at           DateTime?          @db.Timestamp(0)
   media                media[]
   users                users?             @relation(fields: [created_by], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "programs_ibfk_1")
@@ -338,7 +338,7 @@ model programs {
 model role_permissions {
   role       role_permissions_role
   permission String                @db.VarChar(100)
-  created_at DateTime              @default(now()) @db.Timestamp(0)
+  created_at DateTime?             @default(now()) @db.Timestamp(0)
 
   @@id([role, permission])
   @@index([permission], map: "idx_permission")
@@ -346,16 +346,16 @@ model role_permissions {
 }
 
 model site_interactions {
-  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  user_id     BigInt?  @db.UnsignedBigInt
-  session_id  String?  @db.VarChar(100)
-  page        String?  @db.VarChar(255)
-  action      String?  @db.VarChar(100)
-  metadata    String?  @db.LongText
-  ip_address  String?  @db.VarChar(45)
-  user_agent  String?  @db.Text
-  occurred_at DateTime @default(now()) @db.Timestamp(0)
-  users       users?   @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "site_interactions_ibfk_1")
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id     BigInt?   @db.UnsignedBigInt
+  session_id  String?   @db.VarChar(100)
+  page        String?   @db.VarChar(255)
+  action      String?   @db.VarChar(100)
+  metadata    String?   @db.LongText
+  ip_address  String?   @db.VarChar(45)
+  user_agent  String?   @db.Text
+  occurred_at DateTime? @default(now()) @db.Timestamp(0)
+  users       users?    @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "site_interactions_ibfk_1")
 
   @@index([action], map: "idx_action")
   @@index([occurred_at], map: "idx_occurred_at")
@@ -369,7 +369,7 @@ model skills {
   name             String             @unique(map: "name") @db.VarChar(100)
   category         String?            @db.VarChar(50)
   description      String?            @db.Text
-  created_at       DateTime           @default(now()) @db.Timestamp(0)
+  created_at       DateTime?          @default(now()) @db.Timestamp(0)
   volunteer_skills volunteer_skills[]
 
   @@index([category], map: "idx_category")
@@ -385,8 +385,8 @@ model testimonials {
   language             testimonials_language? @default(en)
   translation_group_id String?                @db.VarChar(36)
   is_featured          Boolean?               @default(false)
-  created_at           DateTime               @default(now()) @db.Timestamp(0)
-  updated_at           DateTime               @default(now()) @db.Timestamp(0)
+  created_at           DateTime?              @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?              @default(now()) @db.Timestamp(0)
 
   @@index([is_featured], map: "idx_featured")
   @@index([language], map: "idx_language")
@@ -404,8 +404,8 @@ model users {
   profile_image_url   String?                    @db.VarChar(512)
   language_preference users_language_preference? @default(en)
   email_verified      Boolean?                   @default(false)
-  created_at          DateTime                   @default(now()) @db.Timestamp(0)
-  updated_at          DateTime                   @default(now()) @db.Timestamp(0)
+  created_at          DateTime?                  @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?                  @default(now()) @db.Timestamp(0)
   deleted_at          DateTime?                  @db.Timestamp(0)
   campaigns           campaigns[]
   documents           documents[]
@@ -436,8 +436,8 @@ model volunteer_profiles {
   emergency_contact_name  String?                                     @db.VarChar(100)
   emergency_contact_phone String?                                     @db.VarChar(20)
   rating                  Decimal?                                    @default(0.00) @db.Decimal(3, 2)
-  created_at              DateTime                                    @default(now()) @db.Timestamp(0)
-  updated_at              DateTime                                    @default(now()) @db.Timestamp(0)
+  created_at              DateTime?                                   @default(now()) @db.Timestamp(0)
+  updated_at              DateTime?                                   @default(now()) @db.Timestamp(0)
   users                   users                                       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "volunteer_profiles_ibfk_1")
   volunteer_skills        volunteer_skills[]
 
@@ -450,7 +450,7 @@ model volunteer_skills {
   skill_id           BigInt                             @db.UnsignedBigInt
   proficiency_level  volunteer_skills_proficiency_level
   is_verified        Boolean?                           @default(false)
-  created_at         DateTime                           @default(now()) @db.Timestamp(0)
+  created_at         DateTime?                          @default(now()) @db.Timestamp(0)
   volunteer_profiles volunteer_profiles                 @relation(fields: [volunteer_id], references: [user_id], onDelete: Cascade, onUpdate: Restrict, map: "volunteer_skills_ibfk_1")
   skills             skills                             @relation(fields: [skill_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "volunteer_skills_ibfk_2")
 
@@ -477,17 +477,17 @@ enum event_participants_role {
   organizer
 }
 
+enum volunteer_skills_proficiency_level {
+  beginner
+  intermediate
+  expert
+}
+
 enum programs_category {
   medical_outreach
   mental_health
   youth_development
   disease_prevention
-}
-
-enum volunteer_skills_proficiency_level {
-  beginner
-  intermediate
-  expert
 }
 
 enum event_participants_status {
@@ -504,15 +504,15 @@ enum partners_type {
   diaspora
 }
 
+enum faqs_language {
+  en
+  am
+}
+
 enum donor_profiles_donation_frequency {
   monthly
   quarterly
   yearly
-}
-
-enum faqs_language {
-  en
-  am
 }
 
 enum posts_post_type {
@@ -521,17 +521,17 @@ enum posts_post_type {
   press_release
 }
 
-enum contact_messages_reason {
-  general
-  volunteering
-  media
-  donations
+enum users_role {
+  admin
+  volunteer
+  donor
+  editor
 }
 
-enum donations_donation_type {
-  one_time
-  recurring
-  in_kind
+enum testimonials_type {
+  volunteer
+  beneficiary
+  partner
 }
 
 enum email_logs_status {
@@ -542,22 +542,27 @@ enum email_logs_status {
   clicked
 }
 
+enum donations_donation_type {
+  one_time
+  recurring
+  in_kind
+}
+
 enum newsletter_subscribers_language_preference {
   en
   am
 }
 
-enum testimonials_type {
-  volunteer
-  beneficiary
-  partner
+enum contact_messages_reason {
+  general
+  volunteering
+  media
+  donations
 }
 
-enum users_role {
-  admin
-  volunteer
-  donor
-  editor
+enum testimonials_language {
+  en
+  am
 }
 
 enum contact_messages_status {
@@ -567,7 +572,7 @@ enum contact_messages_status {
   closed
 }
 
-enum testimonials_language {
+enum users_language_preference {
   en
   am
 }
@@ -588,12 +593,7 @@ enum posts_language {
   am
 }
 
-enum users_language_preference {
-  en
-  am
-}
-
-enum documents_language {
+enum media_language {
   en
   am
 }
@@ -605,7 +605,7 @@ enum donor_profiles_donation_tier {
   platinum
 }
 
-enum media_language {
+enum documents_language {
   en
   am
 }
