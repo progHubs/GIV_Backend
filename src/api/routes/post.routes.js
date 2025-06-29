@@ -10,11 +10,13 @@ const {
   updatePost,
   deletePost,
   searchPosts,
+  queryPosts,
 } = require("../controllers/post.controllers");
 
 // Public routes
 router.get("/", getPosts);
 router.get("/search", searchPosts);
+router.get("/query", queryPosts);
 router.get("/id/:id", getPostById);
 router.get("/slug/:slug", getPostBySlug);
 

@@ -63,253 +63,199 @@
         border-radius: 4px;
         margin: 10px 0;
       }
+      .nav-tabs .nav-link {
+        color: #495057;
+        border: none;
+        border-bottom: 2px solid transparent;
+      }
+      .nav-tabs .nav-link.active {
+        color: #007bff;
+        border-bottom: 2px solid #007bff;
+        background: none;
+      }
+      .tab-content {
+        padding: 20px 0;
+      }
+      .section-container {
+        display: none;
+      }
+      .section-container.active {
+        display: block;
+      }
     </style>
   </head>
   <body>
     <div class="container mt-5">
       <h1 class="mb-4">Post API Testing Interface</h1>
 
-      <!-- Create Post Section -->
-      <div class="form-section">
-        <h3>Create New Post</h3>
-        <form id="createPostForm" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label class="form-label">Title</label>
-            <input type="text" class="form-control" name="title" required />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Slug</label>
-            <input type="text" class="form-control" name="slug" required />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Content</label>
-            <textarea class="form-control" name="content" rows="4"></textarea>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Post Type</label>
-            <select class="form-control" name="post_type" required>
-              <option value="blog">Blog</option>
-              <option value="news">News</option>
-              <option value="press_release">Press Release</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Language</label>
-            <select class="form-control" name="language">
-              <option value="en">English</option>
-              <option value="am">Amharic</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Feature Image</label>
-            <input
-              type="file"
-              class="form-control"
-              name="feature_image"
-              accept="image/*"
-            />
-          </div>
-          <button type="submit" class="btn btn-primary">
-            <span class="spinner-border" role="status"></span>
-            <span class="btn-text">Create Post</span>
-            <span class="loading-text" style="display: none">Creating...</span>
+      <!-- Navigation Tabs -->
+      <ul class="nav nav-tabs mb-4" id="postTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link active"
+            id="create-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#create"
+            type="button"
+            role="tab"
+          >
+            Create Post
           </button>
-        </form>
-        <div class="response-box" id="createResponse"></div>
-      </div>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="get-all-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#get-all"
+            type="button"
+            role="tab"
+          >
+            Get All Posts
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="get-by-id-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#get-by-id"
+            type="button"
+            role="tab"
+          >
+            Get by ID
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="get-by-slug-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#get-by-slug"
+            type="button"
+            role="tab"
+          >
+            Get by Slug
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="update-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#update"
+            type="button"
+            role="tab"
+          >
+            Update Post
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="delete-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#delete"
+            type="button"
+            role="tab"
+          >
+            Delete Post
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="search-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#search"
+            type="button"
+            role="tab"
+          >
+            Search Posts
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="query-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#query"
+            type="button"
+            role="tab"
+          >
+            Advanced Query
+          </button>
+        </li>
+      </ul>
 
-      <!-- Get All Posts Section -->
-      <div class="form-section">
-        <h3>Get All Posts</h3>
-        <form id="getPostsForm">
-          <div class="row">
-            <div class="col-md-3">
-              <label class="form-label">Page</label>
-              <input
-                type="number"
-                class="form-control"
-                name="page"
-                value="1"
-                min="1"
-              />
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Limit</label>
-              <input
-                type="number"
-                class="form-control"
-                name="limit"
-                value="10"
-                min="1"
-              />
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Post Type</label>
-              <select class="form-control" name="post_type">
-                <option value="">All</option>
-                <option value="blog">Blog</option>
-                <option value="news">News</option>
-                <option value="press_release">Press Release</option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label">Language</label>
-              <select class="form-control" name="language">
-                <option value="">All</option>
-                <option value="en">English</option>
-                <option value="am">Amharic</option>
-              </select>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary mt-3">
-            <span class="spinner-border" role="status"></span>
-            <span class="btn-text">Get Posts</span>
-            <span class="loading-text" style="display: none">Loading...</span>
-          </button>
-        </form>
-        <div class="debug-info" id="getPostsDebug" style="display: none"></div>
-        <div class="response-box" id="getPostsResponse"></div>
-      </div>
+      <!-- Tab Content -->
+      <div class="tab-content" id="postTabContent">
+        <!-- Create Post Tab -->
+        <div class="tab-pane fade show active" id="create" role="tabpanel">
+          <%- include('./routes/create-post') %>
+        </div>
 
-      <!-- Get Post by ID Section -->
-      <div class="form-section">
-        <h3>Get Post by ID</h3>
-        <form id="getPostByIdForm">
-          <div class="mb-3">
-            <label class="form-label">Post ID</label>
-            <input type="text" class="form-control" name="id" required />
-          </div>
-          <button type="submit" class="btn btn-primary">
-            <span class="spinner-border" role="status"></span>
-            <span class="btn-text">Get Post</span>
-            <span class="loading-text" style="display: none">Loading...</span>
-          </button>
-        </form>
-        <div class="debug-info" id="getByIdDebug" style="display: none"></div>
-        <div class="response-box" id="getByIdResponse"></div>
-      </div>
+        <!-- Get All Posts Tab -->
+        <div class="tab-pane fade" id="get-all" role="tabpanel">
+          <%- include('./routes/get-posts') %>
+        </div>
 
-      <!-- Get Post by Slug Section -->
-      <div class="form-section">
-        <h3>Get Post by Slug</h3>
-        <form id="getPostBySlugForm">
-          <div class="mb-3">
-            <label class="form-label">Slug</label>
-            <input type="text" class="form-control" name="slug" required />
-          </div>
-          <button type="submit" class="btn btn-primary">
-            <span class="spinner-border" role="status"></span>
-            <span class="btn-text">Get Post</span>
-            <span class="loading-text" style="display: none">Loading...</span>
-          </button>
-        </form>
-        <div class="debug-info" id="getBySlugDebug" style="display: none"></div>
-        <div class="response-box" id="getBySlugResponse"></div>
-      </div>
+        <!-- Get by ID Tab -->
+        <div class="tab-pane fade" id="get-by-id" role="tabpanel">
+          <%- include('./routes/get-post-by-id') %>
+        </div>
 
-      <!-- Update Post Section -->
-      <div class="form-section">
-        <h3>Update Post</h3>
-        <form id="updatePostForm" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label class="form-label">Post ID</label>
-            <input type="text" class="form-control" name="id" required />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Title</label>
-            <input type="text" class="form-control" name="title" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Slug</label>
-            <input type="text" class="form-control" name="slug" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Content</label>
-            <textarea class="form-control" name="content" rows="4"></textarea>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Post Type</label>
-            <select class="form-control" name="post_type">
-              <option value="">No Change</option>
-              <option value="blog">Blog</option>
-              <option value="news">News</option>
-              <option value="press_release">Press Release</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Language</label>
-            <select class="form-control" name="language">
-              <option value="">No Change</option>
-              <option value="en">English</option>
-              <option value="am">Amharic</option>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Feature Image</label>
-            <input
-              type="file"
-              class="form-control"
-              name="feature_image"
-              accept="image/*"
-            />
-          </div>
-          <button type="submit" class="btn btn-primary">
-            <span class="spinner-border" role="status"></span>
-            <span class="btn-text">Update Post</span>
-            <span class="loading-text" style="display: none">Updating...</span>
-          </button>
-        </form>
-        <div class="debug-info" id="updateDebug" style="display: none"></div>
-        <div class="response-box" id="updateResponse"></div>
-      </div>
+        <!-- Get by Slug Tab -->
+        <div class="tab-pane fade" id="get-by-slug" role="tabpanel">
+          <%- include('./routes/get-post-by-slug') %>
+        </div>
 
-      <!-- Delete Post Section -->
-      <div class="form-section">
-        <h3>Delete Post</h3>
-        <form id="deletePostForm">
-          <div class="mb-3">
-            <label class="form-label">Post ID</label>
-            <input type="text" class="form-control" name="id" required />
-          </div>
-          <button type="submit" class="btn btn-danger">
-            <span class="spinner-border" role="status"></span>
-            <span class="btn-text">Delete Post</span>
-            <span class="loading-text" style="display: none">Deleting...</span>
-          </button>
-        </form>
-        <div class="debug-info" id="deleteDebug" style="display: none"></div>
-        <div class="response-box" id="deleteResponse"></div>
-      </div>
+        <!-- Update Post Tab -->
+        <div class="tab-pane fade" id="update" role="tabpanel">
+          <%- include('./routes/update-post') %>
+        </div>
 
-      <!-- Search Posts Section -->
-      <div class="form-section">
-        <h3>Search Posts</h3>
-        <form id="searchPostsForm">
-          <div class="mb-3">
-            <label class="form-label">Search Query</label>
-            <input type="text" class="form-control" name="q" required />
-          </div>
-          <button type="submit" class="btn btn-primary">
-            <span class="spinner-border" role="status"></span>
-            <span class="btn-text">Search</span>
-            <span class="loading-text" style="display: none">Searching...</span>
-          </button>
-        </form>
-        <div class="debug-info" id="searchDebug" style="display: none"></div>
-        <div class="response-box" id="searchResponse"></div>
+        <!-- Delete Post Tab -->
+        <div class="tab-pane fade" id="delete" role="tabpanel">
+          <%- include('./routes/delete-post') %>
+        </div>
+
+        <!-- Search Posts Tab -->
+        <div class="tab-pane fade" id="search" role="tabpanel">
+          <%- include('./routes/search-posts') %>
+        </div>
+
+        <!-- Query Posts Tab -->
+        <div class="tab-pane fade" id="query" role="tabpanel">
+          <%- include('./routes/query-posts') %>
+        </div>
       </div>
     </div>
 
     <!-- Bootstrap JS and dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- API Testing JavaScript -->
+    <!-- State Management and Utilities -->
     <script>
-      const API_BASE_URL = "/api/v1/posts";
+      // Global state management
+      const AppState = {
+        currentTab: "create",
+        apiBaseUrl: "/api/v1/posts",
+        isLoading: false,
+        lastResponse: null,
+        debugMode: false,
+      };
+
+      // API Base URL
+      const API_BASE_URL = AppState.apiBaseUrl;
 
       // Enhanced debug logging with more detailed error information
       function logDebug(elementId, message, data = null) {
+        if (!AppState.debugMode) return;
+
         const debugElement = document.getElementById(elementId);
+        if (!debugElement) return;
+
         const timestamp = new Date().toLocaleTimeString();
         let debugMessage = `[${timestamp}] ${message}`;
         if (data) {
@@ -327,6 +273,8 @@
         response = null,
         requestData = null
       ) {
+        if (!AppState.debugMode) return;
+
         const timestamp = new Date().toLocaleTimeString();
         let errorDetails = {
           timestamp: timestamp,
@@ -375,6 +323,8 @@
       // Enhanced response display with formatting
       function displayResponse(elementId, data, isError = false) {
         const element = document.getElementById(elementId);
+        if (!element) return;
+
         let formattedResponse = "";
 
         if (isError) {
@@ -392,461 +342,101 @@
         }
 
         element.innerHTML = formattedResponse;
+        AppState.lastResponse = data;
       }
 
       // Helper function to set button loading state
       function setButtonLoading(button, isLoading) {
+        if (!button) return;
+
         if (isLoading) {
           button.classList.add("loading");
           button.disabled = true;
-          button.querySelector(".btn-text").style.display = "none";
-          button.querySelector(".loading-text").style.display = "inline";
+          const btnText = button.querySelector(".btn-text");
+          const loadingText = button.querySelector(".loading-text");
+          if (btnText) btnText.style.display = "none";
+          if (loadingText) loadingText.style.display = "inline";
         } else {
           button.classList.remove("loading");
           button.disabled = false;
-          button.querySelector(".btn-text").style.display = "inline";
-          button.querySelector(".loading-text").style.display = "none";
+          const btnText = button.querySelector(".btn-text");
+          const loadingText = button.querySelector(".loading-text");
+          if (btnText) btnText.style.display = "inline";
+          if (loadingText) loadingText.style.display = "none";
         }
       }
 
-      // Create Post
-      document
-        .getElementById("createPostForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const button = e.target.querySelector('button[type="submit"]');
-          setButtonLoading(button, true);
-          const formData = new FormData(e.target);
-          try {
-            const response = await fetch(API_BASE_URL, {
-              method: "POST",
-              body: formData,
-            });
-            const data = await response.json();
-            displayResponse("createResponse", data);
-          } catch (error) {
-            displayResponse("createResponse", { error: error.message });
-          } finally {
-            setButtonLoading(button, false);
-          }
+      // Tab management
+      function switchTab(tabId) {
+        AppState.currentTab = tabId;
+
+        // Update active tab
+        document.querySelectorAll(".nav-link").forEach((link) => {
+          link.classList.remove("active");
+        });
+        document
+          .querySelector(`[data-bs-target="#${tabId}"]`)
+          .classList.add("active");
+
+        // Update active content
+        document.querySelectorAll(".tab-pane").forEach((pane) => {
+          pane.classList.remove("show", "active");
+        });
+        document.getElementById(tabId).classList.add("show", "active");
+
+        // Clear previous responses
+        clearAllResponses();
+      }
+
+      // Clear all response boxes
+      function clearAllResponses() {
+        const responseBoxes = document.querySelectorAll(".response-box");
+        responseBoxes.forEach((box) => {
+          box.innerHTML = "";
         });
 
-      // Get All Posts with enhanced error handling and debugging
-      document
-        .getElementById("getPostsForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const button = e.target.querySelector('button[type="submit"]');
-          const debugElement = document.getElementById("getPostsDebug");
-          setButtonLoading(button, true);
-          debugElement.style.display = "none";
+        const debugBoxes = document.querySelectorAll(".debug-info");
+        debugBoxes.forEach((box) => {
+          box.style.display = "none";
+        });
+      }
 
-          const formData = new FormData(e.target);
-          const params = new URLSearchParams();
-          const requestData = {};
-
-          formData.forEach((value, key) => {
-            if (value) {
-              params.append(key, value);
-              requestData[key] = value;
-              logDebug("getPostsDebug", `Adding parameter: ${key} = ${value}`);
-            }
+      // Initialize the application
+      document.addEventListener("DOMContentLoaded", function () {
+        // Set up tab event listeners
+        document.querySelectorAll(".nav-link").forEach((link) => {
+          link.addEventListener("click", function (e) {
+            const target = this.getAttribute("data-bs-target");
+            const tabId = target.replace("#", "");
+            switchTab(tabId);
           });
-
-          const url = `${API_BASE_URL}?${params.toString()}`;
-          logDebug("getPostsDebug", `Fetching posts from: ${url}`);
-
-          try {
-            const response = await fetch(url);
-            logDebug("getPostsDebug", `Response status: ${response.status}`);
-
-            if (!response.ok) {
-              await logDetailedError(
-                "getPostsDebug",
-                new Error(`HTTP error! status: ${response.status}`),
-                response,
-                { url, params: requestData }
-              );
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            logDebug("getPostsDebug", "Posts retrieved successfully", {
-              total: data.data?.posts?.length || 0,
-              pagination: data.data?.pagination,
-            });
-
-            displayResponse("getPostsResponse", data);
-          } catch (error) {
-            if (!error.message.includes("HTTP error! status:")) {
-              await logDetailedError("getPostsDebug", error, null, {
-                url,
-                params: requestData,
-              });
-            }
-            displayResponse("getPostsResponse", { error: error.message }, true);
-          } finally {
-            setButtonLoading(button, false);
-          }
         });
 
-      // Get Post by ID with enhanced error handling and debugging
-      document
-        .getElementById("getPostByIdForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const button = e.target.querySelector('button[type="submit"]');
-          const debugElement = document.getElementById("getByIdDebug");
-          setButtonLoading(button, true);
-          debugElement.style.display = "none";
+        // Add debug mode toggle
+        const debugToggle = document.createElement("button");
+        debugToggle.className =
+          "btn btn-outline-secondary btn-sm position-fixed";
+        debugToggle.style.cssText = "top: 20px; right: 20px; z-index: 1000;";
+        debugToggle.textContent = "Debug: OFF";
+        debugToggle.onclick = function () {
+          AppState.debugMode = !AppState.debugMode;
+          this.textContent = `Debug: ${AppState.debugMode ? "ON" : "OFF"}`;
+          this.className = AppState.debugMode
+            ? "btn btn-warning btn-sm position-fixed"
+            : "btn btn-outline-secondary btn-sm position-fixed";
+        };
+        document.body.appendChild(debugToggle);
 
-          const id = e.target.id.value.trim();
-          logDebug("getByIdDebug", `Fetching post with ID: ${id}`);
+        console.log("Post API Testing Interface initialized");
+      });
 
-          if (!id) {
-            logDebug("getByIdDebug", "Error: No ID provided");
-            displayResponse(
-              "getByIdResponse",
-              { error: "Post ID is required" },
-              true
-            );
-            setButtonLoading(button, false);
-            return;
-          }
-
-          const url = `${API_BASE_URL}/id/${id}`;
-          logDebug("getByIdDebug", `Request URL: ${url}`);
-
-          try {
-            const response = await fetch(url);
-            logDebug("getByIdDebug", `Response status: ${response.status}`);
-
-            if (!response.ok) {
-              await logDetailedError(
-                "getByIdDebug",
-                new Error(`HTTP error! status: ${response.status}`),
-                response,
-                { url, postId: id }
-              );
-              if (response.status === 404) {
-                throw new Error(`Post with ID ${id} not found`);
-              }
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            logDebug("getByIdDebug", "Post retrieved successfully", {
-              postId: data.data?.id,
-              title: data.data?.title,
-              postType: data.data?.post_type,
-            });
-
-            displayResponse("getByIdResponse", data);
-          } catch (error) {
-            if (
-              !error.message.includes("HTTP error! status:") &&
-              !error.message.includes("Post with ID")
-            ) {
-              await logDetailedError("getByIdDebug", error, null, {
-                url,
-                postId: id,
-              });
-            }
-            displayResponse("getByIdResponse", { error: error.message }, true);
-          } finally {
-            setButtonLoading(button, false);
-          }
-        });
-
-      // Get Post by Slug with enhanced error handling and debugging
-      document
-        .getElementById("getPostBySlugForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const button = e.target.querySelector('button[type="submit"]');
-          const debugElement = document.getElementById("getBySlugDebug");
-          setButtonLoading(button, true);
-          debugElement.style.display = "none";
-
-          const slug = e.target.slug.value.trim();
-          logDebug("getBySlugDebug", `Fetching post with slug: ${slug}`);
-
-          if (!slug) {
-            logDebug("getBySlugDebug", "Error: No slug provided");
-            displayResponse(
-              "getBySlugResponse",
-              { error: "Post slug is required" },
-              true
-            );
-            setButtonLoading(button, false);
-            return;
-          }
-
-          const url = `${API_BASE_URL}/slug/${slug}`;
-          logDebug("getBySlugDebug", `Request URL: ${url}`);
-
-          try {
-            const response = await fetch(url);
-            logDebug("getBySlugDebug", `Response status: ${response.status}`);
-
-            if (!response.ok) {
-              await logDetailedError(
-                "getBySlugDebug",
-                new Error(`HTTP error! status: ${response.status}`),
-                response,
-                { url, slug: slug }
-              );
-              if (response.status === 404) {
-                throw new Error(`Post with slug "${slug}" not found`);
-              }
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            logDebug("getBySlugDebug", "Post retrieved successfully", {
-              postId: data.data?.id,
-              title: data.data?.title,
-              slug: data.data?.slug,
-            });
-
-            displayResponse("getBySlugResponse", data);
-          } catch (error) {
-            if (
-              !error.message.includes("HTTP error! status:") &&
-              !error.message.includes("Post with slug")
-            ) {
-              await logDetailedError("getBySlugDebug", error, null, {
-                url,
-                slug: slug,
-              });
-            }
-            displayResponse(
-              "getBySlugResponse",
-              { error: error.message },
-              true
-            );
-          } finally {
-            setButtonLoading(button, false);
-          }
-        });
-
-      // Update Post with enhanced error handling and debugging
-      document
-        .getElementById("updatePostForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const button = e.target.querySelector('button[type="submit"]');
-          const debugElement = document.getElementById("updateDebug");
-          setButtonLoading(button, true);
-          debugElement.style.display = "none";
-
-          const formData = new FormData(e.target);
-          const id = formData.get("id").trim();
-
-          logDebug("updateDebug", `Updating post with ID: ${id}`);
-
-          if (!id) {
-            logDebug("updateDebug", "Error: No ID provided");
-            displayResponse(
-              "updateResponse",
-              { error: "Post ID is required" },
-              true
-            );
-            setButtonLoading(button, false);
-            return;
-          }
-
-          // Log form data for debugging
-          const updateData = {};
-          formData.forEach((value, key) => {
-            if (value && key !== "id") {
-              updateData[key] = value;
-            }
-          });
-          logDebug("updateDebug", "Update data:", updateData);
-
-          const url = `${API_BASE_URL}/${id}`;
-          logDebug("updateDebug", `Request URL: ${url}`);
-
-          try {
-            const response = await fetch(url, {
-              method: "PUT",
-              body: formData,
-            });
-            logDebug("updateDebug", `Response status: ${response.status}`);
-
-            if (!response.ok) {
-              await logDetailedError(
-                "updateDebug",
-                new Error(`HTTP error! status: ${response.status}`),
-                response,
-                { url, postId: id, updateData: updateData }
-              );
-              if (response.status === 404) {
-                throw new Error(`Post with ID ${id} not found`);
-              }
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            logDebug("updateDebug", "Post updated successfully", {
-              postId: data.data?.id,
-              title: data.data?.title,
-            });
-
-            displayResponse("updateResponse", data);
-          } catch (error) {
-            if (
-              !error.message.includes("HTTP error! status:") &&
-              !error.message.includes("Post with ID")
-            ) {
-              await logDetailedError("updateDebug", error, null, {
-                url,
-                postId: id,
-                updateData: updateData,
-              });
-            }
-            displayResponse("updateResponse", { error: error.message }, true);
-          } finally {
-            setButtonLoading(button, false);
-          }
-        });
-
-      // Delete Post with enhanced error handling and debugging
-      document
-        .getElementById("deletePostForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const button = e.target.querySelector('button[type="submit"]');
-          const debugElement = document.getElementById("deleteDebug");
-
-          const id = e.target.id.value.trim();
-          logDebug("deleteDebug", `Attempting to delete post with ID: ${id}`);
-
-          if (!id) {
-            logDebug("deleteDebug", "Error: No ID provided");
-            displayResponse(
-              "deleteResponse",
-              { error: "Post ID is required" },
-              true
-            );
-            return;
-          }
-
-          if (!confirm(`Are you sure you want to delete post with ID ${id}?`)) {
-            logDebug("deleteDebug", "Delete operation cancelled by user");
-            return;
-          }
-
-          setButtonLoading(button, true);
-          debugElement.style.display = "none";
-
-          const url = `${API_BASE_URL}/${id}`;
-          logDebug("deleteDebug", `Request URL: ${url}`);
-
-          try {
-            const response = await fetch(url, {
-              method: "DELETE",
-            });
-            logDebug("deleteDebug", `Response status: ${response.status}`);
-
-            if (!response.ok) {
-              await logDetailedError(
-                "deleteDebug",
-                new Error(`HTTP error! status: ${response.status}`),
-                response,
-                { url, postId: id }
-              );
-              if (response.status === 404) {
-                throw new Error(`Post with ID ${id} not found`);
-              }
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            logDebug("deleteDebug", "Post deleted successfully", {
-              deletedPostId: id,
-              response: data,
-            });
-
-            displayResponse("deleteResponse", data);
-          } catch (error) {
-            if (
-              !error.message.includes("HTTP error! status:") &&
-              !error.message.includes("Post with ID")
-            ) {
-              await logDetailedError("deleteDebug", error, null, {
-                url,
-                postId: id,
-              });
-            }
-            displayResponse("deleteResponse", { error: error.message }, true);
-          } finally {
-            setButtonLoading(button, false);
-          }
-        });
-
-      // Search Posts with enhanced error handling and debugging
-      document
-        .getElementById("searchPostsForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const button = e.target.querySelector('button[type="submit"]');
-          const debugElement = document.getElementById("searchDebug");
-          setButtonLoading(button, true);
-          debugElement.style.display = "none";
-
-          const query = e.target.q.value.trim();
-          logDebug("searchDebug", `Searching for posts with query: "${query}"`);
-
-          if (!query) {
-            logDebug("searchDebug", "Error: No search query provided");
-            displayResponse(
-              "searchResponse",
-              { error: "Search query is required" },
-              true
-            );
-            setButtonLoading(button, false);
-            return;
-          }
-
-          const url = `${API_BASE_URL}/search?q=${encodeURIComponent(query)}`;
-          logDebug("searchDebug", `Request URL: ${url}`);
-
-          try {
-            const response = await fetch(url);
-            logDebug("searchDebug", `Response status: ${response.status}`);
-
-            if (!response.ok) {
-              await logDetailedError(
-                "searchDebug",
-                new Error(`HTTP error! status: ${response.status}`),
-                response,
-                { url, query: query }
-              );
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            logDebug("searchDebug", "Search completed successfully", {
-              query: query,
-              resultsCount: data.data?.posts?.length || 0,
-              totalResults: data.data?.pagination?.total || 0,
-            });
-
-            displayResponse("searchResponse", data);
-          } catch (error) {
-            if (!error.message.includes("HTTP error! status:")) {
-              await logDetailedError("searchDebug", error, null, {
-                url,
-                query: query,
-              });
-            }
-            displayResponse("searchResponse", { error: error.message }, true);
-          } finally {
-            setButtonLoading(button, false);
-          }
-        });
+      // Global error handler
+      window.addEventListener("error", function (e) {
+        console.error("Global error:", e.error);
+        if (AppState.debugMode) {
+          alert(`Error: ${e.error.message}`);
+        }
+      });
     </script>
   </body>
 </html>

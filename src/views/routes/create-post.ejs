@@ -1,0 +1,108 @@
+<div class="form-section" id="createPostSection">
+  <h3>Create New Post</h3>
+  <form id="createPostForm" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Title</label>
+      <input type="text" class="form-control" name="title" required />
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Slug</label>
+      <input type="text" class="form-control" name="slug" required />
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Content</label>
+      <textarea class="form-control" name="content" rows="4"></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Post Type</label>
+      <select class="form-control" name="post_type" required>
+        <option value="blog">Blog</option>
+        <option value="news">News</option>
+        <option value="press_release">Press Release</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Language</label>
+      <select class="form-control" name="language">
+        <option value="en">English</option>
+        <option value="am">Amharic</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Feature Image</label>
+      <input
+        type="file"
+        class="form-control"
+        name="feature_image"
+        accept="image/*"
+      />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <span class="spinner-border" role="status"></span>
+      <span class="btn-text">Create Post</span>
+      <span class="loading-text" style="display: none">Creating...</span>
+    </button>
+  </form>
+  <div class="debug-info" id="createDebug" style="display: none"></div>
+  <div class="response-box" id="createResponse"></div>
+</div>
+
+<script>
+  // Create Post functionality
+  document
+    .getElementById("createPostForm")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = e.target.querySelector('button[type="submit"]');
+      const debugElement = document.getElementById("createDebug");
+      setButtonLoading(button, true);
+      debugElement.style.display = "none";
+
+      const formData = new FormData(e.target);
+      const requestData = {};
+      formData.forEach((value, key) => {
+        requestData[key] = value;
+      });
+
+      logDebug("createDebug", `Creating post with data:`, requestData);
+
+      try {
+        const response = await fetch(API_BASE_URL, {
+          method: "POST",
+          body: formData,
+        });
+        logDebug("createDebug", `Response status: ${response.status}`);
+
+        if (!response.ok) {
+          await logDetailedError(
+            "createDebug",
+            new Error(`HTTP error! status: ${response.status}`),
+            response,
+            { url: API_BASE_URL, data: requestData }
+          );
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        logDebug("createDebug", "Post created successfully", {
+          postId: data.data?.id,
+          title: data.data?.title,
+        });
+
+        displayResponse("createResponse", data);
+
+        // Clear form on success
+        e.target.reset();
+      } catch (error) {
+        if (!error.message.includes("HTTP error! status:")) {
+          await logDetailedError("createDebug", error, null, {
+            url: API_BASE_URL,
+            data: requestData,
+          });
+        }
+        displayResponse("createResponse", { error: error.message }, true);
+      } finally {
+        setButtonLoading(button, false);
+      }
+    });
+</script>

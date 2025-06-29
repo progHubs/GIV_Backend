@@ -293,6 +293,149 @@ const searchPosts = async (req, res) => {
   }
 };
 
+/**
+ * Advanced query posts with multiple filters
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const queryPosts = async (req, res) => {
+  try {
+    console.log("=== QUERY POSTS CONTROLLER START ===");
+    console.log("Request query:", JSON.stringify(req.query, null, 2));
+
+    const {
+      // Pagination
+      page = 1,
+      limit = 10,
+
+      // Basic filters
+      post_type,
+      language,
+
+      // Text search
+      title_search,
+      content_search,
+      slug_search,
+
+      // Date filters
+      created_after,
+      created_before,
+      updated_after,
+      updated_before,
+
+      // Author filters
+      author_id,
+      author_name,
+
+      // Sort options
+      sort_by = "created_at",
+      sort_order = "desc",
+
+      // Advanced filters
+      has_image,
+      content_length_min,
+      content_length_max,
+
+      // Multiple values
+      post_types,
+      languages,
+      author_ids,
+    } = req.query;
+
+    console.log("Extracted query parameters:", {
+      page,
+      limit,
+      post_type,
+      language,
+      title_search,
+      content_search,
+      slug_search,
+      created_after,
+      created_before,
+      updated_after,
+      updated_before,
+      author_id,
+      author_name,
+      sort_by,
+      sort_order,
+      has_image,
+      content_length_min,
+      content_length_max,
+      post_types,
+      languages,
+      author_ids,
+    });
+
+    // Build query options
+    const queryOptions = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      post_type,
+      language,
+      title_search,
+      content_search,
+      slug_search,
+      created_after,
+      created_before,
+      updated_after,
+      updated_before,
+      author_id,
+      author_name,
+      sort_by,
+      sort_order,
+      has_image: has_image === "true",
+      content_length_min: content_length_min
+        ? parseInt(content_length_min)
+        : null,
+      content_length_max: content_length_max
+        ? parseInt(content_length_max)
+        : null,
+      post_types: post_types ? post_types.split(",") : null,
+      languages: languages ? languages.split(",") : null,
+      author_ids: author_ids
+        ? author_ids.split(",").map((id) => parseInt(id))
+        : null,
+    };
+
+    console.log(
+      "Query options being passed to model:",
+      JSON.stringify(queryOptions, null, 2)
+    );
+
+    const result = await Post.query(queryOptions);
+
+    console.log("Result from model:", {
+      postsCount: result.posts?.length || 0,
+      pagination: result.pagination,
+    });
+
+    res.json({
+      success: true,
+      data: result.posts,
+      pagination: result.pagination,
+      filters: {
+        applied: Object.keys(req.query).filter(
+          (key) => req.query[key] !== undefined && req.query[key] !== ""
+        ),
+        total: Object.keys(req.query).length,
+      },
+    });
+
+    console.log("=== QUERY POSTS CONTROLLER END ===");
+  } catch (error) {
+    console.error("=== QUERY POSTS CONTROLLER ERROR ===");
+    console.error("Error in queryPosts controller:", error);
+    console.error("=== QUERY POSTS CONTROLLER ERROR END ===");
+
+    logger.error("Error querying posts:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   createPost,
   getPosts,
@@ -301,4 +444,5 @@ module.exports = {
   updatePost,
   deletePost,
   searchPosts,
+  queryPosts,
 };

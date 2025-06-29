@@ -1,0 +1,86 @@
+<div class="form-section" id="getPostBySlugSection">
+  <h3>Get Post by Slug</h3>
+  <form id="getPostBySlugForm">
+    <div class="mb-3">
+      <label class="form-label">Slug</label>
+      <input type="text" class="form-control" name="slug" required />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <span class="spinner-border" role="status"></span>
+      <span class="btn-text">Get Post</span>
+      <span class="loading-text" style="display: none">Loading...</span>
+    </button>
+  </form>
+  <div class="debug-info" id="getBySlugDebug" style="display: none"></div>
+  <div class="response-box" id="getBySlugResponse"></div>
+</div>
+
+<script>
+  // Get Post by Slug functionality
+  document
+    .getElementById("getPostBySlugForm")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = e.target.querySelector('button[type="submit"]');
+      const debugElement = document.getElementById("getBySlugDebug");
+      setButtonLoading(button, true);
+      debugElement.style.display = "none";
+
+      const slug = e.target.slug.value.trim();
+      logDebug("getBySlugDebug", `Fetching post with slug: ${slug}`);
+
+      if (!slug) {
+        logDebug("getBySlugDebug", "Error: No slug provided");
+        displayResponse(
+          "getBySlugResponse",
+          { error: "Post slug is required" },
+          true
+        );
+        setButtonLoading(button, false);
+        return;
+      }
+
+      const url = `${API_BASE_URL}/slug/${slug}`;
+      logDebug("getBySlugDebug", `Request URL: ${url}`);
+
+      try {
+        const response = await fetch(url);
+        logDebug("getBySlugDebug", `Response status: ${response.status}`);
+
+        if (!response.ok) {
+          await logDetailedError(
+            "getBySlugDebug",
+            new Error(`HTTP error! status: ${response.status}`),
+            response,
+            { url, slug: slug }
+          );
+          if (response.status === 404) {
+            throw new Error(`Post with slug "${slug}" not found`);
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        logDebug("getBySlugDebug", "Post retrieved successfully", {
+          postId: data.data?.id,
+          title: data.data?.title,
+          slug: data.data?.slug,
+        });
+
+        displayResponse("getBySlugResponse", data);
+      } catch (error) {
+        if (
+          !error.message.includes("HTTP error! status:") &&
+          !error.message.includes("Post with slug")
+        ) {
+          await logDetailedError("getBySlugDebug", error, null, {
+            url,
+            slug: slug,
+          });
+        }
+        displayResponse("getBySlugResponse", { error: error.message }, true);
+      } finally {
+        setButtonLoading(button, false);
+      }
+    });
+</script>
