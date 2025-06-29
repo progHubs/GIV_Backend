@@ -398,6 +398,273 @@ const validateProfileUpdateData = (data) => {
 };
 
 /**
+ * Validate user update data
+ * @param {Object} data - User update data
+ * @returns {Object} - Validation result
+ */
+const validateUserUpdateData = (data) => {
+  const errors = [];
+  const sanitized = {};
+
+  // Full name (optional)
+  if (data.full_name !== undefined) {
+    const nameValidation = validateName(data.full_name);
+    if (!nameValidation.isValid) {
+      errors.push(...nameValidation.errors);
+    } else {
+      sanitized.full_name = nameValidation.sanitized;
+    }
+  }
+
+  // Phone (optional)
+  if (data.phone !== undefined) {
+    const phoneValidation = validatePhone(data.phone);
+    if (!phoneValidation.isValid) {
+      errors.push(...phoneValidation.errors);
+    } else {
+      sanitized.phone = phoneValidation.sanitized;
+    }
+  }
+
+  // Language preference (optional)
+  if (data.language_preference !== undefined) {
+    if (!['en', 'am'].includes(data.language_preference)) {
+      errors.push('Language preference must be either "en" or "am"');
+    } else {
+      sanitized.language_preference = data.language_preference;
+    }
+  }
+
+  // Profile image URL (optional)
+  if (data.profile_image_url !== undefined) {
+    const url = sanitizeString(data.profile_image_url);
+    if (url) {
+      try {
+        new URL(url);
+        sanitized.profile_image_url = url;
+      } catch {
+        errors.push('Profile image URL must be a valid URL');
+      }
+    } else {
+      sanitized.profile_image_url = null;
+    }
+  }
+
+  // Check if at least one valid field is provided (excluding null values)
+  const validFields = Object.keys(sanitized).filter(key => sanitized[key] !== null && sanitized[key] !== undefined);
+  if (validFields.length === 0) {
+    errors.push('At least one field must be provided for update');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitized
+  };
+};
+
+/**
+ * Validate volunteer data
+ * @param {Object} data - Volunteer data
+ * @param {boolean} isUpdate - Whether this is an update operation
+ * @returns {Object} - Validation result
+ */
+const validateVolunteerData = (data, isUpdate = false) => {
+  const errors = [];
+  const sanitized = {};
+
+  // Area of expertise (optional)
+  if (data.area_of_expertise !== undefined) {
+    const expertise = sanitizeString(data.area_of_expertise);
+    if (expertise) {
+      if (expertise.length < 2 || expertise.length > 100) {
+        errors.push('Area of expertise must be between 2 and 100 characters');
+      } else {
+        sanitized.area_of_expertise = expertise;
+      }
+    }
+  }
+
+  // Location (optional)
+  if (data.location !== undefined) {
+    const location = sanitizeString(data.location);
+    if (location) {
+      if (location.length < 2 || location.length > 255) {
+        errors.push('Location must be between 2 and 255 characters');
+      } else {
+        sanitized.location = location;
+      }
+    }
+  }
+
+  // Availability (optional)
+  if (data.availability !== undefined) {
+    if (typeof data.availability === 'object' && data.availability !== null) {
+      sanitized.availability = JSON.stringify(data.availability);
+    } else if (typeof data.availability === 'string') {
+      try {
+        JSON.parse(data.availability);
+        sanitized.availability = data.availability;
+      } catch {
+        errors.push('Availability must be a valid JSON object');
+      }
+    } else {
+      errors.push('Availability must be a valid JSON object');
+    }
+  }
+
+  // Motivation (optional)
+  if (data.motivation !== undefined) {
+    const motivation = sanitizeString(data.motivation);
+    if (motivation) {
+      if (motivation.length < 10 || motivation.length > 1000) {
+        errors.push('Motivation must be between 10 and 1000 characters');
+      } else {
+        sanitized.motivation = motivation;
+      }
+    }
+  }
+
+  // Emergency contact name (optional)
+  if (data.emergency_contact_name !== undefined) {
+    const contactName = sanitizeString(data.emergency_contact_name);
+    if (contactName) {
+      if (contactName.length < 2 || contactName.length > 100) {
+        errors.push('Emergency contact name must be between 2 and 100 characters');
+      } else if (!/^[a-zA-Z\s]+$/.test(contactName)) {
+        errors.push('Emergency contact name can only contain letters and spaces');
+      } else {
+        sanitized.emergency_contact_name = contactName;
+      }
+    }
+  }
+
+  // Emergency contact phone (optional)
+  if (data.emergency_contact_phone !== undefined) {
+    const contactPhone = sanitizeString(data.emergency_contact_phone);
+    if (contactPhone) {
+      if (!isValidPhone(contactPhone)) {
+        errors.push('Emergency contact phone must be a valid international format');
+      } else {
+        sanitized.emergency_contact_phone = contactPhone.replace(/[\s\-\(\)]/g, '');
+      }
+    }
+  }
+
+  // Certificate URL (optional)
+  if (data.certificate_url !== undefined) {
+    const url = sanitizeString(data.certificate_url);
+    if (url) {
+      try {
+        new URL(url);
+        sanitized.certificate_url = url;
+      } catch {
+        errors.push('Certificate URL must be a valid URL');
+      }
+    } else {
+      sanitized.certificate_url = null;
+    }
+  }
+
+  // For creation, require at least one field
+  if (!isUpdate && Object.keys(sanitized).length === 0) {
+    errors.push('At least one field must be provided for volunteer profile');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitized
+  };
+};
+
+/**
+ * Validate donor data
+ * @param {Object} data - Donor data
+ * @param {boolean} isUpdate - Whether this is an update operation
+ * @returns {Object} - Validation result
+ */
+const validateDonorData = (data, isUpdate = false) => {
+  const errors = [];
+  const sanitized = {};
+
+  // is_recurring_donor (optional)
+  if (data.is_recurring_donor !== undefined) {
+    if (typeof data.is_recurring_donor !== 'boolean') {
+      errors.push('is_recurring_donor must be a boolean');
+    } else {
+      sanitized.is_recurring_donor = data.is_recurring_donor;
+    }
+  }
+
+  // preferred_payment_method (optional)
+  if (data.preferred_payment_method !== undefined) {
+    const paymentMethod = sanitizeString(data.preferred_payment_method);
+    if (paymentMethod) {
+      if (paymentMethod.length < 2 || paymentMethod.length > 50) {
+        errors.push('Preferred payment method must be between 2 and 50 characters');
+      } else {
+        sanitized.preferred_payment_method = paymentMethod;
+      }
+    }
+  }
+
+  // donation_frequency (optional)
+  if (data.donation_frequency !== undefined) {
+    const validFrequencies = ['monthly', 'quarterly', 'yearly'];
+    if (!validFrequencies.includes(data.donation_frequency)) {
+      errors.push('Donation frequency must be one of: monthly, quarterly, yearly');
+    } else {
+      sanitized.donation_frequency = data.donation_frequency;
+    }
+  }
+
+  // tax_receipt_email (optional)
+  if (data.tax_receipt_email !== undefined) {
+    const email = sanitizeString(data.tax_receipt_email);
+    if (email) {
+      if (!isValidEmail(email)) {
+        errors.push('Tax receipt email must be a valid email address');
+      } else {
+        sanitized.tax_receipt_email = email.toLowerCase();
+      }
+    } else {
+      sanitized.tax_receipt_email = null;
+    }
+  }
+
+  // is_anonymous (optional)
+  if (data.is_anonymous !== undefined) {
+    if (typeof data.is_anonymous !== 'boolean') {
+      errors.push('is_anonymous must be a boolean');
+    } else {
+      sanitized.is_anonymous = data.is_anonymous;
+    }
+  }
+
+  // donation_tier (optional)
+  if (data.donation_tier !== undefined) {
+    const validTiers = ['bronze', 'silver', 'gold', 'platinum'];
+    if (!validTiers.includes(data.donation_tier)) {
+      errors.push('Donation tier must be one of: bronze, silver, gold, platinum');
+    } else {
+      sanitized.donation_tier = data.donation_tier;
+    }
+  }
+
+  // For creation, require at least one field
+  if (!isUpdate && Object.keys(sanitized).length === 0) {
+    errors.push('At least one field must be provided for donor profile');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitized
+  };
+};
+
+/**
  * Validate pagination parameters
  * @param {Object} query - Query parameters
  * @returns {Object} - Validation result
@@ -486,6 +753,9 @@ module.exports = {
   validatePasswordResetData,
   validatePasswordChangeData,
   validateProfileUpdateData,
+  validateUserUpdateData,
+  validateVolunteerData,
+  validateDonorData,
   validatePagination,
   validateId
 }; 
