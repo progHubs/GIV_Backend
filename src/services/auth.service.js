@@ -268,8 +268,23 @@ class AuthService {
           language_preference: user.language_preference,
           email_verified: user.email_verified,
           profile_image_url: user.profile_image_url,
-          volunteer_profile: user.volunteer_profiles,
-          donor_profile: user.donor_profiles
+          volunteer_profile: user.volunteer_profiles ? {
+            ...user.volunteer_profiles,
+            user_id: user.volunteer_profiles.user_id.toString(),
+            volunteer_skills: user.volunteer_profiles.volunteer_skills ? user.volunteer_profiles.volunteer_skills.map(vs => ({
+              ...vs,
+              volunteer_id: vs.volunteer_id.toString(),
+              skill_id: vs.skill_id.toString(),
+              skills: {
+                ...vs.skills,
+                id: vs.skills.id.toString()
+              }
+            })) : []
+          } : null,
+          donor_profile: user.donor_profiles ? {
+            ...user.donor_profiles,
+            user_id: user.donor_profiles.user_id.toString()
+          } : null
         },
         tokens,
         sessionId
@@ -332,8 +347,23 @@ class AuthService {
           profile_image_url: user.profile_image_url,
           created_at: user.created_at,
           updated_at: user.updated_at,
-          volunteer_profile: user.volunteer_profiles,
-          donor_profile: user.donor_profiles
+          volunteer_profile: user.volunteer_profiles ? {
+            ...user.volunteer_profiles,
+            user_id: user.volunteer_profiles.user_id.toString(),
+            volunteer_skills: user.volunteer_profiles.volunteer_skills ? user.volunteer_profiles.volunteer_skills.map(vs => ({
+              ...vs,
+              volunteer_id: vs.volunteer_id.toString(),
+              skill_id: vs.skill_id.toString(),
+              skills: {
+                ...vs.skills,
+                id: vs.skills.id.toString()
+              }
+            })) : []
+          } : null,
+          donor_profile: user.donor_profiles ? {
+            ...user.donor_profiles,
+            user_id: user.donor_profiles.user_id.toString()
+          } : null
         }
       };
 
