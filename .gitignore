@@ -138,5 +138,5 @@ coverage/
 # Local development
 .local/ 
 
-
+/tests
 /src/generated/prisma

@@ -3,7 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 3000;
 
 // Import middleware
 const errorMiddleware = require('./api/middlewares/error.middleware');
+const { generalLimiter } = require('./middlewares/rate-limit.middleware');
 
 // Import routes
 const authRoutes = require('./api/routes/auth.routes');
@@ -33,22 +34,35 @@ const skillRoutes = require('./api/routes/skill.routes');
 const analyticsRoutes = require('./api/routes/analytics.routes');
 const emailRoutes = require('./api/routes/email.routes');
 
-// Security middleware
-app.use(helmet());
+// Enhanced security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // CORS configuration
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api', limiter);
+// Global rate limiting for all API routes
+app.use('/api', generalLimiter);
 
 // Compression middleware
 app.use(compression());
@@ -60,13 +74,44 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing middleware with security limits
+app.use(express.json({ 
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({ 
+        success: false, 
+        errors: ['Invalid JSON payload'],
+        code: 'INVALID_JSON'
+      });
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '10mb',
+  parameterLimit: 100 // Limit number of parameters
+}));
 
-// Static files
-app.use('/uploads', express.static('uploads'));
-app.use('/public', express.static('public'));
+// Cookie parser middleware with security options
+app.use(cookieParser(process.env.COOKIE_SECRET || 'giv-society-secret'));
+
+// Static files with security headers
+app.use('/uploads', express.static('uploads', {
+  setHeaders: (res, path) => {
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('X-Frame-Options', 'DENY');
+  }
+}));
+app.use('/public', express.static('public', {
+  setHeaders: (res, path) => {
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('X-Frame-Options', 'DENY');
+  }
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -74,7 +119,8 @@ app.get('/health', (req, res) => {
     status: 'OK',
     message: 'GIV Society Backend is running',
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0'
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -82,12 +128,12 @@ app.get('/health', (req, res) => {
 const apiVersion = process.env.API_VERSION || 'v1';
 const apiPrefix = `/api/${apiVersion}`;
 
-
 // Test route first
 app.get('/api/v1/test', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'API is working!'
+    message: 'API is working!',
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -117,20 +163,23 @@ app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found',
-    path: req.originalUrl
+    path: req.originalUrl,
+    timestamp: new Date().toISOString()
   });
 });
 
 // Error handling middleware
 app.use(errorMiddleware);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 GIV Society Backend Server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 API Base URL: http://localhost:${PORT}${apiPrefix}`);
-  console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
-});
+// Start server only if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`🚀 GIV Society Backend Server running on port ${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 API Base URL: http://localhost:${PORT}${apiPrefix}`);
+    console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+  });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

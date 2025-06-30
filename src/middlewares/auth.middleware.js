@@ -177,13 +177,28 @@ const requireRole = (...allowedRoles) => {
 };
 
 /**
- * Require specific role
- * @param {string} role - Required role
- * @returns {Function} - Express middleware function
+ * Specific role middleware functions
  */
 const requireAdmin = requireRole('admin');
 const requireEditor = requireRole('admin', 'editor');
-const requireVolunteerManager = requireRole('admin', 'editor', 'volunteer_manager');
+const requireVolunteerManager = requireRole('admin', 'volunteer_manager');
+const requireVolunteer = requireRole('admin', 'volunteer_manager', 'volunteer');
+const requireDonor = requireRole('admin', 'donor');
+
+/**
+ * Content management access (admin, editor, volunteer manager)
+ */
+const requireContentAccess = requireRole('admin', 'editor', 'volunteer_manager');
+
+/**
+ * User management access (admin only)
+ */
+const requireUserManagement = requireRole('admin');
+
+/**
+ * Analytics access (admin, volunteer manager)
+ */
+const requireAnalyticsAccess = requireRole('admin', 'volunteer_manager');
 
 /**
  * Check if user owns the resource or has admin privileges
@@ -200,8 +215,13 @@ const requireOwnershipOrAdmin = (getResourceUserId) => {
       });
     }
     
+    // Admin can access everything
+    if (req.user.role === 'admin') {
+      return next();
+    }
+    
     try {
-      const resourceUserId = await getResourceUserId(req);
+      const resourceUserId = getResourceUserId(req);
       
       if (!resourceUserId) {
         return res.status(404).json({
@@ -218,14 +238,14 @@ const requireOwnershipOrAdmin = (getResourceUserId) => {
       
       return res.status(403).json({
         success: false,
-        message: 'Access denied. You can only modify your own resources.',
+        message: 'Access denied - you can only access your own resources',
         code: 'ACCESS_DENIED'
       });
     } catch (error) {
       console.error('Ownership check error:', error);
       return res.status(500).json({
         success: false,
-        message: 'Failed to verify resource ownership',
+        message: 'Error checking resource ownership',
         code: 'OWNERSHIP_CHECK_ERROR'
       });
     }
@@ -400,6 +420,40 @@ const logAuthAttempt = async (req, res, next) => {
   next();
 };
 
+/**
+ * Additional role-based middleware functions
+ */
+
+/**
+ * Require admin or volunteer manager for volunteer management
+ */
+const requireVolunteerManagement = requireRole('admin', 'volunteer_manager');
+
+/**
+ * Require admin or editor for content management
+ */
+const requireContentManagement = requireRole('admin', 'editor');
+
+/**
+ * Require admin for system administration
+ */
+const requireSystemAdmin = requireRole('admin');
+
+/**
+ * Require admin or donor for donation management
+ */
+const requireDonationManagement = requireRole('admin', 'donor');
+
+/**
+ * Require admin or volunteer for event participation
+ */
+const requireEventParticipation = requireRole('admin', 'volunteer', 'donor');
+
+/**
+ * Check if user can access their own profile or has admin privileges
+ */
+const requireOwnProfileOrAdmin = requireOwnershipOrAdmin((req) => req.params.id || req.params.userId);
+
 module.exports = {
   authenticateToken,
   optionalAuth,
@@ -407,6 +461,17 @@ module.exports = {
   requireAdmin,
   requireEditor,
   requireVolunteerManager,
+  requireVolunteer,
+  requireDonor,
+  requireContentAccess,
+  requireUserManagement,
+  requireAnalyticsAccess,
+  requireVolunteerManagement,
+  requireContentManagement,
+  requireSystemAdmin,
+  requireDonationManagement,
+  requireEventParticipation,
+  requireOwnProfileOrAdmin,
   requireOwnershipOrAdmin,
   authRateLimit,
   requireEmailVerification,

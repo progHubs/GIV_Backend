@@ -189,72 +189,66 @@ const validatePhone = (phone) => {
 };
 
 /**
- * Validate registration data
- * @param {Object} data - Registration data
- * @returns {Object} - Validation result
+ * Simplified Registration Validation
  */
 const validateRegistrationData = (data) => {
   const errors = [];
   const sanitized = {};
-  
-  // Validate email
-  const emailValidation = validateEmail(data.email);
-  if (!emailValidation.isValid) {
-    errors.push(...emailValidation.errors);
+
+  // Full name
+  if (!data.full_name || typeof data.full_name !== 'string' || data.full_name.trim().length < 2 || data.full_name.trim().length > 100 || !/^[a-zA-Z\s\-']+$/.test(data.full_name.trim())) {
+    errors.push('Full name is required and must be 2-100 characters (letters, spaces, hyphens, apostrophes)');
   } else {
-    sanitized.email = emailValidation.sanitized;
+    sanitized.full_name = data.full_name.trim();
   }
-  
-  // Validate full name
-  const nameValidation = validateName(data.full_name);
-  if (!nameValidation.isValid) {
-    errors.push(...nameValidation.errors);
+
+  // Email
+  if (!data.email || typeof data.email !== 'string' || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(data.email.trim())) {
+    errors.push('Valid email is required');
   } else {
-    sanitized.full_name = nameValidation.sanitized;
+    sanitized.email = data.email.trim().toLowerCase();
   }
-  
-  // Validate password
+
+  // Password
   const passwordValidation = validatePasswordStrength(data.password);
   if (!passwordValidation.isValid) {
     errors.push(...passwordValidation.errors);
   } else {
-    sanitized.password = data.password; // Don't sanitize password
+    sanitized.password = data.password;
   }
-  
-  // Validate phone (optional)
-  if (data.phone) {
-    const phoneValidation = validatePhone(data.phone);
-    if (!phoneValidation.isValid) {
-      errors.push(...phoneValidation.errors);
-    } else {
-      sanitized.phone = phoneValidation.sanitized;
-    }
-  }
-  
-  // Validate role (optional, defaults to 'donor')
-  if (data.role) {
+
+  // Role (optional)
+  if (data.role !== undefined) {
     const validRoles = ['admin', 'volunteer', 'donor', 'editor'];
     if (!validRoles.includes(data.role)) {
-      errors.push('Invalid role specified');
+      errors.push('Role must be one of: admin, volunteer, donor, editor');
     } else {
       sanitized.role = data.role;
     }
   } else {
-    sanitized.role = 'donor'; // Default role
+    sanitized.role = 'donor';
   }
-  
-  // Validate language preference (optional, defaults to 'en')
-  if (data.language_preference) {
-    const validLanguages = ['en', 'am'];
-    if (!validLanguages.includes(data.language_preference)) {
-      errors.push('Invalid language preference');
+
+  // Language preference (optional)
+  if (data.language_preference !== undefined) {
+    if (!['en', 'am'].includes(data.language_preference)) {
+      errors.push('Language preference must be "en" or "am"');
     } else {
       sanitized.language_preference = data.language_preference;
     }
   } else {
-    sanitized.language_preference = 'en'; // Default language
+    sanitized.language_preference = 'en';
   }
-  
+
+  // Phone (optional)
+  if (data.phone !== undefined && data.phone !== null && data.phone !== '') {
+    if (!/^\+?[1-9]\d{1,14}$/.test(data.phone.replace(/[\s\-\(\)]/g, ''))) {
+      errors.push('Phone number must be in international format (e.g., +1234567890)');
+    } else {
+      sanitized.phone = data.phone.replace(/[\s\-\(\)]/g, '');
+    }
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -320,34 +314,32 @@ const validatePasswordResetData = (data) => {
 };
 
 /**
- * Validate password change data
- * @param {Object} data - Password change data
- * @returns {Object} - Validation result
+ * Simplified Password Change Validation
  */
 const validatePasswordChangeData = (data) => {
   const errors = [];
   const sanitized = {};
-  
-  // Validate current password
+
+  // Current password
   if (!data.current_password || typeof data.current_password !== 'string') {
     errors.push('Current password is required');
   } else {
     sanitized.current_password = data.current_password;
   }
-  
-  // Validate new password
+
+  // New password
   const passwordValidation = validatePasswordStrength(data.new_password);
   if (!passwordValidation.isValid) {
     errors.push(...passwordValidation.errors);
   } else {
     sanitized.new_password = data.new_password;
   }
-  
-  // Validate password confirmation
+
+  // Confirm password
   if (data.new_password !== data.confirm_password) {
     errors.push('Password confirmation does not match');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -398,6 +390,273 @@ const validateProfileUpdateData = (data) => {
     }
   }
   
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitized
+  };
+};
+
+/**
+ * Validate user update data
+ * @param {Object} data - User update data
+ * @returns {Object} - Validation result
+ */
+const validateUserUpdateData = (data) => {
+  const errors = [];
+  const sanitized = {};
+
+  // Full name (optional)
+  if (data.full_name !== undefined) {
+    const nameValidation = validateName(data.full_name);
+    if (!nameValidation.isValid) {
+      errors.push(...nameValidation.errors);
+    } else {
+      sanitized.full_name = nameValidation.sanitized;
+    }
+  }
+
+  // Phone (optional)
+  if (data.phone !== undefined) {
+    const phoneValidation = validatePhone(data.phone);
+    if (!phoneValidation.isValid) {
+      errors.push(...phoneValidation.errors);
+    } else {
+      sanitized.phone = phoneValidation.sanitized;
+    }
+  }
+
+  // Language preference (optional)
+  if (data.language_preference !== undefined) {
+    if (!['en', 'am'].includes(data.language_preference)) {
+      errors.push('Language preference must be either "en" or "am"');
+    } else {
+      sanitized.language_preference = data.language_preference;
+    }
+  }
+
+  // Profile image URL (optional)
+  if (data.profile_image_url !== undefined) {
+    const url = sanitizeString(data.profile_image_url);
+    if (url) {
+      try {
+        new URL(url);
+        sanitized.profile_image_url = url;
+      } catch {
+        errors.push('Profile image URL must be a valid URL');
+      }
+    } else {
+      sanitized.profile_image_url = null;
+    }
+  }
+
+  // Check if at least one valid field is provided (excluding null values)
+  const validFields = Object.keys(sanitized).filter(key => sanitized[key] !== null && sanitized[key] !== undefined);
+  if (validFields.length === 0) {
+    errors.push('At least one field must be provided for update');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitized
+  };
+};
+
+/**
+ * Validate volunteer data
+ * @param {Object} data - Volunteer data
+ * @param {boolean} isUpdate - Whether this is an update operation
+ * @returns {Object} - Validation result
+ */
+const validateVolunteerData = (data, isUpdate = false) => {
+  const errors = [];
+  const sanitized = {};
+
+  // Area of expertise (optional)
+  if (data.area_of_expertise !== undefined) {
+    const expertise = sanitizeString(data.area_of_expertise);
+    if (expertise) {
+      if (expertise.length < 2 || expertise.length > 100) {
+        errors.push('Area of expertise must be between 2 and 100 characters');
+      } else {
+        sanitized.area_of_expertise = expertise;
+      }
+    }
+  }
+
+  // Location (optional)
+  if (data.location !== undefined) {
+    const location = sanitizeString(data.location);
+    if (location) {
+      if (location.length < 2 || location.length > 255) {
+        errors.push('Location must be between 2 and 255 characters');
+      } else {
+        sanitized.location = location;
+      }
+    }
+  }
+
+  // Availability (optional)
+  if (data.availability !== undefined) {
+    if (typeof data.availability === 'object' && data.availability !== null) {
+      sanitized.availability = JSON.stringify(data.availability);
+    } else if (typeof data.availability === 'string') {
+      try {
+        JSON.parse(data.availability);
+        sanitized.availability = data.availability;
+      } catch {
+        errors.push('Availability must be a valid JSON object');
+      }
+    } else {
+      errors.push('Availability must be a valid JSON object');
+    }
+  }
+
+  // Motivation (optional)
+  if (data.motivation !== undefined) {
+    const motivation = sanitizeString(data.motivation);
+    if (motivation) {
+      if (motivation.length < 10 || motivation.length > 1000) {
+        errors.push('Motivation must be between 10 and 1000 characters');
+      } else {
+        sanitized.motivation = motivation;
+      }
+    }
+  }
+
+  // Emergency contact name (optional)
+  if (data.emergency_contact_name !== undefined) {
+    const contactName = sanitizeString(data.emergency_contact_name);
+    if (contactName) {
+      if (contactName.length < 2 || contactName.length > 100) {
+        errors.push('Emergency contact name must be between 2 and 100 characters');
+      } else if (!/^[a-zA-Z\s]+$/.test(contactName)) {
+        errors.push('Emergency contact name can only contain letters and spaces');
+      } else {
+        sanitized.emergency_contact_name = contactName;
+      }
+    }
+  }
+
+  // Emergency contact phone (optional)
+  if (data.emergency_contact_phone !== undefined) {
+    const contactPhone = sanitizeString(data.emergency_contact_phone);
+    if (contactPhone) {
+      if (!isValidPhone(contactPhone)) {
+        errors.push('Emergency contact phone must be a valid international format');
+      } else {
+        sanitized.emergency_contact_phone = contactPhone.replace(/[\s\-\(\)]/g, '');
+      }
+    }
+  }
+
+  // Certificate URL (optional)
+  if (data.certificate_url !== undefined) {
+    const url = sanitizeString(data.certificate_url);
+    if (url) {
+      try {
+        new URL(url);
+        sanitized.certificate_url = url;
+      } catch {
+        errors.push('Certificate URL must be a valid URL');
+      }
+    } else {
+      sanitized.certificate_url = null;
+    }
+  }
+
+  // For creation, require at least one field
+  if (!isUpdate && Object.keys(sanitized).length === 0) {
+    errors.push('At least one field must be provided for volunteer profile');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitized
+  };
+};
+
+/**
+ * Validate donor data
+ * @param {Object} data - Donor data
+ * @param {boolean} isUpdate - Whether this is an update operation
+ * @returns {Object} - Validation result
+ */
+const validateDonorData = (data, isUpdate = false) => {
+  const errors = [];
+  const sanitized = {};
+
+  // is_recurring_donor (optional)
+  if (data.is_recurring_donor !== undefined) {
+    if (typeof data.is_recurring_donor !== 'boolean') {
+      errors.push('is_recurring_donor must be a boolean');
+    } else {
+      sanitized.is_recurring_donor = data.is_recurring_donor;
+    }
+  }
+
+  // preferred_payment_method (optional)
+  if (data.preferred_payment_method !== undefined) {
+    const paymentMethod = sanitizeString(data.preferred_payment_method);
+    if (paymentMethod) {
+      if (paymentMethod.length < 2 || paymentMethod.length > 50) {
+        errors.push('Preferred payment method must be between 2 and 50 characters');
+      } else {
+        sanitized.preferred_payment_method = paymentMethod;
+      }
+    }
+  }
+
+  // donation_frequency (optional)
+  if (data.donation_frequency !== undefined) {
+    const validFrequencies = ['monthly', 'quarterly', 'yearly'];
+    if (!validFrequencies.includes(data.donation_frequency)) {
+      errors.push('Donation frequency must be one of: monthly, quarterly, yearly');
+    } else {
+      sanitized.donation_frequency = data.donation_frequency;
+    }
+  }
+
+  // tax_receipt_email (optional)
+  if (data.tax_receipt_email !== undefined) {
+    const email = sanitizeString(data.tax_receipt_email);
+    if (email) {
+      if (!isValidEmail(email)) {
+        errors.push('Tax receipt email must be a valid email address');
+      } else {
+        sanitized.tax_receipt_email = email.toLowerCase();
+      }
+    } else {
+      sanitized.tax_receipt_email = null;
+    }
+  }
+
+  // is_anonymous (optional)
+  if (data.is_anonymous !== undefined) {
+    if (typeof data.is_anonymous !== 'boolean') {
+      errors.push('is_anonymous must be a boolean');
+    } else {
+      sanitized.is_anonymous = data.is_anonymous;
+    }
+  }
+
+  // donation_tier (optional)
+  if (data.donation_tier !== undefined) {
+    const validTiers = ['bronze', 'silver', 'gold', 'platinum'];
+    if (!validTiers.includes(data.donation_tier)) {
+      errors.push('Donation tier must be one of: bronze, silver, gold, platinum');
+    } else {
+      sanitized.donation_tier = data.donation_tier;
+    }
+  }
+
+  // For creation, require at least one field
+  if (!isUpdate && Object.keys(sanitized).length === 0) {
+    errors.push('At least one field must be provided for donor profile');
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -494,6 +753,9 @@ module.exports = {
   validatePasswordResetData,
   validatePasswordChangeData,
   validateProfileUpdateData,
+  validateUserUpdateData,
+  validateVolunteerData,
+  validateDonorData,
   validatePagination,
   validateId
 }; 

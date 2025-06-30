@@ -335,16 +335,6 @@ model programs {
   @@index([translation_group_id], map: "idx_translation_group")
 }
 
-model role_permissions {
-  role       role_permissions_role
-  permission String                @db.VarChar(100)
-  created_at DateTime?             @default(now()) @db.Timestamp(0)
-
-  @@id([role, permission])
-  @@index([permission], map: "idx_permission")
-  @@index([role], map: "idx_role")
-}
-
 model site_interactions {
   id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
   user_id     BigInt?   @db.UnsignedBigInt
@@ -457,12 +447,6 @@ model volunteer_skills {
   @@id([volunteer_id, skill_id])
   @@index([proficiency_level], map: "idx_proficiency")
   @@index([skill_id], map: "skill_id")
-}
-
-enum role_permissions_role {
-  admin
-  editor
-  volunteer_manager
 }
 
 enum media_media_type {

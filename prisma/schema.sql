@@ -350,16 +350,6 @@ CREATE TABLE newsletter_subscribers (
     INDEX idx_active (is_active)
 ) ENGINE=InnoDB;
 
--- Role permissions table
-CREATE TABLE role_permissions (
-    role ENUM('admin', 'editor', 'volunteer_manager') NOT NULL,
-    permission VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (role, permission),
-    INDEX idx_role (role),
-    INDEX idx_permission (permission)
-) ENGINE=InnoDB;
-
 -- Email logs table
 CREATE TABLE email_logs (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
