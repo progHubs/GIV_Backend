@@ -171,13 +171,15 @@ app.use('*', (req, res) => {
 // Error handling middleware
 app.use(errorMiddleware);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 GIV Society Backend Server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 API Base URL: http://localhost:${PORT}${apiPrefix}`);
-  console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
-});
+// Start server only if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`🚀 GIV Society Backend Server running on port ${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 API Base URL: http://localhost:${PORT}${apiPrefix}`);
+    console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+  });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
