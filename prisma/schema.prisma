@@ -397,6 +397,8 @@ model users {
   created_at          DateTime?                  @default(now()) @db.Timestamp(0)
   updated_at          DateTime?                  @default(now()) @db.Timestamp(0)
   deleted_at          DateTime?                  @db.Timestamp(0)
+  is_donor            Boolean                    @default(false)
+  is_volunteer        Boolean                    @default(false)
   campaigns           campaigns[]
   documents           documents[]
   donor_profiles      donor_profiles?
@@ -503,13 +505,6 @@ enum posts_post_type {
   blog
   news
   press_release
-}
-
-enum users_role {
-  admin
-  volunteer
-  donor
-  editor
 }
 
 enum testimonials_type {
@@ -620,4 +615,9 @@ enum campaigns_language {
 enum events_language {
   en
   am
+}
+
+enum users_role {
+  admin
+  user
 }
