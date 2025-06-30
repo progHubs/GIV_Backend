@@ -112,6 +112,9 @@ app.get("/api/v1/test", (req, res) => {
 app.get("/test/post", (req, res) => {
   res.render("PostTest");
 });
+app.get("/test/faq", (req, res) => {
+  res.render("FAQ");
+});
 
 // Mount routes
 app.use(`${apiPrefix}/auth`, authRoutes);
@@ -153,6 +156,7 @@ app.listen(PORT, () => {
   console.log(`🔗 API Base URL: http://localhost:${PORT}${apiPrefix}`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
   console.log(`🧪 Test Page: http://localhost:${PORT}/test/post`);
+  console.log(`🧪 FAQ Test Page: http://localhost:${PORT}/test/faq`);
 });
 
 // Graceful shutdown

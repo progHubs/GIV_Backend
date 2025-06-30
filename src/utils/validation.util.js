@@ -1,4 +1,4 @@
-const { validatePasswordStrength } = require('./password.util');
+const { validatePasswordStrength } = require("./password.util");
 
 /**
  * Validation Utilities for GIV Society Backend
@@ -30,10 +30,10 @@ const SLUG_REGEX = /^[a-z0-9-]+$/;
  * @returns {boolean} - True if valid email format
  */
 const isValidEmail = (email) => {
-  if (!email || typeof email !== 'string') {
+  if (!email || typeof email !== "string") {
     return false;
   }
-  
+
   return EMAIL_REGEX.test(email.trim().toLowerCase());
 };
 
@@ -43,12 +43,12 @@ const isValidEmail = (email) => {
  * @returns {boolean} - True if valid phone format
  */
 const isValidPhone = (phone) => {
-  if (!phone || typeof phone !== 'string') {
+  if (!phone || typeof phone !== "string") {
     return false;
   }
-  
+
   // Remove spaces, dashes, and parentheses
-  const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+  const cleanPhone = phone.replace(/[\s\-\(\)]/g, "");
   return PHONE_REGEX.test(cleanPhone);
 };
 
@@ -58,12 +58,16 @@ const isValidPhone = (phone) => {
  * @returns {boolean} - True if valid name format
  */
 const isValidName = (name) => {
-  if (!name || typeof name !== 'string') {
+  if (!name || typeof name !== "string") {
     return false;
   }
-  
+
   const trimmedName = name.trim();
-  return trimmedName.length >= 2 && trimmedName.length <= 100 && NAME_REGEX.test(trimmedName);
+  return (
+    trimmedName.length >= 2 &&
+    trimmedName.length <= 100 &&
+    NAME_REGEX.test(trimmedName)
+  );
 };
 
 /**
@@ -72,10 +76,10 @@ const isValidName = (name) => {
  * @returns {boolean} - True if valid slug format
  */
 const isValidSlug = (slug) => {
-  if (!slug || typeof slug !== 'string') {
+  if (!slug || typeof slug !== "string") {
     return false;
   }
-  
+
   return slug.length >= 3 && slug.length <= 255 && SLUG_REGEX.test(slug);
 };
 
@@ -85,14 +89,14 @@ const isValidSlug = (slug) => {
  * @returns {string} - Sanitized string
  */
 const sanitizeString = (input) => {
-  if (!input || typeof input !== 'string') {
-    return '';
+  if (!input || typeof input !== "string") {
+    return "";
   }
-  
+
   return input
     .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/\s+/g, ' '); // Normalize whitespace
+    .replace(/[<>]/g, "") // Remove potential HTML tags
+    .replace(/\s+/g, " "); // Normalize whitespace
 };
 
 /**
@@ -102,27 +106,27 @@ const sanitizeString = (input) => {
  */
 const validateEmail = (email) => {
   const sanitized = sanitizeString(email);
-  
+
   if (!sanitized) {
     return {
       isValid: false,
-      errors: ['Email is required'],
-      sanitized: ''
+      errors: ["Email is required"],
+      sanitized: "",
     };
   }
-  
+
   if (!isValidEmail(sanitized)) {
     return {
       isValid: false,
-      errors: ['Invalid email format'],
-      sanitized: ''
+      errors: ["Invalid email format"],
+      sanitized: "",
     };
   }
-  
+
   return {
     isValid: true,
     errors: [],
-    sanitized: sanitized.toLowerCase()
+    sanitized: sanitized.toLowerCase(),
   };
 };
 
@@ -133,27 +137,29 @@ const validateEmail = (email) => {
  */
 const validateName = (name) => {
   const sanitized = sanitizeString(name);
-  
+
   if (!sanitized) {
     return {
       isValid: false,
-      errors: ['Name is required'],
-      sanitized: ''
+      errors: ["Name is required"],
+      sanitized: "",
     };
   }
-  
+
   if (!isValidName(sanitized)) {
     return {
       isValid: false,
-      errors: ['Name must be 2-100 characters and contain only letters, spaces, hyphens, and apostrophes'],
-      sanitized: ''
+      errors: [
+        "Name must be 2-100 characters and contain only letters, spaces, hyphens, and apostrophes",
+      ],
+      sanitized: "",
     };
   }
-  
+
   return {
     isValid: true,
     errors: [],
-    sanitized: sanitized
+    sanitized: sanitized,
   };
 };
 
@@ -164,27 +170,29 @@ const validateName = (name) => {
  */
 const validatePhone = (phone) => {
   const sanitized = sanitizeString(phone);
-  
+
   if (!sanitized) {
     return {
       isValid: false,
-      errors: ['Phone number is required'],
-      sanitized: ''
+      errors: ["Phone number is required"],
+      sanitized: "",
     };
   }
-  
+
   if (!isValidPhone(sanitized)) {
     return {
       isValid: false,
-      errors: ['Invalid phone number format. Please use international format (e.g., +1234567890)'],
-      sanitized: ''
+      errors: [
+        "Invalid phone number format. Please use international format (e.g., +1234567890)",
+      ],
+      sanitized: "",
     };
   }
-  
+
   return {
     isValid: true,
     errors: [],
-    sanitized: sanitized.replace(/[\s\-\(\)]/g, '')
+    sanitized: sanitized.replace(/[\s\-\(\)]/g, ""),
   };
 };
 
@@ -196,7 +204,7 @@ const validatePhone = (phone) => {
 const validateRegistrationData = (data) => {
   const errors = [];
   const sanitized = {};
-  
+
   // Validate email
   const emailValidation = validateEmail(data.email);
   if (!emailValidation.isValid) {
@@ -204,7 +212,7 @@ const validateRegistrationData = (data) => {
   } else {
     sanitized.email = emailValidation.sanitized;
   }
-  
+
   // Validate full name
   const nameValidation = validateName(data.full_name);
   if (!nameValidation.isValid) {
@@ -212,7 +220,7 @@ const validateRegistrationData = (data) => {
   } else {
     sanitized.full_name = nameValidation.sanitized;
   }
-  
+
   // Validate password
   const passwordValidation = validatePasswordStrength(data.password);
   if (!passwordValidation.isValid) {
@@ -220,7 +228,7 @@ const validateRegistrationData = (data) => {
   } else {
     sanitized.password = data.password; // Don't sanitize password
   }
-  
+
   // Validate phone (optional)
   if (data.phone) {
     const phoneValidation = validatePhone(data.phone);
@@ -230,35 +238,35 @@ const validateRegistrationData = (data) => {
       sanitized.phone = phoneValidation.sanitized;
     }
   }
-  
+
   // Validate role (optional, defaults to 'donor')
   if (data.role) {
-    const validRoles = ['admin', 'volunteer', 'donor', 'editor'];
+    const validRoles = ["admin", "volunteer", "donor", "editor"];
     if (!validRoles.includes(data.role)) {
-      errors.push('Invalid role specified');
+      errors.push("Invalid role specified");
     } else {
       sanitized.role = data.role;
     }
   } else {
-    sanitized.role = 'donor'; // Default role
+    sanitized.role = "donor"; // Default role
   }
-  
+
   // Validate language preference (optional, defaults to 'en')
   if (data.language_preference) {
-    const validLanguages = ['en', 'am'];
+    const validLanguages = ["en", "am"];
     if (!validLanguages.includes(data.language_preference)) {
-      errors.push('Invalid language preference');
+      errors.push("Invalid language preference");
     } else {
       sanitized.language_preference = data.language_preference;
     }
   } else {
-    sanitized.language_preference = 'en'; // Default language
+    sanitized.language_preference = "en"; // Default language
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
-    sanitized
+    sanitized,
   };
 };
 
@@ -270,7 +278,7 @@ const validateRegistrationData = (data) => {
 const validateLoginData = (data) => {
   const errors = [];
   const sanitized = {};
-  
+
   // Validate email
   const emailValidation = validateEmail(data.email);
   if (!emailValidation.isValid) {
@@ -278,20 +286,20 @@ const validateLoginData = (data) => {
   } else {
     sanitized.email = emailValidation.sanitized;
   }
-  
+
   // Validate password
-  if (!data.password || typeof data.password !== 'string') {
-    errors.push('Password is required');
+  if (!data.password || typeof data.password !== "string") {
+    errors.push("Password is required");
   } else if (data.password.trim().length === 0) {
-    errors.push('Password cannot be empty');
+    errors.push("Password cannot be empty");
   } else {
     sanitized.password = data.password;
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
-    sanitized
+    sanitized,
   };
 };
 
@@ -303,7 +311,7 @@ const validateLoginData = (data) => {
 const validatePasswordResetData = (data) => {
   const errors = [];
   const sanitized = {};
-  
+
   // Validate email
   const emailValidation = validateEmail(data.email);
   if (!emailValidation.isValid) {
@@ -311,11 +319,11 @@ const validatePasswordResetData = (data) => {
   } else {
     sanitized.email = emailValidation.sanitized;
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
-    sanitized
+    sanitized,
   };
 };
 
@@ -327,14 +335,14 @@ const validatePasswordResetData = (data) => {
 const validatePasswordChangeData = (data) => {
   const errors = [];
   const sanitized = {};
-  
+
   // Validate current password
-  if (!data.current_password || typeof data.current_password !== 'string') {
-    errors.push('Current password is required');
+  if (!data.current_password || typeof data.current_password !== "string") {
+    errors.push("Current password is required");
   } else {
     sanitized.current_password = data.current_password;
   }
-  
+
   // Validate new password
   const passwordValidation = validatePasswordStrength(data.new_password);
   if (!passwordValidation.isValid) {
@@ -342,16 +350,16 @@ const validatePasswordChangeData = (data) => {
   } else {
     sanitized.new_password = data.new_password;
   }
-  
+
   // Validate password confirmation
   if (data.new_password !== data.confirm_password) {
-    errors.push('Password confirmation does not match');
+    errors.push("Password confirmation does not match");
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
-    sanitized
+    sanitized,
   };
 };
 
@@ -363,7 +371,7 @@ const validatePasswordChangeData = (data) => {
 const validateProfileUpdateData = (data) => {
   const errors = [];
   const sanitized = {};
-  
+
   // Validate full name (optional in updates)
   if (data.full_name !== undefined) {
     const nameValidation = validateName(data.full_name);
@@ -373,10 +381,10 @@ const validateProfileUpdateData = (data) => {
       sanitized.full_name = nameValidation.sanitized;
     }
   }
-  
+
   // Validate phone (optional)
   if (data.phone !== undefined) {
-    if (data.phone === null || data.phone === '') {
+    if (data.phone === null || data.phone === "") {
       sanitized.phone = null;
     } else {
       const phoneValidation = validatePhone(data.phone);
@@ -387,21 +395,21 @@ const validateProfileUpdateData = (data) => {
       }
     }
   }
-  
+
   // Validate language preference
   if (data.language_preference !== undefined) {
-    const validLanguages = ['en', 'am'];
+    const validLanguages = ["en", "am"];
     if (!validLanguages.includes(data.language_preference)) {
-      errors.push('Invalid language preference');
+      errors.push("Invalid language preference");
     } else {
       sanitized.language_preference = data.language_preference;
     }
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
-    sanitized
+    sanitized,
   };
 };
 
@@ -414,33 +422,33 @@ const validatePagination = (query) => {
   const errors = [];
   const sanitized = {
     page: 1,
-    limit: 10
+    limit: 10,
   };
-  
+
   // Validate page
   if (query.page !== undefined) {
     const page = parseInt(query.page);
     if (isNaN(page) || page < 1) {
-      errors.push('Page must be a positive integer');
+      errors.push("Page must be a positive integer");
     } else {
       sanitized.page = page;
     }
   }
-  
+
   // Validate limit
   if (query.limit !== undefined) {
     const limit = parseInt(query.limit);
     if (isNaN(limit) || limit < 1 || limit > 100) {
-      errors.push('Limit must be between 1 and 100');
+      errors.push("Limit must be between 1 and 100");
     } else {
       sanitized.limit = limit;
     }
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
-    sanitized
+    sanitized,
   };
 };
 
@@ -450,31 +458,196 @@ const validatePagination = (query) => {
  * @returns {Object} - Validation result
  */
 const validateId = (id) => {
-  if (!id || typeof id !== 'string') {
+  if (!id || typeof id !== "string") {
     return {
       isValid: false,
-      errors: ['ID is required'],
-      sanitized: null
+      errors: ["ID is required"],
+      sanitized: null,
     };
   }
-  
+
   const sanitized = id.trim();
   const numId = parseInt(sanitized);
-  
+
   if (isNaN(numId) || numId <= 0) {
     return {
       isValid: false,
-      errors: ['Invalid ID format'],
-      sanitized: null
+      errors: ["Invalid ID format"],
+      sanitized: null,
     };
   }
-  
+
   return {
     isValid: true,
     errors: [],
-    sanitized: numId.toString()
+    sanitized: numId.toString(),
   };
 };
+
+/**
+ * Generic string validation
+ * @param {any} value - Value to validate
+ * @param {string} field - Field name
+ * @param {Object} options - Validation options
+ * @param {boolean} [options.required] - Is required
+ * @param {number} [options.minLength] - Minimum length
+ * @param {number} [options.maxLength] - Maximum length
+ * @param {boolean} [options.allowEmpty] - Allow empty string
+ * @returns {Object} Validation result
+ */
+function validateString(value, field, options = {}) {
+  const errors = [];
+  let sanitized = value;
+
+  if (value === undefined || value === null) {
+    if (options.required) {
+      errors.push(`${field} is required`);
+    }
+    return { isValid: errors.length === 0, errors, sanitized: undefined };
+  }
+
+  if (typeof value !== "string") {
+    errors.push(`${field} must be a string`);
+    return { isValid: false, errors, sanitized: undefined };
+  }
+
+  sanitized = value.trim();
+
+  if (!options.allowEmpty && sanitized === "") {
+    if (options.required) {
+      errors.push(`${field} cannot be empty`);
+    }
+    return { isValid: errors.length === 0, errors, sanitized: undefined };
+  }
+
+  if (options.minLength !== undefined && sanitized.length < options.minLength) {
+    errors.push(`${field} must be at least ${options.minLength} characters`);
+  }
+  if (options.maxLength !== undefined && sanitized.length > options.maxLength) {
+    errors.push(`${field} must be at most ${options.maxLength} characters`);
+  }
+
+  return { isValid: errors.length === 0, errors, sanitized };
+}
+
+/**
+ * Generic enum validation
+ * @param {any} value - Value to validate
+ * @param {string} field - Field name
+ * @param {Array} allowed - Allowed values
+ * @param {Object} options - Validation options
+ * @param {boolean} [options.required] - Is required
+ * @param {any} [options.default] - Default value
+ * @returns {Object} Validation result
+ */
+function validateEnum(value, field, allowed, options = {}) {
+  const errors = [];
+  let sanitized = value;
+
+  if (value === undefined || value === null || value === "") {
+    if (options.required) {
+      errors.push(`${field} is required`);
+    } else if (options.default !== undefined) {
+      sanitized = options.default;
+    } else {
+      sanitized = undefined;
+    }
+    return { isValid: errors.length === 0, errors, sanitized };
+  }
+
+  if (!allowed.includes(value)) {
+    errors.push(`${field} must be one of: ${allowed.join(", ")}`);
+  }
+
+  return { isValid: errors.length === 0, errors, sanitized };
+}
+
+/**
+ * Generic boolean validation
+ * @param {any} value - Value to validate
+ * @param {string} field - Field name
+ * @param {Object} options - Validation options
+ * @param {boolean} [options.required] - Is required
+ * @param {boolean} [options.default] - Default value
+ * @returns {Object} Validation result
+ */
+function validateBoolean(value, field, options = {}) {
+  const errors = [];
+  let sanitized = value;
+
+  if (value === undefined || value === null || value === "") {
+    if (options.required) {
+      errors.push(`${field} is required`);
+    } else if (options.default !== undefined) {
+      sanitized = options.default;
+    } else {
+      sanitized = undefined;
+    }
+    return { isValid: errors.length === 0, errors, sanitized };
+  }
+
+  if (typeof value === "boolean") {
+    sanitized = value;
+  } else if (typeof value === "string") {
+    if (value.toLowerCase() === "true") sanitized = true;
+    else if (value.toLowerCase() === "false") sanitized = false;
+    else errors.push(`${field} must be a boolean (true/false)`);
+  } else {
+    errors.push(`${field} must be a boolean`);
+  }
+
+  return { isValid: errors.length === 0, errors, sanitized };
+}
+
+/**
+ * Generic number validation
+ * @param {any} value - Value to validate
+ * @param {string} field - Field name
+ * @param {Object} options - Validation options
+ * @param {boolean} [options.required] - Is required
+ * @param {number} [options.min] - Minimum value
+ * @param {number} [options.max] - Maximum value
+ * @param {number} [options.default] - Default value
+ * @param {boolean} [options.integer] - Should be integer
+ * @returns {Object} Validation result
+ */
+function validateNumber(value, field, options = {}) {
+  const errors = [];
+  let sanitized = value;
+
+  if (value === undefined || value === null || value === "") {
+    if (options.required) {
+      errors.push(`${field} is required`);
+    } else if (options.default !== undefined) {
+      sanitized = options.default;
+    } else {
+      sanitized = undefined;
+    }
+    return { isValid: errors.length === 0, errors, sanitized };
+  }
+
+  let num = value;
+  if (typeof value === "string" && value.trim() !== "") {
+    num = Number(value);
+  }
+  if (typeof num !== "number" || isNaN(num)) {
+    errors.push(`${field} must be a number`);
+    return { isValid: false, errors, sanitized: undefined };
+  }
+
+  if (options.integer && !Number.isInteger(num)) {
+    errors.push(`${field} must be an integer`);
+  }
+  if (options.min !== undefined && num < options.min) {
+    errors.push(`${field} must be at least ${options.min}`);
+  }
+  if (options.max !== undefined && num > options.max) {
+    errors.push(`${field} must be at most ${options.max}`);
+  }
+
+  sanitized = num;
+  return { isValid: errors.length === 0, errors, sanitized };
+}
 
 module.exports = {
   EMAIL_REGEX,
@@ -495,5 +668,9 @@ module.exports = {
   validatePasswordChangeData,
   validateProfileUpdateData,
   validatePagination,
-  validateId
-}; 
+  validateId,
+  validateString,
+  validateEnum,
+  validateBoolean,
+  validateNumber,
+};
