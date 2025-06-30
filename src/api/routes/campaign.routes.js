@@ -15,7 +15,6 @@ router.get('/featured', campaignController.getFeaturedCampaigns);
 router.get('/active', campaignController.getActiveCampaigns);
 router.get('/stats', campaignController.getCampaignStats);
 router.get('/:id', campaignController.getCampaignById);
-router.get('/:id/donations', campaignController.getCampaignDonations);
 
 // Protected routes (authentication required)
 router.use(authenticateToken);

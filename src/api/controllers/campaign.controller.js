@@ -155,7 +155,7 @@ class CampaignController {
 
       // Check if user is admin or the campaign creator
       const campaign = await campaignService.getCampaignById(id);
-      if (campaign.success && campaign.data.created_by !== req.user.id && req.user.role !== 'admin') {
+      if (campaign.success && campaign.campaign.created_by !== req.user.id && req.user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           error: 'You can only update campaigns you created',
@@ -220,7 +220,7 @@ class CampaignController {
 
       // Check if user is admin or the campaign creator
       const campaign = await campaignService.getCampaignById(id);
-      if (campaign.success && campaign.data.created_by !== req.user.id && req.user.role !== 'admin') {
+      if (campaign.success && campaign.campaign.created_by !== req.user.id && req.user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           error: 'You can only delete campaigns you created',
@@ -331,49 +331,6 @@ class CampaignController {
 
     } catch (error) {
       logger.error('Get campaign stats controller error:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-        code: 'INTERNAL_ERROR'
-      });
-    }
-  }
-
-  /**
-   * Get campaign donations
-   * GET /api/campaigns/:id/donations
-   */
-  async getCampaignDonations(req, res) {
-    try {
-      const { id } = req.params;
-      const filters = {
-        payment_status: req.query.payment_status,
-        donation_type: req.query.donation_type
-      };
-
-      const pagination = {
-        page: parseInt(req.query.page) || 1,
-        limit: parseInt(req.query.limit) || 10
-      };
-
-      const result = await campaignService.getCampaignDonations(id, filters, pagination);
-
-      if (!result.success) {
-        return res.status(400).json({
-          success: false,
-          error: result.error,
-          code: result.code
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        data: result.donations,
-        pagination: result.pagination
-      });
-
-    } catch (error) {
-      logger.error('Get campaign donations controller error:', error);
       return res.status(500).json({
         success: false,
         error: 'Internal server error',
