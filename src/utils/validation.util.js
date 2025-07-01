@@ -735,6 +735,33 @@ const validateId = (id) => {
   };
 };
 
+/**
+ * Recursively convert all BigInt values in an object/array to strings for JSON serialization
+ * @param {any} obj
+ * @returns {any}
+ */
+function convertBigIntToString(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(convertBigIntToString);
+  } else if (obj && typeof obj === 'object') {
+    const result = {};
+    for (const key in obj) {
+      if (typeof obj[key] === 'bigint') {
+        result[key] = obj[key].toString();
+      } else if (Array.isArray(obj[key]) || (obj[key] && typeof obj[key] === 'object')) {
+        result[key] = convertBigIntToString(obj[key]);
+      } else {
+        result[key] = obj[key];
+      }
+    }
+    return result;
+  } else if (typeof obj === 'bigint') {
+    return obj.toString();
+  } else {
+    return obj;
+  }
+}
+
 module.exports = {
   EMAIL_REGEX,
   PHONE_REGEX,
@@ -757,5 +784,6 @@ module.exports = {
   validateVolunteerData,
   validateDonorData,
   validatePagination,
-  validateId
+  validateId,
+  convertBigIntToString,
 }; 

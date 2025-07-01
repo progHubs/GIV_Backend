@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const donorController = require('../controllers/donor.controller');
-const { authenticateToken, requireRole } = require('../../middlewares/auth.middleware');
+const { authenticateToken, requireAdmin, requireDonorFlag } = require('../../middlewares/auth.middleware');
 const { donorValidation } = require('../validators/donor.validator');
 const { generalLimiter } = require('../../middlewares/rate-limit.middleware');
 
@@ -12,7 +12,7 @@ const { generalLimiter } = require('../../middlewares/rate-limit.middleware');
  */
 router.get('/', 
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   donorController.getDonors
 );
@@ -35,7 +35,7 @@ router.get('/me',
  */
 router.get('/search',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   donorController.searchDonors
 );
@@ -47,7 +47,7 @@ router.get('/search',
  */
 router.get('/stats',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   donorController.getDonorStats
 );
@@ -106,7 +106,7 @@ router.put('/:id',
  */
 router.put('/:id/tier',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   donorController.updateDonationTier
 );
@@ -142,6 +142,28 @@ router.get('/:id/tax-receipt/:year',
   authenticateToken,
   generalLimiter,
   donorController.generateTaxReceipt
+);
+
+/**
+ * @route   DELETE /api/donors/me
+ * @desc    Delete current user's donor profile
+ * @access  Private
+ */
+router.delete('/me',
+  authenticateToken,
+  generalLimiter,
+  donorController.deleteDonor
+);
+
+/**
+ * @route   DELETE /api/donors/:id
+ * @desc    Delete donor profile by ID (admin or self)
+ * @access  Private (Admin or own profile)
+ */
+router.delete('/:id',
+  authenticateToken,
+  generalLimiter,
+  donorController.deleteDonor
 );
 
 module.exports = router; 

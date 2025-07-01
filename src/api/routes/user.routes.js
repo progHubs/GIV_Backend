@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user.controller');
-const { authenticateToken, requireRole } = require('../../middlewares/auth.middleware');
+const { authenticateToken, requireAdmin } = require('../../middlewares/auth.middleware');
 const { userUpdateValidation } = require('../validators/user.validator');
 const { generalLimiter } = require('../../middlewares/rate-limit.middleware');
 
@@ -12,7 +12,7 @@ const { generalLimiter } = require('../../middlewares/rate-limit.middleware');
  */
 router.get('/', 
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   userController.getUsers
 );
@@ -35,7 +35,7 @@ router.get('/me',
  */
 router.get('/search',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   userController.searchUsers
 );
@@ -47,7 +47,7 @@ router.get('/search',
  */
 router.get('/stats',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   userController.getUserStats
 );
@@ -94,7 +94,7 @@ router.put('/:id',
  */
 router.delete('/:id',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   userController.deleteUser
 );

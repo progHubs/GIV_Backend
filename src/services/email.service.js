@@ -193,6 +193,64 @@ class EmailService {
   }
 
   /**
+   * Send donation receipt email
+   * @param {string} email - User email
+   * @param {Object} donation - Donation data
+   * @returns {Object} - Result of email sending
+   */
+  async sendDonationReceipt(email, donation) {
+    try {
+      const receiptContent = `
+        <h2>Thank You for Your Donation!</h2>
+        <p>Dear Donor,</p>
+        <p>Thank you for your generous donation to GIV Society Ethiopia.</p>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3>Donation Details:</h3>
+          <p><strong>Amount:</strong> ${donation.currency} ${donation.amount}</p>
+          <p><strong>Donation Type:</strong> ${donation.donation_type}</p>
+          <p><strong>Date:</strong> ${new Date(donation.donated_at).toLocaleDateString()}</p>
+          <p><strong>Transaction ID:</strong> ${donation.transaction_id || 'N/A'}</p>
+        </div>
+        <p>Your donation will make a significant impact in our community.</p>
+        <p>Best regards,<br>The GIV Society Ethiopia Team</p>
+      `;
+
+      // Log email sending
+      await this.logEmail({
+        recipient: email,
+        subject: 'Donation Receipt - GIV Society Ethiopia',
+        template_used: 'donation_receipt',
+        content: receiptContent,
+        status: 'sent'
+      });
+
+      logger.info(`Donation receipt sent to ${email}`);
+      
+      return {
+        success: true,
+        message: 'Donation receipt sent successfully'
+      };
+
+    } catch (error) {
+      logger.error('Error sending donation receipt:', error);
+      
+      await this.logEmail({
+        recipient: email,
+        subject: 'Donation Receipt - GIV Society Ethiopia',
+        template_used: 'donation_receipt',
+        content: '',
+        status: 'failed',
+        error_message: error?.message || 'Unknown error occurred'
+      });
+
+      return {
+        success: false,
+        message: 'Failed to send donation receipt'
+      };
+    }
+  }
+
+  /**
    * Send account locked notification
    * @param {string} email - User email
    * @param {string} fullName - User full name

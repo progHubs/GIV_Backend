@@ -73,7 +73,7 @@ class AuthService {
           email: sanitized.email,
           phone: sanitized.phone,
           password_hash: passwordHash,
-          role: sanitized.role,
+          role: 'user',
           language_preference: sanitized.language_preference,
           email_verified: false
         },
@@ -87,18 +87,6 @@ class AuthService {
           created_at: true
         }
       });
-
-      // Create profile based on role
-      if (sanitized.role === 'donor') {
-        await prisma.donor_profiles.create({
-          data: {
-            user_id: user.id,
-            is_recurring_donor: false,
-            total_donated: 0.00,
-            is_anonymous: false
-          }
-        });
-      }
 
       // Generate verification token if email verification is required
       let verificationToken = null;

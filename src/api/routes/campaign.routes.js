@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const campaignController = require('../controllers/campaign.controller');
-const { authenticateToken, requireEditor, requireAdmin } = require('../../middlewares/auth.middleware');
+const { authenticateToken, requireAdmin } = require('../../middlewares/auth.middleware');
 
 /**
  * Campaign Routes for GIV Society Backend
@@ -21,12 +21,12 @@ router.use(authenticateToken);
 
 // Admin/Editor only routes
 router.post('/', 
-  requireEditor, 
+  requireAdmin, 
   campaignController.createCampaign
 );
 
 router.put('/:id', 
-  requireEditor, 
+  requireAdmin, 
   campaignController.updateCampaign
 );
 

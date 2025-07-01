@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const volunteerController = require('../controllers/volunteer.controller');
-const { authenticateToken, requireRole } = require('../../middlewares/auth.middleware');
+const { authenticateToken, requireAdmin, requireVolunteerFlag } = require('../../middlewares/auth.middleware');
 const { volunteerValidation } = require('../validators/volunteer.validator');
 const { generalLimiter } = require('../../middlewares/rate-limit.middleware');
 
@@ -12,7 +12,7 @@ const { generalLimiter } = require('../../middlewares/rate-limit.middleware');
  */
 router.get('/', 
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   volunteerController.getVolunteers
 );
@@ -35,7 +35,7 @@ router.get('/me',
  */
 router.get('/search',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   volunteerController.searchVolunteers
 );
@@ -47,7 +47,7 @@ router.get('/search',
  */
 router.get('/stats',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   volunteerController.getVolunteerStats
 );
@@ -106,7 +106,7 @@ router.put('/:id',
  */
 router.put('/:id/background-check',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   volunteerController.updateBackgroundCheck
 );
@@ -118,9 +118,31 @@ router.put('/:id/background-check',
  */
 router.post('/:id/hours',
   authenticateToken,
-  requireRole('admin'),
+  requireAdmin,
   generalLimiter,
   volunteerController.addVolunteerHours
+);
+
+/**
+ * @route   DELETE /api/volunteers/me
+ * @desc    Delete current user's volunteer profile
+ * @access  Private
+ */
+router.delete('/me',
+  authenticateToken,
+  generalLimiter,
+  volunteerController.deleteVolunteer
+);
+
+/**
+ * @route   DELETE /api/volunteers/:id
+ * @desc    Delete volunteer profile by ID (admin or self)
+ * @access  Private (Admin or own profile)
+ */
+router.delete('/:id',
+  authenticateToken,
+  generalLimiter,
+  volunteerController.deleteVolunteer
 );
 
 module.exports = router; 

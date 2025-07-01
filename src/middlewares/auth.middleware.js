@@ -161,7 +161,6 @@ const requireRole = (...allowedRoles) => {
         code: 'AUTH_REQUIRED'
       });
     }
-    
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
@@ -171,85 +170,39 @@ const requireRole = (...allowedRoles) => {
         userRole: req.user.role
       });
     }
-    
     next();
   };
 };
 
 /**
- * Specific role middleware functions
+ * Only keep requireAdmin and (optionally) requireUser
  */
 const requireAdmin = requireRole('admin');
-const requireEditor = requireRole('admin', 'editor');
-const requireVolunteerManager = requireRole('admin', 'volunteer_manager');
-const requireVolunteer = requireRole('admin', 'volunteer_manager', 'volunteer');
-const requireDonor = requireRole('admin', 'donor');
+const requireUser = requireRole('user');
 
 /**
- * Content management access (admin, editor, volunteer manager)
+ * New flag-based middleware
  */
-const requireContentAccess = requireRole('admin', 'editor', 'volunteer_manager');
+const requireDonorFlag = (req, res, next) => {
+  if (!req.user || req.user.is_donor !== true) {
+    return res.status(403).json({
+      success: false,
+      message: 'Donor profile required',
+      code: 'DONOR_PROFILE_REQUIRED'
+    });
+  }
+  next();
+};
 
-/**
- * User management access (admin only)
- */
-const requireUserManagement = requireRole('admin');
-
-/**
- * Analytics access (admin, volunteer manager)
- */
-const requireAnalyticsAccess = requireRole('admin', 'volunteer_manager');
-
-/**
- * Check if user owns the resource or has admin privileges
- * @param {Function} getResourceUserId - Function to get resource user ID
- * @returns {Function} - Express middleware function
- */
-const requireOwnershipOrAdmin = (getResourceUserId) => {
-  return async (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required',
-        code: 'AUTH_REQUIRED'
-      });
-    }
-    
-    // Admin can access everything
-    if (req.user.role === 'admin') {
-      return next();
-    }
-    
-    try {
-      const resourceUserId = getResourceUserId(req);
-      
-      if (!resourceUserId) {
-        return res.status(404).json({
-          success: false,
-          message: 'Resource not found',
-          code: 'RESOURCE_NOT_FOUND'
-        });
-      }
-      
-      // Allow if user is admin or owns the resource
-      if (req.user.role === 'admin' || req.user.id === resourceUserId.toString()) {
-        return next();
-      }
-      
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied - you can only access your own resources',
-        code: 'ACCESS_DENIED'
-      });
-    } catch (error) {
-      console.error('Ownership check error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error checking resource ownership',
-        code: 'OWNERSHIP_CHECK_ERROR'
-      });
-    }
-  };
+const requireVolunteerFlag = (req, res, next) => {
+  if (!req.user || req.user.is_volunteer !== true) {
+    return res.status(403).json({
+      success: false,
+      message: 'Volunteer profile required',
+      code: 'VOLUNTEER_PROFILE_REQUIRED'
+    });
+  }
+  next();
 };
 
 /**
@@ -420,59 +373,14 @@ const logAuthAttempt = async (req, res, next) => {
   next();
 };
 
-/**
- * Additional role-based middleware functions
- */
-
-/**
- * Require admin or volunteer manager for volunteer management
- */
-const requireVolunteerManagement = requireRole('admin', 'volunteer_manager');
-
-/**
- * Require admin or editor for content management
- */
-const requireContentManagement = requireRole('admin', 'editor');
-
-/**
- * Require admin for system administration
- */
-const requireSystemAdmin = requireRole('admin');
-
-/**
- * Require admin or donor for donation management
- */
-const requireDonationManagement = requireRole('admin', 'donor');
-
-/**
- * Require admin or volunteer for event participation
- */
-const requireEventParticipation = requireRole('admin', 'volunteer', 'donor');
-
-/**
- * Check if user can access their own profile or has admin privileges
- */
-const requireOwnProfileOrAdmin = requireOwnershipOrAdmin((req) => req.params.id || req.params.userId);
-
 module.exports = {
   authenticateToken,
   optionalAuth,
   requireRole,
   requireAdmin,
-  requireEditor,
-  requireVolunteerManager,
-  requireVolunteer,
-  requireDonor,
-  requireContentAccess,
-  requireUserManagement,
-  requireAnalyticsAccess,
-  requireVolunteerManagement,
-  requireContentManagement,
-  requireSystemAdmin,
-  requireDonationManagement,
-  requireEventParticipation,
-  requireOwnProfileOrAdmin,
-  requireOwnershipOrAdmin,
+  requireUser,
+  requireDonorFlag,
+  requireVolunteerFlag,
   authRateLimit,
   requireEmailVerification,
   requireActiveUser,

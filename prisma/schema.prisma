@@ -391,6 +391,8 @@ model users {
   phone               String?                    @db.VarChar(20)
   password_hash       String                     @db.VarChar(255)
   role                users_role
+  is_donor            Boolean                    @default(false)
+  is_volunteer        Boolean                    @default(false)
   profile_image_url   String?                    @db.VarChar(512)
   language_preference users_language_preference? @default(en)
   email_verified      Boolean?                   @default(false)
@@ -507,9 +509,7 @@ enum posts_post_type {
 
 enum users_role {
   admin
-  volunteer
-  donor
-  editor
+  user
 }
 
 enum testimonials_type {

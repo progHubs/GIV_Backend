@@ -42,7 +42,14 @@ class AuthController {
       return res.status(201).json({
         success: true,
         message: result.message,
-        user: result.user,
+        user: {
+          id: result.user.id,
+          full_name: result.user.full_name,
+          email: result.user.email,
+          language_preference: result.user.language_preference,
+          email_verified: result.user.email_verified,
+          created_at: result.user.created_at
+        },
         tokens: result.tokens,
         verificationToken: result.verificationToken // Remove in production
       });

@@ -253,13 +253,11 @@ class DonorService {
         }
       });
 
-      // Update user role to donor if not already
-      if (existingUser.role !== 'donor') {
-        await prisma.users.update({
-          where: { id: BigInt(userId) },
-          data: { role: 'donor' }
-        });
-      }
+      // Set is_donor flag to true for the user
+      await prisma.users.update({
+        where: { id: BigInt(userId) },
+        data: { is_donor: true }
+      });
 
       logger.info(`Donor profile created for user ${userId}`);
 
@@ -1004,6 +1002,29 @@ class DonorService {
         success: false,
         error: 'Failed to generate tax receipt'
       };
+    }
+  }
+
+  /**
+   * Delete donor profile
+   * @param {string|number} userId - Donor user ID
+   * @returns {Object} - Deletion result
+   */
+  async deleteDonorProfile(userId) {
+    try {
+      // Delete donor profile
+      await prisma.donor_profiles.delete({
+        where: { user_id: BigInt(userId) }
+      });
+      // Set is_donor flag to false
+      await prisma.users.update({
+        where: { id: BigInt(userId) },
+        data: { is_donor: false }
+      });
+      return { success: true, message: 'Donor profile deleted and is_donor flag unset.' };
+    } catch (error) {
+      logger.error('Error deleting donor profile:', error);
+      return { success: false, error: 'Failed to delete donor profile' };
     }
   }
 }

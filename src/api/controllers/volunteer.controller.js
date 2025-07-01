@@ -494,6 +494,32 @@ class VolunteerController {
       });
     }
   }
+
+  /**
+   * Delete volunteer profile (self or admin)
+   * DELETE /api/volunteers/me or /api/volunteers/:id
+   */
+  async deleteVolunteer(req, res) {
+    try {
+      const userId = req.params.id || req.user.id;
+      // Only allow self or admin
+      if (req.user.id !== userId && req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'You can only delete your own volunteer profile',
+          code: 'INSUFFICIENT_PERMISSIONS'
+        });
+      }
+      const result = await volunteerService.deleteVolunteerProfile(userId);
+      if (!result.success) {
+        return res.status(400).json({ success: false, error: result.error });
+      }
+      return res.status(200).json({ success: true, message: result.message });
+    } catch (error) {
+      logger.error('Delete volunteer controller error:', error);
+      return res.status(500).json({ success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' });
+    }
+  }
 }
 
 module.exports = new VolunteerController(); 

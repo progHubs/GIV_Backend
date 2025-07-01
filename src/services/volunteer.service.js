@@ -285,13 +285,11 @@ class VolunteerService {
         }
       });
 
-      // Update user role to volunteer if not already
-      if (existingUser.role !== 'volunteer') {
-        await prisma.users.update({
-          where: { id: BigInt(userId) },
-          data: { role: 'volunteer' }
-        });
-      }
+      // Set is_volunteer flag to true for the user
+      await prisma.users.update({
+        where: { id: BigInt(userId) },
+        data: { is_volunteer: true }
+      });
 
       logger.info(`Volunteer profile created for user ${userId}`);
 
@@ -947,6 +945,29 @@ class VolunteerService {
         success: false,
         error: 'Failed to add volunteer hours'
       };
+    }
+  }
+
+  /**
+   * Delete volunteer profile
+   * @param {string|number} userId - Volunteer user ID
+   * @returns {Object} - Deletion result
+   */
+  async deleteVolunteerProfile(userId) {
+    try {
+      // Delete volunteer profile
+      await prisma.volunteer_profiles.delete({
+        where: { user_id: BigInt(userId) }
+      });
+      // Set is_volunteer flag to false
+      await prisma.users.update({
+        where: { id: BigInt(userId) },
+        data: { is_volunteer: false }
+      });
+      return { success: true, message: 'Volunteer profile deleted and is_volunteer flag unset.' };
+    } catch (error) {
+      logger.error('Error deleting volunteer profile:', error);
+      return { success: false, error: 'Failed to delete volunteer profile' };
     }
   }
 }

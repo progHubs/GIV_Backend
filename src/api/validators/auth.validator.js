@@ -90,16 +90,6 @@ const registerValidation = [
       return true;
     }),
 
-  body('role')
-    .optional()
-    .trim()
-    .custom((value) => {
-      if (value && !isValidRole(value)) {
-        throw new Error('Invalid role. Must be one of: admin, volunteer, donor, editor');
-      }
-      return true;
-    }),
-
   body('language_preference')
     .optional()
     .trim()

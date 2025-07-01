@@ -32,7 +32,9 @@ async function main() {
           role: 'admin',
           profile_image_url: 'https://example.com/admin.jpg',
           language_preference: 'en',
-          email_verified: true
+          email_verified: true,
+          is_donor: false,
+          is_volunteer: false
         }
       }),
       prisma.users.create({
@@ -41,10 +43,12 @@ async function main() {
           email: 'john.doe@example.com',
           phone: '+251922345678',
           password_hash: await hashPassword('Volunteer123!'),
-          role: 'volunteer',
+          role: 'user',
           profile_image_url: 'https://example.com/john.jpg',
           language_preference: 'en',
-          email_verified: true
+          email_verified: true,
+          is_donor: false,
+          is_volunteer: true
         }
       }),
       prisma.users.create({
@@ -53,22 +57,12 @@ async function main() {
           email: 'sarah.smith@example.com',
           phone: '+251933456789',
           password_hash: await hashPassword('Donor123!'),
-          role: 'donor',
+          role: 'user',
           profile_image_url: 'https://example.com/sarah.jpg',
           language_preference: 'en',
-          email_verified: true
-        }
-      }),
-      prisma.users.create({
-        data: {
-          full_name: 'Editor User',
-          email: 'editor@givsociety.org',
-          phone: '+251944567890',
-          password_hash: await hashPassword('Editor123!'),
-          role: 'editor',
-          profile_image_url: 'https://example.com/editor.jpg',
-          language_preference: 'en',
-          email_verified: true
+          email_verified: true,
+          is_donor: true,
+          is_volunteer: false
         }
       }),
       prisma.users.create({
@@ -77,10 +71,12 @@ async function main() {
           email: 'tadesse.abebe@example.com',
           phone: '+251955678901',
           password_hash: await hashPassword('Amharic123!'),
-          role: 'volunteer',
+          role: 'user',
           profile_image_url: 'https://example.com/tadesse.jpg',
           language_preference: 'am',
-          email_verified: true
+          email_verified: true,
+          is_donor: false,
+          is_volunteer: true
         }
       })
     ]);
@@ -207,7 +203,7 @@ async function main() {
           requirements: 'Open to youth aged 18-25. No prior experience required.',
           ticket_price: 0.00,
           is_featured: false,
-          created_by: users[3].id, // Editor user
+          created_by: users[0].id, // Admin user
           language: 'en'
         }
       }),
@@ -265,13 +261,67 @@ async function main() {
           requirements: 'የጤና ሰጪዎች መሰረታዊ የጤና ስልጠና ሊኖራቸው ይገባል',
           ticket_price: 0.00,
           is_featured: false,
-          created_by: users[4].id, // Tadesse Abebe (Amharic user)
+          created_by: users[3].id, // Tadesse Abebe (Amharic user)
           language: 'am'
         }
       })
     ]);
 
     console.log(`✅ Created ${events.length} events`);
+
+    // Create campaigns
+    console.log('🎯 Creating campaigns...');
+    const campaigns = await Promise.all([
+      prisma.campaigns.create({
+        data: {
+          title: 'Medical Outreach Fundraiser',
+          slug: 'medical-outreach-fundraiser',
+          description: 'Help us provide free medical services to underserved communities in Ethiopia',
+          goal_amount: 50000.00,
+          current_amount: 0.00,
+          start_date: new Date('2024-06-01'),
+          end_date: new Date('2024-12-31'),
+          is_active: true,
+          is_featured: true,
+          category: 'Healthcare',
+          progress_bar_color: '#28a745',
+          image_url: 'https://example.com/medical-campaign.jpg',
+          video_url: 'https://example.com/medical-campaign-video.mp4',
+          donor_count: 0,
+          success_stories: JSON.stringify([
+            { title: 'Community Impact', description: 'Over 1000 people received medical care' },
+            { title: 'Volunteer Stories', description: '50+ healthcare professionals volunteered' }
+          ]),
+          created_by: users[0].id, // Admin user
+          language: 'en'
+        }
+      }),
+      prisma.campaigns.create({
+        data: {
+          title: 'Youth Development Program',
+          slug: 'youth-development-program',
+          description: 'Supporting youth leadership and skill development programs',
+          goal_amount: 25000.00,
+          current_amount: 0.00,
+          start_date: new Date('2024-06-01'),
+          end_date: new Date('2024-11-30'),
+          is_active: true,
+          is_featured: false,
+          category: 'Youth Development',
+          progress_bar_color: '#007bff',
+          image_url: 'https://example.com/youth-campaign.jpg',
+          donor_count: 0,
+          success_stories: JSON.stringify([
+            { title: 'Leadership Training', description: '200+ youth trained in leadership skills' },
+            { title: 'Career Guidance', description: '150+ youth received career counseling' }
+          ]),
+          created_by: users[1].id, // John Doe
+          language: 'en'
+        }
+      })
+    ]);
+
+    console.log(`✅ Created ${campaigns.length} campaigns`);
 
     // Create posts
     console.log('📝 Creating posts...');
@@ -342,7 +392,7 @@ Our youth leadership workshop, scheduled for August 20th, 2024, will bring toget
 
 We believe that every young person has the potential to be a leader. Our programs provide the platform and support they need to realize that potential.`,
           post_type: 'blog',
-          author_id: users[3].id, // Editor user
+          author_id: users[0].id, // Admin user
           feature_image: 'https://example.com/youth-leadership.jpg',
           language: 'en'
         }
@@ -365,7 +415,7 @@ We believe that every young person has the potential to be a leader. Our program
 
 ይህን ፕሮግራም ለመደገፍ ወይም ለመስራት እባክዎ እኛን ያግኙ።`,
           post_type: 'news',
-          author_id: users[4].id, // Tadesse Abebe (Amharic user)
+          author_id: users[3].id, // Tadesse Abebe (Amharic user)
           feature_image: 'https://example.com/health-amharic.jpg',
           language: 'am'
         }
@@ -400,7 +450,7 @@ We believe that every young person has the potential to be a leader. Our program
       }),
       prisma.volunteer_profiles.create({
         data: {
-          user_id: users[4].id, // Tadesse Abebe
+          user_id: users[3].id, // Tadesse Abebe
           area_of_expertise: 'Translation',
           location: 'Addis Ababa',
           availability: JSON.stringify({
@@ -464,7 +514,7 @@ We believe that every young person has the potential to be a leader. Our program
       }),
       prisma.volunteer_skills.create({
         data: {
-          volunteer_id: users[4].id, // Tadesse Abebe
+          volunteer_id: users[3].id, // Tadesse Abebe
           skill_id: skills[3].id, // Translation
           proficiency_level: 'expert',
           is_verified: true
@@ -472,7 +522,7 @@ We believe that every young person has the potential to be a leader. Our program
       }),
       prisma.volunteer_skills.create({
         data: {
-          volunteer_id: users[4].id, // Tadesse Abebe
+          volunteer_id: users[3].id, // Tadesse Abebe
           skill_id: skills[1].id, // Teaching
           proficiency_level: 'intermediate',
           is_verified: true
@@ -496,7 +546,7 @@ We believe that every young person has the potential to be a leader. Our program
       prisma.event_participants.create({
         data: {
           event_id: events[0].id, // Medical Outreach Program
-          user_id: users[4].id, // Tadesse Abebe
+          user_id: users[3].id, // Tadesse Abebe
           role: 'volunteer',
           status: 'confirmed'
         }
