@@ -1,5 +1,6 @@
 const { verifyToken, extractTokenFromHeader } = require('../utils/jwt.util');
 const { PrismaClient } = require('../generated/prisma');
+const { isAccessTokenRevoked } = require('../services/token.service');
 
 const prisma = new PrismaClient();
 
@@ -23,6 +24,15 @@ const authenticateToken = async (req, res, next) => {
         success: false,
         message: 'Access token is required',
         code: 'MISSING_TOKEN'
+      });
+    }
+    
+    // Check if token is blacklisted
+    if (await isAccessTokenRevoked(token)) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token has been revoked',
+        code: 'TOKEN_REVOKED'
       });
     }
     

@@ -1,5 +1,7 @@
 const authService = require('../../services/auth.service');
 const { generateTokenPair } = require('../../utils/jwt.util');
+const { blacklistAccessToken } = require('../../services/token.service');
+const jwt = require('jsonwebtoken');
 
 /**
  * Authentication Controller for GIV Society Backend
@@ -132,6 +134,19 @@ class AuthController {
       const userId = req.user?.id;
       const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
       const sessionId = req.cookies?.sessionId || req.body?.sessionId;
+
+      // Blacklist access token
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : null;
+      if (token) {
+        const decoded = jwt.decode(token);
+        if (decoded && decoded.exp) {
+          const expiresAt = new Date(decoded.exp * 1000);
+          await blacklistAccessToken(token, expiresAt);
+        }
+      }
 
       // Revoke tokens and invalidate session if user is authenticated
       if (userId) {

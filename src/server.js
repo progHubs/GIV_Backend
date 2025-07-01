@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
+const cron = require('node-cron');
 require('dotenv').config();
 
 const app = express();
@@ -33,6 +34,9 @@ const newsletterRoutes = require('./api/routes/newsletter.routes');
 const skillRoutes = require('./api/routes/skill.routes');
 const analyticsRoutes = require('./api/routes/analytics.routes');
 const emailRoutes = require('./api/routes/email.routes');
+
+// Import cleanup function
+const cleanupRevokedTokens = require('./jobs/cleanupRevokedTokens');
 
 // Enhanced security middleware
 app.use(helmet({
@@ -191,5 +195,17 @@ process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully');
   process.exit(0);
 });
+
+// Schedule cleanup job
+if (process.env.RUN_CLEANUP_JOBS === 'true') {
+  cron.schedule('0 * * * *', async () => {
+    try {
+      await cleanupRevokedTokens();
+    } catch (err) {
+      console.error('[Cleanup] Error cleaning up revoked tokens:', err);
+    }
+  });
+  console.log('[Cleanup] Scheduled revoked tokens cleanup job (every hour)');
+}
 
 module.exports = app; 

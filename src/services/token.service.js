@@ -407,4 +407,45 @@ class TokenService {
   }
 }
 
-module.exports = new TokenService(); 
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Blacklist an access token by storing its hash and expiry in the revoked_tokens table
+ * @param {string} token - JWT access token
+ * @param {Date} expiresAt - Expiry date of the token
+ */
+async function blacklistAccessToken(token, expiresAt) {
+  const tokenHash = hashToken(token);
+  await prisma.revoked_tokens.create({
+    data: {
+      token_hash: tokenHash,
+      expires_at: expiresAt
+    }
+  });
+}
+
+/**
+ * Check if an access token is revoked (blacklisted)
+ * @param {string} token - JWT access token
+ * @returns {boolean} - True if revoked, false otherwise
+ */
+async function isAccessTokenRevoked(token) {
+  const tokenHash = hashToken(token);
+  const now = new Date();
+  const revoked = await prisma.revoked_tokens.findFirst({
+    where: {
+      token_hash: tokenHash,
+      expires_at: { gt: now }
+    }
+  });
+  return !!revoked;
+}
+
+const tokenServiceInstance = new TokenService();
+tokenServiceInstance.hashToken = hashToken;
+tokenServiceInstance.blacklistAccessToken = blacklistAccessToken;
+tokenServiceInstance.isAccessTokenRevoked = isAccessTokenRevoked;
+
+module.exports = tokenServiceInstance;

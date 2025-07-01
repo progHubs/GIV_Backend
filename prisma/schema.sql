@@ -412,6 +412,16 @@ CREATE TABLE volunteer_skills (
     INDEX idx_proficiency (proficiency_level)
 ) ENGINE=InnoDB;
 
+-- Revoked tokens table for JWT blacklist
+CREATE TABLE revoked_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    token_hash VARCHAR(128) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY idx_token_hash (token_hash),
+    INDEX idx_expires_at (expires_at)
+) ENGINE=InnoDB;
+
 -- Add triggers for UUID generation (if needed for translation_group_id)
 DELIMITER //
 
