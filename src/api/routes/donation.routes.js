@@ -25,7 +25,7 @@ router.patch('/:id/status', authenticateToken, requireAdmin, donationController.
 router.delete('/:id', authenticateToken, requireAdmin, donationController.deleteDonation);
 
 // Authenticated routes - users must be logged in
-router.get('/', donationController.getDonations);
+router.get('/', authenticateToken, donationController.getDonations);
 router.get('/:id', authenticateToken, donationController.getDonationById);
 
 module.exports = router;
