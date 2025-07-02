@@ -13,22 +13,12 @@ class DonationService {
   async createDonation(data, user) {
     try {
       let donorId = data.donor_id;
-      let isAnonymous = data.is_anonymous || false;
       let userId = user ? user.id : null;
       let createdDonorProfile = false;
 
-      console.log('\n\n');
-      console.log('data', data);
-      console.log('user', user);
-      console.log('donorId', donorId);
-      console.log('isAnonymous', isAnonymous);
-      console.log('userId', userId);
-      console.log('\n\n');
-
       // Anonymous donation (no user)
-      if (!userId || donorId === ANONYMOUS_DONOR_ID || isAnonymous) {
+      if (!userId || donorId === ANONYMOUS_DONOR_ID) {
         donorId = ANONYMOUS_DONOR_ID;
-        isAnonymous = true;
       } else {
         // Registered user
         // Check if user is already a donor
@@ -48,6 +38,9 @@ class DonationService {
         }
         donorId = userId;
       }
+
+      // Set is_anonymous based on donorId
+      const isAnonymous = donorId === ANONYMOUS_DONOR_ID;
 
       // Create donation
       const donation = await prisma.donations.create({
@@ -218,6 +211,117 @@ class DonationService {
     } catch (error) {
       logger.error('Error deleting donation:', error);
       return { success: false, error: 'Failed to delete donation', code: 'DONATION_DELETE_ERROR' };
+    }
+  }
+
+  /**
+   * Handle successful Stripe donation (from webhook)
+   * @param {Object} params - { session, campaign_id, donor_id, is_anonymous, donation_type }
+   */
+  async handleStripeDonationSuccess({ session, campaign_id, donor_id, is_anonymous, donation_type }) {
+    try {
+      // 1. Extract Stripe info
+      const paymentIntentId = session.payment_intent || session.id;
+      const amount = session.amount_total ? session.amount_total / 100 : null; // Stripe gives cents
+      const currency = session.currency ? session.currency.toUpperCase() : 'USD';
+      const receiptUrl = session.receipt_url || (session.charges && session.charges.data[0]?.receipt_url) || null;
+      const paymentMethod = 'stripe';
+      const donatedAt = session.created ? new Date(session.created * 1000) : new Date();
+      const notes = session.metadata?.notes || null;
+      const campaignId = campaign_id ? parseInt(campaign_id) : null;
+      const isAnonymous = !!is_anonymous;
+      const donorId = isAnonymous ? ANONYMOUS_DONOR_ID : (donor_id ? parseInt(donor_id) : ANONYMOUS_DONOR_ID);
+      const type = donation_type || 'one_time';
+
+      // 2. Try to find an existing pending donation by transaction_id (idempotency)
+      let donation = await prisma.donations.findFirst({
+        where: {
+          transaction_id: paymentIntentId
+        }
+      });
+
+      // 3. If not found, create a new donation record
+      if (!donation) {
+        donation = await prisma.donations.create({
+          data: {
+            donor_id: donorId,
+            campaign_id: campaignId,
+            amount: amount,
+            currency: currency,
+            donation_type: type,
+            payment_method: paymentMethod,
+            payment_status: 'completed',
+            transaction_id: paymentIntentId,
+            receipt_url: receiptUrl,
+            is_acknowledged: false,
+            is_tax_deductible: true,
+            is_anonymous: isAnonymous,
+            notes: notes,
+            donated_at: donatedAt,
+            created_at: new Date(),
+            updated_at: new Date(),
+          }
+        });
+      } else {
+        // 4. If found, update to completed
+        donation = await prisma.donations.update({
+          where: { id: donation.id },
+          data: {
+            payment_status: 'completed',
+            transaction_id: paymentIntentId,
+            payment_method: paymentMethod,
+            receipt_url: receiptUrl,
+            is_anonymous: isAnonymous,
+            updated_at: new Date(),
+          }
+        });
+      }
+
+      // 5. Update donor profile stats (skip for anonymous)
+      if (donorId !== ANONYMOUS_DONOR_ID) {
+        await prisma.donor_profiles.update({
+          where: { user_id: donorId },
+          data: {
+            total_donated: { increment: amount },
+            last_donation_date: new Date(),
+          }
+        });
+      }
+
+      // 6. Update campaign stats
+      if (campaignId) {
+        await prisma.campaigns.update({
+          where: { id: campaignId },
+          data: {
+            current_amount: { increment: amount },
+            donor_count: { increment: 1 },
+          }
+        });
+      }
+
+      // 7. Send receipt if not anonymous and email available
+      if (!isAnonymous && session.customer_email) {
+        try {
+          await emailService.sendDonationReceipt(session.customer_email, donation);
+        } catch (e) {
+          logger.warn('Failed to send Stripe donation receipt email:', e);
+        }
+      }
+
+      // 8. Log for audit
+      logger.info('Stripe donation processed:', {
+        donation_id: donation.id,
+        transaction_id: paymentIntentId,
+        donor_id: donorId,
+        campaign_id: campaignId,
+        amount,
+        is_anonymous: isAnonymous
+      });
+
+      return { success: true, donation: convertBigIntToString(donation) };
+    } catch (error) {
+      logger.error('Error handling Stripe donation success:', error);
+      return { success: false, error: 'Failed to process Stripe donation', code: 'STRIPE_DONATION_ERROR' };
     }
   }
 }

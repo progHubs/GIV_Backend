@@ -5,6 +5,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const cron = require('node-cron');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -34,6 +35,7 @@ const newsletterRoutes = require('./api/routes/newsletter.routes');
 const skillRoutes = require('./api/routes/skill.routes');
 const analyticsRoutes = require('./api/routes/analytics.routes');
 const emailRoutes = require('./api/routes/email.routes');
+const stripeRoutes = require('./api/routes/stripe.routes');
 
 // Import cleanup function
 const cleanupRevokedTokens = require('./jobs/cleanupRevokedTokens');
@@ -44,7 +46,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'"],
       fontSrc: ["'self'"],
@@ -78,7 +80,14 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Body parsing middleware with security limits
+// Register ONLY the webhook route with express.raw BEFORE express.json
+app.post(
+  '/api/v1/payments/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  require('./api/controllers/stripe.controller').stripeWebhook
+);
+
+// --- Core Middleware ---
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf) => {
@@ -97,13 +106,11 @@ app.use(express.json({
 app.use(express.urlencoded({ 
   extended: true, 
   limit: '10mb',
-  parameterLimit: 100 // Limit number of parameters
+  parameterLimit: 100
 }));
-
-// Cookie parser middleware with security options
 app.use(cookieParser(process.env.COOKIE_SECRET || 'giv-society-secret'));
 
-// Static files with security headers
+// --- Static Files ---
 app.use('/uploads', express.static('uploads', {
   setHeaders: (res, path) => {
     res.set('X-Content-Type-Options', 'nosniff');
@@ -117,7 +124,11 @@ app.use('/public', express.static('public', {
   }
 }));
 
-// Health check endpoint
+// --- View Engine ---
+app.set('views', path.join(__dirname));
+app.set('view engine', 'ejs');
+
+// --- Health Check ---
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -128,20 +139,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+// --- API Routes ---
 const apiVersion = process.env.API_VERSION || 'v1';
 const apiPrefix = `/api/${apiVersion}`;
-
-// Test route first
-app.get('/api/v1/test', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'API is working!',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Mount routes
 app.use(`${apiPrefix}/auth`, authRoutes);
 app.use(`${apiPrefix}/users`, userRoutes);
 app.use(`${apiPrefix}/volunteers`, volunteerRoutes);
@@ -161,8 +161,17 @@ app.use(`${apiPrefix}/newsletter`, newsletterRoutes);
 app.use(`${apiPrefix}/skills`, skillRoutes);
 app.use(`${apiPrefix}/analytics`, analyticsRoutes);
 app.use(`${apiPrefix}/emails`, emailRoutes);
+app.use(`${apiPrefix}/payments/stripe`, stripeRoutes);
 
-// 404 handler
+// --- Stripe Success/Cancel Pages ---
+app.get('/donation-success', (req, res) => {
+  res.send('<h1>Thank you for your donation!</h1><p>Your payment was successful. You may close this window.</p>');
+});
+app.get('/donation-cancelled', (req, res) => {
+  res.send('<h1>Donation Cancelled</h1><p>Your payment was not completed. You may try again.</p>');
+});
+
+// --- 404 Handler ---
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
@@ -172,10 +181,10 @@ app.use('*', (req, res) => {
   });
 });
 
-// Error handling middleware
+// --- Error Handling Middleware ---
 app.use(errorMiddleware);
 
-// Start server only if not in test mode
+// --- Server Startup ---
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`🚀 GIV Society Backend Server running on port ${PORT}`);
@@ -185,18 +194,17 @@ if (process.env.NODE_ENV !== 'test') {
   });
 }
 
-// Graceful shutdown
+// --- Graceful Shutdown ---
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
   process.exit(0);
 });
-
 process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully');
   process.exit(0);
 });
 
-// Schedule cleanup job
+// --- Scheduled Cleanup Job ---
 if (process.env.RUN_CLEANUP_JOBS === 'true') {
   cron.schedule('0 * * * *', async () => {
     try {
