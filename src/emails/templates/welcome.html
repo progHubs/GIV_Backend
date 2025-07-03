@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to GIV Society Ethiopia</title>
+  <style>
+    body { background: #f4f6fb; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
+    .container { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(44,90,160,0.08); overflow: hidden; }
+    .header { background: linear-gradient(90deg, #2c5aa0 60%, #4e8cff 100%); color: #fff; padding: 32px 24px 20px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 2rem; letter-spacing: 1px; }
+    .content { padding: 32px 24px 24px 24px; color: #222; }
+    .content h2 { margin-top: 0; font-size: 1.3rem; }
+    .footer { background: #f4f6fb; color: #888; text-align: center; font-size: 0.95rem; padding: 18px 12px; border-top: 1px solid #eaeaea; }
+    @media (max-width: 600px) { .container { margin: 0; border-radius: 0; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>GIV Society Ethiopia</h1>
+    </div>
+    <div class="content">
+      <h2>Welcome, {{fullName}}!</h2>
+      <p>Thank you for joining GIV Society Ethiopia. Your account has been successfully created and verified.</p>
+      <ul style="color:#444; font-size:1rem; line-height:1.7;">
+        <li>Access your dashboard</li>
+        <li>Update your profile</li>
+        <li>Participate in our programs</li>
+        <li>Connect with other members</li>
+      </ul>
+      <p>If you have any questions, feel free to contact our support team.</p>
+    </div>
+    <div class="footer">
+      &copy; {{year}} GIV Society Ethiopia. All rights reserved.
+    </div>
+  </div>
+</body>
+</html> 

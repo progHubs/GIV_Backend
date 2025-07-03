@@ -1,5 +1,6 @@
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
+const emailService = require('./email.service.js');
 
 class EventService {
   /**
@@ -162,6 +163,15 @@ class EventService {
       });
       // Increment registered_count
       await prisma.events.update({ where: { id: BigInt(eventId) }, data: { registered_count: { increment: 1 } } });
+
+      // Send registration confirmation email (non-blocking)
+      try {
+        // Load event and user details for the email
+        await emailService.sendEventRegistrationConfirmation(user.email, user.full_name, event);
+      } catch (e) {
+        console.error('Failed to send event registration confirmation email:', e);
+      }
+
       return { success: true, participant };
     } catch (error) {
       return { success: false, error: error.message };

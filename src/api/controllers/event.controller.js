@@ -1,6 +1,18 @@
 const eventService = require('../../services/event.service');
 const { validateEvent, validateEventUpdate, validateRegistration, validateParticipantUpdate } = require('../validators/event.validator');
 
+// Utility to recursively convert BigInt to string in an object
+function convertBigIntToString(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(convertBigIntToString);
+  } else if (obj && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, typeof v === 'bigint' ? v.toString() : convertBigIntToString(v)])
+    );
+  }
+  return obj;
+}
+
 /**
  * Create a new event
  * @route POST /api/v1/events
@@ -12,7 +24,7 @@ exports.createEvent = async (req, res) => {
     const user = req.user;
     const result = await eventService.createEvent(req.body, user);
     if (!result.success) return res.status(400).json(result);
-    res.status(201).json(result);
+    res.status(201).json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -27,7 +39,7 @@ exports.getEvents = async (req, res) => {
     const filters = req.query;
     const lang = req.query.lang || 'en';
     const result = await eventService.getEvents(filters, lang);
-    res.json(result);
+    res.json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -43,7 +55,7 @@ exports.getEventById = async (req, res) => {
     const lang = req.query.lang || 'en';
     const result = await eventService.getEventById(id, lang);
     if (!result.success) return res.status(404).json(result);
-    res.json(result);
+    res.json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -61,7 +73,7 @@ exports.updateEvent = async (req, res) => {
     const user = req.user;
     const result = await eventService.updateEvent(id, req.body, user);
     if (!result.success) return res.status(400).json(result);
-    res.json(result);
+    res.json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -77,7 +89,7 @@ exports.deleteEvent = async (req, res) => {
     const user = req.user;
     const result = await eventService.deleteEvent(id, user);
     if (!result.success) return res.status(400).json(result);
-    res.json(result);
+    res.json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -95,7 +107,7 @@ exports.registerForEvent = async (req, res) => {
     const eventId = req.params.id;
     const result = await eventService.registerForEvent(eventId, user, req.body);
     if (!result.success) return res.status(400).json(result);
-    res.status(201).json(result);
+    res.status(201).json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -110,7 +122,7 @@ exports.listParticipants = async (req, res) => {
     const eventId = req.params.id;
     const user = req.user;
     const result = await eventService.listParticipants(eventId, user);
-    res.json(result);
+    res.json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -129,7 +141,7 @@ exports.updateParticipant = async (req, res) => {
     const user = req.user;
     const result = await eventService.updateParticipant(eventId, userId, req.body, user);
     if (!result.success) return res.status(400).json(result);
-    res.json(result);
+    res.json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -146,7 +158,7 @@ exports.removeParticipant = async (req, res) => {
     const user = req.user;
     const result = await eventService.removeParticipant(eventId, userId, user);
     if (!result.success) return res.status(400).json(result);
-    res.json(result);
+    res.json(convertBigIntToString(result));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -17,7 +17,7 @@ const {
   validatePasswordChangeData,
   validatePasswordResetData 
 } = require('../utils/validation.util');
-// const emailService = require('./email.service');
+const emailService = require('./email.service.js');
 const securityService = require('./security.service');
 const tokenService = require('./token.service');
 
@@ -95,9 +95,11 @@ class AuthService {
           userId: user.id.toString(),
           email: user.email
         });
-        
-        // Send verification email
-        // await emailService.sendVerificationEmail(user.email, user.full_name, verificationToken);
+        try {
+          await emailService.sendVerificationEmail(user.email, user.full_name, verificationToken);
+        } catch (e) {
+          console.error('Failed to send verification email:', e);
+        }
       }
 
       // Generate access token (if email verification not required)
@@ -108,9 +110,11 @@ class AuthService {
           email: user.email,
           role: user.role
         });
-        
-        // Send welcome email
-        // await emailService.sendWelcomeEmail(user.email, user.full_name);
+        try {
+          await emailService.sendWelcomeEmail(user.email, user.full_name);
+        } catch (e) {
+          console.error('Failed to send welcome email:', e);
+        }
       }
 
       return {
@@ -480,7 +484,11 @@ class AuthService {
       });
 
       // Send password reset email
-      // await emailService.sendPasswordResetEmail(user.email, user.full_name, resetToken);
+      try {
+        await emailService.sendPasswordResetEmail(user.email, user.full_name, resetToken);
+      } catch (e) {
+        console.error('Failed to send password reset email:', e);
+      }
 
       return {
         success: true,
@@ -670,7 +678,11 @@ class AuthService {
       });
 
       // Send verification email
-      // await emailService.sendVerificationEmail(user.email, user.full_name, verificationToken);
+      try {
+        await emailService.sendVerificationEmail(user.email, user.full_name, verificationToken);
+      } catch (e) {
+        console.error('Failed to resend verification email:', e);
+      }
 
       return {
         success: true,

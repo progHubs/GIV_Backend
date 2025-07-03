@@ -39,6 +39,8 @@ const stripeRoutes = require('./api/routes/stripe.routes');
 
 // Import cleanup function
 const cleanupRevokedTokens = require('./jobs/cleanupRevokedTokens');
+const sendEventReminders = require('./jobs/eventReminders');
+const sendEventFeedbackRequests = require('./jobs/eventFeedbackRequests');
 
 // Enhanced security middleware
 app.use(helmet({
@@ -207,13 +209,27 @@ process.on('SIGINT', () => {
 // --- Scheduled Cleanup Job ---
 if (process.env.RUN_CLEANUP_JOBS === 'true') {
   cron.schedule('0 * * * *', async () => {
-    try {
-      await cleanupRevokedTokens();
-    } catch (err) {
-      console.error('[Cleanup] Error cleaning up revoked tokens:', err);
-    }
+    await cleanupRevokedTokens();
   });
   console.log('[Cleanup] Scheduled revoked tokens cleanup job (every hour)');
+}
+
+// --- Scheduled Event Reminder Job ---
+if (process.env.RUN_EVENT_REMINDER_JOBS === 'true') {
+  cron.schedule('0 * * * *', async () => {
+    console.log('[Event Reminder] Running scheduled event reminder job...');
+    await sendEventReminders();
+  });
+  console.log('[Event Reminder] Scheduled event reminder job (every hour)');
+}
+
+// --- Scheduled Event Feedback Request Job ---
+if (process.env.RUN_EVENT_FEEDBACK_JOBS === 'true') {
+  cron.schedule('15 * * * *', async () => {
+    console.log('[Event Feedback] Running scheduled event feedback request job...');
+    await sendEventFeedbackRequests();
+  });
+  console.log('[Event Feedback] Scheduled event feedback request job (every hour at :15)');
 }
 
 module.exports = app; 
