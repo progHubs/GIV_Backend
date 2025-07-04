@@ -743,11 +743,15 @@ const validateId = (id) => {
 function convertBigIntToString(obj) {
   if (Array.isArray(obj)) {
     return obj.map(convertBigIntToString);
+  } else if (obj instanceof Date) {
+    return obj.toISOString();
   } else if (obj && typeof obj === 'object') {
     const result = {};
     for (const key in obj) {
       if (typeof obj[key] === 'bigint') {
         result[key] = obj[key].toString();
+      } else if (obj[key] instanceof Date) {
+        result[key] = obj[key].toISOString();
       } else if (Array.isArray(obj[key]) || (obj[key] && typeof obj[key] === 'object')) {
         result[key] = convertBigIntToString(obj[key]);
       } else {

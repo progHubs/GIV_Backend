@@ -48,6 +48,36 @@ const participantUpdateSchema = Joi.object({
 });
 
 /**
+ * Event translation schema
+ */
+const translationSchema = Joi.object({
+  title: Joi.string().max(255).required(),
+  slug: Joi.string().max(255).required(),
+  description: Joi.string().allow('', null),
+  event_date: Joi.date().required(),
+  event_time: Joi.string().required(),
+  language: Joi.string().valid('en', 'am').required(),
+  timezone: Joi.string().max(50).optional(),
+  location: Joi.string().max(255).optional(),
+  category: Joi.string().max(50).optional(),
+  capacity: Joi.number().integer().min(0).optional(),
+  registered_count: Joi.number().integer().min(0).optional(),
+  status: Joi.string().optional(),
+  registration_deadline: Joi.date().optional(),
+  registration_link: Joi.string().max(512).optional(),
+  map_embed_url: Joi.string().max(512).optional(),
+  agenda: Joi.string().allow('', null).optional(),
+  speaker_info: Joi.string().allow('', null).optional(),
+  requirements: Joi.string().allow('', null).optional(),
+  ticket_price: Joi.number().precision(2).optional(),
+  ticket_link: Joi.string().max(512).optional(),
+  is_featured: Joi.boolean().optional(),
+  latitude: Joi.number().optional(),
+  longitude: Joi.number().optional(),
+  created_by: Joi.any().optional(),
+});
+
+/**
  * Validate event creation
  * @param {Object} data
  * @returns {Object}
@@ -83,9 +113,19 @@ function validateParticipantUpdate(data) {
   return participantUpdateSchema.validate(data, { abortEarly: false });
 }
 
+/**
+ * Validate event translation
+ * @param {Object} data
+ * @returns {Object}
+ */
+function validateEventTranslation(data) {
+  return translationSchema.validate(data, { abortEarly: false });
+}
+
 module.exports = {
   validateEvent,
   validateEventUpdate,
   validateRegistration,
   validateParticipantUpdate,
+  validateEventTranslation,
 }; 

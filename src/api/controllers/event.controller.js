@@ -1,17 +1,6 @@
 const eventService = require('../../services/event.service');
-const { validateEvent, validateEventUpdate, validateRegistration, validateParticipantUpdate } = require('../validators/event.validator');
-
-// Utility to recursively convert BigInt to string in an object
-function convertBigIntToString(obj) {
-  if (Array.isArray(obj)) {
-    return obj.map(convertBigIntToString);
-  } else if (obj && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj).map(([k, v]) => [k, typeof v === 'bigint' ? v.toString() : convertBigIntToString(v)])
-    );
-  }
-  return obj;
-}
+const { validateEvent, validateEventUpdate, validateRegistration, validateParticipantUpdate, validateEventTranslation } = require('../validators/event.validator');
+const { convertBigIntToString } = require('../../utils/validation.util');
 
 /**
  * Create a new event
@@ -159,6 +148,165 @@ exports.removeParticipant = async (req, res) => {
     const result = await eventService.removeParticipant(eventId, userId, user);
     if (!result.success) return res.status(400).json(result);
     res.json(convertBigIntToString(result));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Get analytics for a single event
+ * @route GET /api/v1/events/:id/analytics
+ */
+exports.getEventAnalytics = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const result = await eventService.getEventAnalytics(eventId);
+    if (!result.success) return res.status(404).json(convertBigIntToString(result));
+    res.json(convertBigIntToString({ success: true, analytics: result.analytics }));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Get aggregate analytics for all events
+ * @route GET /api/v1/events/analytics
+ */
+exports.getAggregateEventAnalytics = async (req, res) => {
+  try {
+    const result = await eventService.getAggregateEventAnalytics();
+    if (!result.success) return res.status(400).json(convertBigIntToString(result));
+    res.json(convertBigIntToString({ success: true, analytics: result.analytics }));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Export analytics for a single event as CSV
+ * @route GET /api/v1/events/:id/analytics/export
+ */
+exports.exportEventAnalyticsCSV = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const result = await eventService.getEventAnalyticsCSV(eventId);
+    if (!result.success) return res.status(404).json(result);
+    res.header('Content-Type', 'text/csv');
+    res.attachment(`event_${eventId}_analytics.csv`);
+    res.send(result.csv);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Export aggregate analytics for all events as CSV
+ * @route GET /api/v1/events/analytics/export
+ */
+exports.exportAggregateEventAnalyticsCSV = async (req, res) => {
+  try {
+    const result = await eventService.getAggregateEventAnalyticsCSV();
+    if (!result.success) return res.status(400).json(result);
+    res.header('Content-Type', 'text/csv');
+    res.attachment('events_aggregate_analytics.csv');
+    res.send(result.csv);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Get events for public calendar view
+ * @route GET /api/v1/events/calendar
+ */
+exports.getCalendarEvents = async (req, res) => {
+  try {
+    const filters = req.query;
+    const result = await eventService.getCalendarEvents(filters);
+    if (!result.success) return res.status(400).json(result);
+    res.json({ success: true, events: convertBigIntToString(result.events) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Get featured events
+ * @route GET /api/v1/events/featured
+ */
+exports.getFeaturedEvents = async (req, res) => {
+  try {
+    const result = await eventService.getFeaturedEvents();
+    if (!result.success) return res.status(400).json(result);
+    res.json({ success: true, events: convertBigIntToString(result.events) });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Get all translations for an event
+ * @route GET /api/v1/events/:id/translations
+ */
+exports.getEventTranslations = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const result = await eventService.getEventTranslations(eventId);
+    if (!result.success) return res.status(404).json(result);
+    res.json(convertBigIntToString(result));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Add a new translation for an event
+ * @route POST /api/v1/events/:id/translations
+ */
+exports.addEventTranslation = async (req, res) => {
+  try {
+    const { error } = validateEventTranslation(req.body);
+    if (error) return res.status(400).json({ success: false, error: error.details[0].message });
+    const eventId = req.params.id;
+    const user = req.user;
+    const result = await eventService.addEventTranslation(eventId, req.body, user);
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json(convertBigIntToString(result));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Update a translation for an event (by language)
+ * @route PATCH /api/v1/events/:id/translations/:language
+ */
+exports.updateEventTranslation = async (req, res) => {
+  try {
+    const { error } = validateEventTranslation(req.body);
+    if (error) return res.status(400).json({ success: false, error: error.details[0].message });
+    const eventId = req.params.id;
+    const language = req.params.language;
+    const user = req.user;
+    const result = await eventService.updateEventTranslation(eventId, language, req.body, user);
+    if (!result.success) return res.status(400).json(result);
+    res.json(convertBigIntToString(result));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Unregister self from an event
+ * @route DELETE /api/v1/events/:id/unregister
+ */
+exports.unregisterFromEvent = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const user = req.user;
+    const result = await eventService.unregisterFromEvent(eventId, user);
+    if (!result.success) return res.status(400).json(result);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

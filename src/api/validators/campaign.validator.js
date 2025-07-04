@@ -414,6 +414,43 @@ const donationQuerySchema = Joi.object({
     })
 });
 
+// Translation schema
+const translationSchema = Joi.object({
+  title: Joi.string().min(3).max(255).required(),
+  slug: Joi.string().min(3).max(255).pattern(/^[a-z0-9-]+$/).required(),
+  description: Joi.string().min(10).max(2000).required(),
+  goal_amount: Joi.number().positive().precision(2).required(),
+  start_date: Joi.date().iso().min('now').required(),
+  end_date: Joi.date().iso().min(Joi.ref('start_date')).optional(),
+  category: Joi.string().valid(
+    'medical_outreach',
+    'mental_health',
+    'youth_development',
+    'disease_prevention',
+    'education',
+    'emergency_relief',
+    'community_development',
+    'environmental',
+    'other'
+  ).required(),
+  language: Joi.string().valid('en', 'am').required(),
+  progress_bar_color: Joi.string().max(20).optional(),
+  image_url: Joi.string().uri().optional(),
+  video_url: Joi.string().uri().optional(),
+  donor_count: Joi.number().integer().min(0).optional(),
+  success_stories: Joi.any().optional(),
+  current_amount: Joi.number().precision(2).optional(),
+  is_active: Joi.boolean().optional(),
+  is_featured: Joi.boolean().optional(),
+  created_by: Joi.any().optional(),
+  created_at: Joi.any().optional(),
+  progress_percentage: Joi.number().optional(),
+});
+
+function validateCampaignTranslation(data) {
+  return translationSchema.validate(data, { abortEarly: false });
+}
+
 /**
  * Validation functions
  */
@@ -1010,5 +1047,6 @@ module.exports = {
   campaignQuerySchema,
   searchQuerySchema,
   campaignIdSchema,
-  donationQuerySchema
+  donationQuerySchema,
+  validateCampaignTranslation
 };

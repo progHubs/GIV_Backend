@@ -160,7 +160,7 @@ CREATE TABLE event_participants (
     event_id BIGINT UNSIGNED,
     user_id BIGINT UNSIGNED,
     role ENUM('volunteer', 'attendee', 'organizer') NOT NULL,
-    status ENUM('registered', 'confirmed', 'attended', 'no_show') DEFAULT 'registered',
+    status ENUM('registered', 'confirmed', 'reminded', 'attended', 'no_show') DEFAULT 'registered',
     hours_contributed DECIMAL(5,2),
     feedback TEXT,
     rating TINYINT UNSIGNED CHECK (rating BETWEEN 1 AND 5),

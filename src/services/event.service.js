@@ -1,6 +1,8 @@
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 const emailService = require('./email.service.js');
+const { Parser } = require('json2csv');
+const { convertBigIntToString } = require('../utils/validation.util');
 
 class EventService {
   /**
@@ -215,9 +217,17 @@ class EventService {
       }
       const participant = await prisma.event_participants.findUnique({ where: { event_id_user_id: { event_id: BigInt(eventId), user_id: BigInt(userId) } } });
       if (!participant) return { success: false, error: 'Participant not found' };
+      const updateData = { ...data };
+      if (data.status === 'attended') {
+        updateData.attended_at = new Date();
+      }
+      // Optionally allow setting status to 'reminded'
+      if (data.status && !['registered', 'confirmed', 'reminded', 'attended', 'no_show'].includes(data.status)) {
+        return { success: false, error: 'Invalid status value' };
+      }
       const updated = await prisma.event_participants.update({
         where: { event_id_user_id: { event_id: BigInt(eventId), user_id: BigInt(userId) } },
-        data: { ...data },
+        data: updateData,
       });
       return { success: true, participant: updated };
     } catch (error) {
@@ -242,6 +252,277 @@ class EventService {
       await prisma.event_participants.delete({ where: { event_id_user_id: { event_id: BigInt(eventId), user_id: BigInt(userId) } } });
       await prisma.events.update({ where: { id: BigInt(eventId) }, data: { registered_count: { decrement: 1 } } });
       return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get analytics for a single event
+   * @param {string|number} eventId
+   * @returns {Promise<Object>}
+   */
+  async getEventAnalytics(eventId) {
+    try {
+      const event = await prisma.events.findUnique({ where: { id: BigInt(eventId) } });
+      if (!event || event.deleted_at) return { success: false, error: 'Event not found' };
+      const participants = await prisma.event_participants.findMany({ where: { event_id: BigInt(eventId) } });
+      const totalRegistrations = participants.length;
+      const attended = participants.filter(p => p.status === 'attended');
+      const totalAttended = attended.length;
+      const totalConfirmed = participants.filter(p => p.status === 'confirmed').length;
+      const totalNoShow = participants.filter(p => p.status === 'no_show').length;
+      const feedbackCount = participants.filter(p => p.feedback && p.feedback.trim() !== '').length;
+      const avgRating = participants.reduce((sum, p) => sum + (p.rating || 0), 0) / (participants.filter(p => p.rating).length || 1);
+      const totalHours = attended.reduce((sum, p) => sum + (Number(p.hours_contributed) || 0), 0);
+      const analytics = {
+        eventId: eventId.toString(),
+        totalRegistrations,
+        totalAttended,
+        totalConfirmed,
+        totalNoShow,
+        feedbackCount,
+        avgRating: Number(avgRating.toFixed(2)),
+        totalVolunteerHours: Number(totalHours.toFixed(2)),
+      };
+      console.log('DEBUG analytics (event):', JSON.stringify(analytics));
+      return { success: true, analytics };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get aggregate analytics for all events
+   * @returns {Promise<Object>}
+   */
+  async getAggregateEventAnalytics() {
+    try {
+      const events = await prisma.events.findMany({ where: { deleted_at: null } });
+      const participants = await prisma.event_participants.findMany({});
+      const totalEvents = Number(events.length);
+      const totalRegistrations = Number(participants.length);
+      const totalAttended = Number(participants.filter(p => p.status === 'attended').length);
+      const totalConfirmed = Number(participants.filter(p => p.status === 'confirmed').length);
+      const totalNoShow = Number(participants.filter(p => p.status === 'no_show').length);
+      const feedbackCount = Number(participants.filter(p => p.feedback && p.feedback.trim() !== '').length);
+      const avgRating = participants.reduce((sum, p) => sum + (p.rating || 0), 0) / (participants.filter(p => p.rating).length || 1);
+      const totalHours = participants.reduce((sum, p) => sum + (Number(p.hours_contributed) || 0), 0);
+      const analytics = {
+        totalEvents,
+        totalRegistrations,
+        totalAttended,
+        totalConfirmed,
+        totalNoShow,
+        feedbackCount,
+        avgRating: Number(avgRating.toFixed(2)),
+        totalVolunteerHours: Number(totalHours.toFixed(2)),
+      };
+      console.log('DEBUG analytics (aggregate):', JSON.stringify(analytics));
+      return { success: true, analytics };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Export analytics for a single event as CSV
+   * @param {string|number} eventId
+   * @returns {Promise<{success: boolean, csv?: string, error?: string}>}
+   */
+  async getEventAnalyticsCSV(eventId) {
+    const result = await this.getEventAnalytics(eventId);
+    if (!result.success) return result;
+    try {
+      const parser = new Parser();
+      const csv = parser.parse([convertBigIntToString(result.analytics)]);
+      return { success: true, csv };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Export aggregate analytics for all events as CSV
+   * @returns {Promise<{success: boolean, csv?: string, error?: string}>}
+   */
+  async getAggregateEventAnalyticsCSV() {
+    const result = await this.getAggregateEventAnalytics();
+    if (!result.success) return result;
+    try {
+      const parser = new Parser();
+      const csv = parser.parse([convertBigIntToString(result.analytics)]);
+      return { success: true, csv };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get events for public calendar view (optionally filter by date/category)
+   * @param {Object} filters
+   * @returns {Promise<Object>}
+   */
+  async getCalendarEvents(filters = {}) {
+    try {
+      // Only allow known filters
+      const allowedFilters = ['category', 'start_date', 'end_date', 'language'];
+      const safeFilters = {};
+      for (const key of allowedFilters) {
+        if (filters[key]) safeFilters[key] = filters[key];
+      }
+      const where = { deleted_at: null };
+      if (safeFilters.category) where.category = safeFilters.category;
+      if (safeFilters.start_date) where.event_date = { gte: new Date(safeFilters.start_date) };
+      if (safeFilters.end_date) {
+        where.event_date = where.event_date || {};
+        where.event_date.lte = new Date(safeFilters.end_date);
+      }
+      if (safeFilters.language) where.language = safeFilters.language;
+      const events = await prisma.events.findMany({
+        where,
+        orderBy: { event_date: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          event_date: true,
+          event_time: true,
+          location: true,
+          category: true,
+          is_featured: true,
+          status: true,
+          language: true,
+          translation_group_id: true,
+        }
+      });
+      return { success: true, events };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get featured events
+   * @returns {Promise<Object>}
+   */
+  async getFeaturedEvents() {
+    try {
+      const events = await prisma.events.findMany({
+        where: { is_featured: true, deleted_at: null },
+        orderBy: { event_date: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          event_date: true,
+          event_time: true,
+          location: true,
+          category: true,
+          is_featured: true,
+          status: true,
+          language: true,
+          translation_group_id: true,
+        }
+      });
+      return { success: true, events };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get all translations for an event (by translation_group_id)
+   * @param {string|number} eventId
+   * @returns {Promise<Object>}
+   */
+  async getEventTranslations(eventId) {
+    try {
+      const event = await prisma.events.findUnique({ where: { id: BigInt(eventId) } });
+      if (!event || !event.translation_group_id) return { success: false, error: 'Event or translation group not found' };
+      const translations = await prisma.events.findMany({
+        where: { translation_group_id: event.translation_group_id, deleted_at: null },
+        orderBy: { language: 'asc' },
+      });
+      return { success: true, translations };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Add a new translation for an event (new language in translation group)
+   * @param {string|number} eventId
+   * @param {Object} data
+   * @param {Object} user
+   * @returns {Promise<Object>}
+   */
+  async addEventTranslation(eventId, data, user) {
+    try {
+      const event = await prisma.events.findUnique({ where: { id: BigInt(eventId) } });
+      if (!event || !event.translation_group_id) return { success: false, error: 'Event or translation group not found' };
+      // Only admin/editor can add
+      if (!user || !['admin', 'editor'].includes(user.role)) return { success: false, error: 'Insufficient permissions' };
+      // Prevent duplicate language
+      const exists = await prisma.events.findFirst({ where: { translation_group_id: event.translation_group_id, language: data.language, deleted_at: null } });
+      if (exists) return { success: false, error: 'Translation for this language already exists' };
+      const newTranslation = await prisma.events.create({
+        data: {
+          ...data,
+          translation_group_id: event.translation_group_id,
+          created_by: user.id,
+          created_at: new Date(),
+          updated_at: new Date(),
+        }
+      });
+      return { success: true, translation: newTranslation };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update an existing translation for an event (by language in translation group)
+   * @param {string|number} eventId
+   * @param {string} language
+   * @param {Object} data
+   * @param {Object} user
+   * @returns {Promise<Object>}
+   */
+  async updateEventTranslation(eventId, language, data, user) {
+    try {
+      const event = await prisma.events.findUnique({ where: { id: BigInt(eventId) } });
+      if (!event || !event.translation_group_id) return { success: false, error: 'Event or translation group not found' };
+      // Only admin/editor can update
+      if (!user || !['admin', 'editor'].includes(user.role)) return { success: false, error: 'Insufficient permissions' };
+      const translation = await prisma.events.findFirst({ where: { translation_group_id: event.translation_group_id, language, deleted_at: null } });
+      if (!translation) return { success: false, error: 'Translation not found for this language' };
+      const updated = await prisma.events.update({
+        where: { id: translation.id },
+        data: { ...data, updated_at: new Date() },
+      });
+      return { success: true, translation: updated };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Allow a user to unregister themselves from an event
+   * @param {string|number} eventId
+   * @param {Object} user
+   * @returns {Promise<Object>}
+   */
+  async unregisterFromEvent(eventId, user) {
+    try {
+      if (!user) return { success: false, error: 'Authentication required' };
+      const event = await prisma.events.findUnique({ where: { id: BigInt(eventId) } });
+      if (!event || event.deleted_at) return { success: false, error: 'Event not found' };
+      const participant = await prisma.event_participants.findUnique({ where: { event_id_user_id: { event_id: BigInt(eventId), user_id: BigInt(user.id) } } });
+      if (!participant) return { success: false, error: 'You are not registered for this event' };
+      await prisma.event_participants.delete({ where: { event_id_user_id: { event_id: BigInt(eventId), user_id: BigInt(user.id) } } });
+      await prisma.events.update({ where: { id: BigInt(eventId) }, data: { registered_count: { decrement: 1 } } });
+      return { success: true, message: 'Successfully unregistered from event' };
     } catch (error) {
       return { success: false, error: error.message };
     }

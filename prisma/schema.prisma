@@ -488,6 +488,7 @@ enum programs_category {
 enum event_participants_status {
   registered
   confirmed
+  reminded
   attended
   no_show
 }

@@ -701,6 +701,89 @@ class CampaignService {
       .replace(/-+/g, '-')
       .trim('-');
   }
+
+  /**
+   * Get all translations for a campaign (by translation_group_id)
+   * @param {string|number} campaignId
+   * @returns {Promise<Object>}
+   */
+  async getCampaignTranslations(campaignId) {
+    try {
+      const campaign = await prisma.campaigns.findUnique({ where: { id: parseInt(campaignId) } });
+      if (!campaign || !campaign.translation_group_id) return { success: false, error: 'Campaign or translation group not found' };
+      const translations = await prisma.campaigns.findMany({
+        where: { translation_group_id: campaign.translation_group_id, deleted_at: null },
+        orderBy: { language: 'asc' },
+      });
+      return { success: true, translations };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Add a new translation for a campaign (new language in translation group)
+   * @param {string|number} campaignId
+   * @param {Object} data
+   * @param {Object} user
+   * @returns {Promise<Object>}
+   */
+  async addCampaignTranslation(campaignId, data, user) {
+    try {
+      const campaign = await prisma.campaigns.findUnique({ where: { id: parseInt(campaignId) } });
+      if (!campaign || !campaign.translation_group_id) return { success: false, error: 'Campaign or translation group not found' };
+      // Only admin/editor can add
+      if (!user || !['admin', 'editor'].includes(user.role)) return { success: false, error: 'Insufficient permissions' };
+      // Prevent duplicate language
+      const exists = await prisma.campaigns.findFirst({ where: { translation_group_id: campaign.translation_group_id, language: data.language, deleted_at: null } });
+      if (exists) return { success: false, error: 'Translation for this language already exists' };
+      const newTranslation = await prisma.campaigns.create({
+        data: {
+          ...data,
+          start_date: data.start_date ? new Date(data.start_date) : undefined,
+          end_date: data.end_date ? new Date(data.end_date) : undefined,
+          translation_group_id: campaign.translation_group_id,
+          created_by: user.id,
+          created_at: new Date(),
+          updated_at: new Date(),
+        }
+      });
+      return { success: true, translation: newTranslation };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update an existing translation for a campaign (by language in translation group)
+   * @param {string|number} campaignId
+   * @param {string} language
+   * @param {Object} data
+   * @param {Object} user
+   * @returns {Promise<Object>}
+   */
+  async updateCampaignTranslation(campaignId, language, data, user) {
+    try {
+      const campaign = await prisma.campaigns.findUnique({ where: { id: parseInt(campaignId) } });
+      if (!campaign || !campaign.translation_group_id) return { success: false, error: 'Campaign or translation group not found' };
+      // Only admin/editor can update
+      if (!user || !['admin', 'editor'].includes(user.role)) return { success: false, error: 'Insufficient permissions' };
+      const translation = await prisma.campaigns.findFirst({ where: { translation_group_id: campaign.translation_group_id, language, deleted_at: null } });
+      if (!translation) return { success: false, error: 'Translation not found for this language' };
+      const updated = await prisma.campaigns.update({
+        where: { id: translation.id },
+        data: {
+          ...data,
+          start_date: data.start_date ? new Date(data.start_date) : undefined,
+          end_date: data.end_date ? new Date(data.end_date) : undefined,
+          updated_at: new Date(),
+        },
+      });
+      return { success: true, translation: updated };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 module.exports = new CampaignService(); 

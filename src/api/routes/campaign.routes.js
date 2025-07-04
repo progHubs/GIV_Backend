@@ -15,6 +15,7 @@ router.get('/featured', campaignController.getFeaturedCampaigns);
 router.get('/active', campaignController.getActiveCampaigns);
 router.get('/stats', campaignController.getCampaignStats);
 router.get('/:id', campaignController.getCampaignById);
+router.get('/:id/translations', campaignController.getCampaignTranslations);
 
 // Protected routes (authentication required)
 router.use(authenticateToken);
@@ -34,5 +35,8 @@ router.delete('/:id',
   requireAdmin, 
   campaignController.deleteCampaign
 );
+
+router.post('/:id/translations', requireAdmin, campaignController.addCampaignTranslation);
+router.patch('/:id/translations/:language', requireAdmin, campaignController.updateCampaignTranslation);
 
 module.exports = router; 

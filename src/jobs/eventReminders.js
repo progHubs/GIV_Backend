@@ -29,7 +29,7 @@ async function sendEventReminders() {
     for (const participant of participants) {
       const user = participant.users;
       if (!user || !user.email) continue;
-      if (participant.status !== 'confirmed') continue;
+      if (participant.status !== 'reminded') continue;
       try {
         await emailService.sendEventReminder(user.email, user.full_name, event);
         await prisma.event_participants.update({
@@ -37,7 +37,7 @@ async function sendEventReminders() {
             id: participant.id
           },
           data: {
-            status: 'confirmed'
+            status: 'reminded'
           }
         });
         console.log(`[Event Reminder] Sent to ${user.email} for event ${event.title}`);
