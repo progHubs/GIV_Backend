@@ -1,0 +1,80 @@
+<div class="form-section" id="searchPostsSection">
+  <h3>Search Posts</h3>
+  <form id="searchPostsForm">
+    <div class="mb-3">
+      <label class="form-label">Search Query</label>
+      <input type="text" class="form-control" name="q" required />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <span class="spinner-border" role="status"></span>
+      <span class="btn-text">Search</span>
+      <span class="loading-text" style="display: none">Searching...</span>
+    </button>
+  </form>
+  <div class="debug-info" id="searchDebug" style="display: none"></div>
+  <div class="response-box" id="searchResponse"></div>
+</div>
+
+<script>
+  // Search Posts functionality
+  document
+    .getElementById("searchPostsForm")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = e.target.querySelector('button[type="submit"]');
+      const debugElement = document.getElementById("searchDebug");
+      setButtonLoading(button, true);
+      debugElement.style.display = "none";
+
+      const query = e.target.q.value.trim();
+      logDebug("searchDebug", `Searching for posts with query: "${query}"`);
+
+      if (!query) {
+        logDebug("searchDebug", "Error: No search query provided");
+        displayResponse(
+          "searchResponse",
+          { error: "Search query is required" },
+          true
+        );
+        setButtonLoading(button, false);
+        return;
+      }
+
+      const url = `${API_BASE_URL}/search?q=${encodeURIComponent(query)}`;
+      logDebug("searchDebug", `Request URL: ${url}`);
+
+      try {
+        const response = await fetch(url);
+        logDebug("searchDebug", `Response status: ${response.status}`);
+
+        if (!response.ok) {
+          await logDetailedError(
+            "searchDebug",
+            new Error(`HTTP error! status: ${response.status}`),
+            response,
+            { url, query: query }
+          );
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        logDebug("searchDebug", "Search completed successfully", {
+          query: query,
+          resultsCount: data.data?.posts?.length || 0,
+          totalResults: data.data?.pagination?.total || 0,
+        });
+
+        displayResponse("searchResponse", data);
+      } catch (error) {
+        if (!error.message.includes("HTTP error! status:")) {
+          await logDetailedError("searchDebug", error, null, {
+            url,
+            query: query,
+          });
+        }
+        displayResponse("searchResponse", { error: error.message }, true);
+      } finally {
+        setButtonLoading(button, false);
+      }
+    });
+</script>

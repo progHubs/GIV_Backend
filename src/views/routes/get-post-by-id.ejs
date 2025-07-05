@@ -1,0 +1,86 @@
+<div class="form-section" id="getPostByIdSection">
+  <h3>Get Post by ID</h3>
+  <form id="getPostByIdForm">
+    <div class="mb-3">
+      <label class="form-label">Post ID</label>
+      <input type="text" class="form-control" name="id" required />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <span class="spinner-border" role="status"></span>
+      <span class="btn-text">Get Post</span>
+      <span class="loading-text" style="display: none">Loading...</span>
+    </button>
+  </form>
+  <div class="debug-info" id="getByIdDebug" style="display: none"></div>
+  <div class="response-box" id="getByIdResponse"></div>
+</div>
+
+<script>
+  // Get Post by ID functionality
+  document
+    .getElementById("getPostByIdForm")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = e.target.querySelector('button[type="submit"]');
+      const debugElement = document.getElementById("getByIdDebug");
+      setButtonLoading(button, true);
+      debugElement.style.display = "none";
+
+      const id = e.target.id.value.trim();
+      logDebug("getByIdDebug", `Fetching post with ID: ${id}`);
+
+      if (!id) {
+        logDebug("getByIdDebug", "Error: No ID provided");
+        displayResponse(
+          "getByIdResponse",
+          { error: "Post ID is required" },
+          true
+        );
+        setButtonLoading(button, false);
+        return;
+      }
+
+      const url = `${API_BASE_URL}/id/${id}`;
+      logDebug("getByIdDebug", `Request URL: ${url}`);
+
+      try {
+        const response = await fetch(url);
+        logDebug("getByIdDebug", `Response status: ${response.status}`);
+
+        if (!response.ok) {
+          await logDetailedError(
+            "getByIdDebug",
+            new Error(`HTTP error! status: ${response.status}`),
+            response,
+            { url, postId: id }
+          );
+          if (response.status === 404) {
+            throw new Error(`Post with ID ${id} not found`);
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        logDebug("getByIdDebug", "Post retrieved successfully", {
+          postId: data.data?.id,
+          title: data.data?.title,
+          postType: data.data?.post_type,
+        });
+
+        displayResponse("getByIdResponse", data);
+      } catch (error) {
+        if (
+          !error.message.includes("HTTP error! status:") &&
+          !error.message.includes("Post with ID")
+        ) {
+          await logDetailedError("getByIdDebug", error, null, {
+            url,
+            postId: id,
+          });
+        }
+        displayResponse("getByIdResponse", { error: error.message }, true);
+      } finally {
+        setButtonLoading(button, false);
+      }
+    });
+</script>

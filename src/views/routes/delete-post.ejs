@@ -1,0 +1,92 @@
+<div class="form-section" id="deletePostSection">
+  <h3>Delete Post</h3>
+  <form id="deletePostForm">
+    <div class="mb-3">
+      <label class="form-label">Post ID</label>
+      <input type="text" class="form-control" name="id" required />
+    </div>
+    <button type="submit" class="btn btn-danger">
+      <span class="spinner-border" role="status"></span>
+      <span class="btn-text">Delete Post</span>
+      <span class="loading-text" style="display: none">Deleting...</span>
+    </button>
+  </form>
+  <div class="debug-info" id="deleteDebug" style="display: none"></div>
+  <div class="response-box" id="deleteResponse"></div>
+</div>
+
+<script>
+  // Delete Post functionality
+  document
+    .getElementById("deletePostForm")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = e.target.querySelector('button[type="submit"]');
+      const debugElement = document.getElementById("deleteDebug");
+
+      const id = e.target.id.value.trim();
+      logDebug("deleteDebug", `Attempting to delete post with ID: ${id}`);
+
+      if (!id) {
+        logDebug("deleteDebug", "Error: No ID provided");
+        displayResponse(
+          "deleteResponse",
+          { error: "Post ID is required" },
+          true
+        );
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete post with ID ${id}?`)) {
+        logDebug("deleteDebug", "Delete operation cancelled by user");
+        return;
+      }
+
+      setButtonLoading(button, true);
+      debugElement.style.display = "none";
+
+      const url = `${API_BASE_URL}/${id}`;
+      logDebug("deleteDebug", `Request URL: ${url}`);
+
+      try {
+        const response = await fetch(url, {
+          method: "DELETE",
+        });
+        logDebug("deleteDebug", `Response status: ${response.status}`);
+
+        if (!response.ok) {
+          await logDetailedError(
+            "deleteDebug",
+            new Error(`HTTP error! status: ${response.status}`),
+            response,
+            { url, postId: id }
+          );
+          if (response.status === 404) {
+            throw new Error(`Post with ID ${id} not found`);
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        logDebug("deleteDebug", "Post deleted successfully", {
+          deletedPostId: id,
+          response: data,
+        });
+
+        displayResponse("deleteResponse", data);
+      } catch (error) {
+        if (
+          !error.message.includes("HTTP error! status:") &&
+          !error.message.includes("Post with ID")
+        ) {
+          await logDetailedError("deleteDebug", error, null, {
+            url,
+            postId: id,
+          });
+        }
+        displayResponse("deleteResponse", { error: error.message }, true);
+      } finally {
+        setButtonLoading(button, false);
+      }
+    });
+</script>

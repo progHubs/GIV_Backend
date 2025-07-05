@@ -1,10 +1,11 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 const userController = require('../controllers/user.controller');
 const { authenticateToken, requireAdmin } = require('../../middlewares/auth.middleware');
 const { userUpdateValidation } = require('../validators/user.validator');
 const { generalLimiter } = require('../../middlewares/rate-limit.middleware');
 
+<<<<<<< HEAD
 /**
  * @route   GET /api/users
  * @desc    Get all users (admin only)
@@ -98,5 +99,13 @@ router.delete('/:id',
   generalLimiter,
   userController.deleteUser
 );
+=======
+router.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Get all users endpoint - TODO: Implement user listing logic",
+  });
+});
+>>>>>>> feature/Post
 
-module.exports = router; 
+module.exports = router;

@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -515,11 +514,6 @@ enum posts_post_type {
   blog
   news
   press_release
-}
-
-enum users_role {
-  admin
-  user
 }
 
 enum testimonials_type {

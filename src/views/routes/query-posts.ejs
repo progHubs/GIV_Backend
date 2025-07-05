@@ -1,0 +1,190 @@
+<div class="form-section" id="queryPostsSection">
+  <h3>Advanced Post Query</h3>
+  <form id="queryPostsForm">
+    <!-- Pagination -->
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <h5>Pagination</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label">Page</label>
+            <input
+              type="number"
+              class="form-control"
+              name="page"
+              value="1"
+              min="1"
+            />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Limit</label>
+            <input
+              type="number"
+              class="form-control"
+              name="limit"
+              value="10"
+              min="1"
+              max="100"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <h5>Sorting</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label">Sort By</label>
+            <select class="form-control" name="sort_by">
+              <option value="created_at">Created Date</option>
+              <option value="updated_at">Updated Date</option>
+              <option value="title">Title</option>
+              <option value="post_type">Post Type</option>
+              <option value="language">Language</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Order</label>
+            <select class="form-control" name="sort_order">
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Basic Filters -->
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <h5>Basic Filters</h5>
+        <div class="mb-2">
+          <label class="form-label">Post Type</label>
+          <select class="form-control" name="post_type">
+            <option value="">All Types</option>
+            <option value="blog">Blog</option>
+            <option value="news">News</option>
+            <option value="press_release">Press Release</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Language</label>
+          <select class="form-control" name="language">
+            <option value="">All Languages</option>
+            <option value="en">English</option>
+            <option value="am">Amharic</option>
+          </select>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Author ID</label>
+          <input
+            type="number"
+            class="form-control"
+            name="author_id"
+            placeholder="Enter author ID"
+          />
+        </div>
+      </div>
+      <div class="col-md-6">
+        <h5>Text Search</h5>
+        <div class="mb-2">
+          <label class="form-label">Title Search</label>
+          <input
+            type="text"
+            class="form-control"
+            name="title_search"
+            placeholder="Search in title"
+          />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Content Search</label>
+          <input
+            type="text"
+            class="form-control"
+            name="content_search"
+            placeholder="Search in content"
+          />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Author Name</label>
+          <input
+            type="text"
+            class="form-control"
+            name="author_name"
+            placeholder="Search by author name"
+          />
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      <span class="spinner-border" role="status"></span>
+      <span class="btn-text">Query Posts</span>
+      <span class="loading-text" style="display: none">Querying...</span>
+    </button>
+  </form>
+  <div class="debug-info" id="queryDebug" style="display: none"></div>
+  <div class="response-box" id="queryResponse"></div>
+</div>
+
+<script>
+  // Query Posts functionality
+  document
+    .getElementById("queryPostsForm")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = e.target.querySelector('button[type="submit"]');
+      const debugElement = document.getElementById("queryDebug");
+      setButtonLoading(button, true);
+      debugElement.style.display = "none";
+
+      const formData = new FormData(e.target);
+      const params = new URLSearchParams();
+      const requestData = {};
+
+      formData.forEach((value, key) => {
+        if (value && value !== "") {
+          params.append(key, value);
+          requestData[key] = value;
+          logDebug("queryDebug", `Adding parameter: ${key} = ${value}`);
+        }
+      });
+
+      const url = `${API_BASE_URL}/query?${params.toString()}`;
+      logDebug("queryDebug", `Querying posts from: ${url}`);
+
+      try {
+        const response = await fetch(url);
+        logDebug("queryDebug", `Response status: ${response.status}`);
+
+        if (!response.ok) {
+          await logDetailedError(
+            "queryDebug",
+            new Error(`HTTP error! status: ${response.status}`),
+            response,
+            { url, params: requestData }
+          );
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        logDebug("queryDebug", "Posts queried successfully", {
+          total: data.data?.length || 0,
+          pagination: data.pagination,
+          filters: data.filters,
+        });
+
+        displayResponse("queryResponse", data);
+      } catch (error) {
+        if (!error.message.includes("HTTP error! status:")) {
+          await logDetailedError("queryDebug", error, null, {
+            url,
+            params: requestData,
+          });
+        }
+        displayResponse("queryResponse", { error: error.message }, true);
+      } finally {
+        setButtonLoading(button, false);
+      }
+    });
+</script>
+ 

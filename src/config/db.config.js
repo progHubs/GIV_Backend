@@ -1,18 +1,25 @@
+<<<<<<< HEAD
 const { PrismaClient } = require('../generated/prisma');
+=======
+const { PrismaClient } = require("@prisma/client");
+>>>>>>> feature/Post
 
 const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
-  errorFormat: 'pretty',
+  log:
+    process.env.NODE_ENV === "development"
+      ? ["query", "info", "warn", "error"]
+      : ["error"],
+  errorFormat: "pretty",
 });
 
 // Test database connection
 async function testConnection() {
   try {
     await prisma.$connect();
-    console.log('✅ Database connection established successfully');
+    console.log("✅ Database connection established successfully");
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    console.error("❌ Database connection failed:", error.message);
     return false;
   }
 }
@@ -21,23 +28,23 @@ async function testConnection() {
 async function disconnect() {
   try {
     await prisma.$disconnect();
-    console.log('✅ Database connection closed');
+    console.log("✅ Database connection closed");
   } catch (error) {
-    console.error('❌ Error closing database connection:', error.message);
+    console.error("❌ Error closing database connection:", error.message);
   }
 }
 
 // Handle process termination
-process.on('beforeExit', async () => {
+process.on("beforeExit", async () => {
   await disconnect();
 });
 
-process.on('SIGINT', async () => {
+process.on("SIGINT", async () => {
   await disconnect();
   process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
+process.on("SIGTERM", async () => {
   await disconnect();
   process.exit(0);
 });
@@ -45,5 +52,5 @@ process.on('SIGTERM', async () => {
 module.exports = {
   prisma,
   testConnection,
-  disconnect
-}; 
+  disconnect,
+};

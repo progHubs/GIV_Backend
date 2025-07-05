@@ -1,11 +1,38 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
+const { uploadImage } = require("../../middlewares/uploadMiddleware");
+// const { authenticateToken } = require("../../middlewares/auth.middleware");
+const {
+  createPost,
+  getPosts,
+  getPostById,
+  getPostBySlug,
+  updatePost,
+  deletePost,
+  searchPosts,
+  queryPosts,
+} = require("../controllers/post.controllers");
 
-router.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Post routes - TODO: Implement post logic'
-  });
-});
+// Public routes
+router.get("/", getPosts);
+router.get("/search", searchPosts);
+router.get("/query", queryPosts);
+router.get("/id/:id", getPostById);
+router.get("/slug/:slug", getPostBySlug);
 
-module.exports = router; 
+// Protected routes
+router.post(
+  "/",
+  // authenticateToken,
+  uploadImage.single("feature_image"),
+  createPost
+);
+router.put(
+  "/:id",
+  // authenticateToken,
+  uploadImage.single("feature_image"),
+  updatePost
+);
+router.delete("/:id", deletePost);
+
+module.exports = router;

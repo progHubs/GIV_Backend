@@ -1,0 +1,138 @@
+<div class="form-section" id="updatePostSection">
+  <h3>Update Post</h3>
+  <form id="updatePostForm" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Post ID</label>
+      <input type="text" class="form-control" name="id" required />
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Title</label>
+      <input type="text" class="form-control" name="title" />
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Slug</label>
+      <input type="text" class="form-control" name="slug" />
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Content</label>
+      <textarea class="form-control" name="content" rows="4"></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Post Type</label>
+      <select class="form-control" name="post_type">
+        <option value="">No Change</option>
+        <option value="blog">Blog</option>
+        <option value="news">News</option>
+        <option value="press_release">Press Release</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Language</label>
+      <select class="form-control" name="language">
+        <option value="">No Change</option>
+        <option value="en">English</option>
+        <option value="am">Amharic</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Feature Image</label>
+      <input
+        type="file"
+        class="form-control"
+        name="feature_image"
+        accept="image/*"
+      />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <span class="spinner-border" role="status"></span>
+      <span class="btn-text">Update Post</span>
+      <span class="loading-text" style="display: none">Updating...</span>
+    </button>
+  </form>
+  <div class="debug-info" id="updateDebug" style="display: none"></div>
+  <div class="response-box" id="updateResponse"></div>
+</div>
+
+<script>
+  // Update Post functionality
+  document
+    .getElementById("updatePostForm")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = e.target.querySelector('button[type="submit"]');
+      const debugElement = document.getElementById("updateDebug");
+      setButtonLoading(button, true);
+      debugElement.style.display = "none";
+
+      const formData = new FormData(e.target);
+      const id = formData.get("id").trim();
+
+      logDebug("updateDebug", `Updating post with ID: ${id}`);
+
+      if (!id) {
+        logDebug("updateDebug", "Error: No ID provided");
+        displayResponse(
+          "updateResponse",
+          { error: "Post ID is required" },
+          true
+        );
+        setButtonLoading(button, false);
+        return;
+      }
+
+      // Log form data for debugging
+      const updateData = {};
+      formData.forEach((value, key) => {
+        if (value && key !== "id") {
+          updateData[key] = value;
+        }
+      });
+      logDebug("updateDebug", "Update data:", updateData);
+
+      const url = `${API_BASE_URL}/${id}`;
+      logDebug("updateDebug", `Request URL: ${url}`);
+
+      try {
+        const response = await fetch(url, {
+          method: "PUT",
+          body: formData,
+        });
+        logDebug("updateDebug", `Response status: ${response.status}`);
+
+        if (!response.ok) {
+          await logDetailedError(
+            "updateDebug",
+            new Error(`HTTP error! status: ${response.status}`),
+            response,
+            { url, postId: id, updateData: updateData }
+          );
+          if (response.status === 404) {
+            throw new Error(`Post with ID ${id} not found`);
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        logDebug("updateDebug", "Post updated successfully", {
+          postId: data.data?.id,
+          title: data.data?.title,
+        });
+
+        displayResponse("updateResponse", data);
+      } catch (error) {
+        if (
+          !error.message.includes("HTTP error! status:") &&
+          !error.message.includes("Post with ID")
+        ) {
+          await logDetailedError("updateDebug", error, null, {
+            url,
+            postId: id,
+            updateData: updateData,
+          });
+        }
+        displayResponse("updateResponse", { error: error.message }, true);
+      } finally {
+        setButtonLoading(button, false);
+      }
+    });
+</script>

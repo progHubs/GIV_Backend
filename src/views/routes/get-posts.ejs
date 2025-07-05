@@ -1,0 +1,112 @@
+<div class="form-section" id="getPostsSection">
+  <h3>Get All Posts</h3>
+  <form id="getPostsForm">
+    <div class="row">
+      <div class="col-md-3">
+        <label class="form-label">Page</label>
+        <input
+          type="number"
+          class="form-control"
+          name="page"
+          value="1"
+          min="1"
+        />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Limit</label>
+        <input
+          type="number"
+          class="form-control"
+          name="limit"
+          value="10"
+          min="1"
+        />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Post Type</label>
+        <select class="form-control" name="post_type">
+          <option value="">All</option>
+          <option value="blog">Blog</option>
+          <option value="news">News</option>
+          <option value="press_release">Press Release</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Language</label>
+        <select class="form-control" name="language">
+          <option value="">All</option>
+          <option value="en">English</option>
+          <option value="am">Amharic</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">
+      <span class="spinner-border" role="status"></span>
+      <span class="btn-text">Get Posts</span>
+      <span class="loading-text" style="display: none">Loading...</span>
+    </button>
+  </form>
+  <div class="debug-info" id="getPostsDebug" style="display: none"></div>
+  <div class="response-box" id="getPostsResponse"></div>
+</div>
+
+<script>
+  // Get All Posts functionality
+  document
+    .getElementById("getPostsForm")
+    ?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const button = e.target.querySelector('button[type="submit"]');
+      const debugElement = document.getElementById("getPostsDebug");
+      setButtonLoading(button, true);
+      debugElement.style.display = "none";
+
+      const formData = new FormData(e.target);
+      const params = new URLSearchParams();
+      const requestData = {};
+
+      formData.forEach((value, key) => {
+        if (value) {
+          params.append(key, value);
+          requestData[key] = value;
+          logDebug("getPostsDebug", `Adding parameter: ${key} = ${value}`);
+        }
+      });
+
+      const url = `${API_BASE_URL}?${params.toString()}`;
+      logDebug("getPostsDebug", `Fetching posts from: ${url}`);
+
+      try {
+        const response = await fetch(url);
+        logDebug("getPostsDebug", `Response status: ${response.status}`);
+
+        if (!response.ok) {
+          await logDetailedError(
+            "getPostsDebug",
+            new Error(`HTTP error! status: ${response.status}`),
+            response,
+            { url, params: requestData }
+          );
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        logDebug("getPostsDebug", "Posts retrieved successfully", {
+          total: data.data?.posts?.length || 0,
+          pagination: data.data?.pagination,
+        });
+
+        displayResponse("getPostsResponse", data);
+      } catch (error) {
+        if (!error.message.includes("HTTP error! status:")) {
+          await logDetailedError("getPostsDebug", error, null, {
+            url,
+            params: requestData,
+          });
+        }
+        displayResponse("getPostsResponse", { error: error.message }, true);
+      } finally {
+        setButtonLoading(button, false);
+      }
+    });
+</script>
