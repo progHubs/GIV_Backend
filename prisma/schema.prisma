@@ -334,16 +334,6 @@ model programs {
   @@index([translation_group_id], map: "idx_translation_group")
 }
 
-model role_permissions {
-  role       role_permissions_role
-  permission String                @db.VarChar(100)
-  created_at DateTime?             @default(now()) @db.Timestamp(0)
-
-  @@id([role, permission])
-  @@index([permission], map: "idx_permission")
-  @@index([role], map: "idx_role")
-}
-
 model site_interactions {
   id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
   user_id     BigInt?   @db.UnsignedBigInt
@@ -406,6 +396,8 @@ model users {
   created_at          DateTime?                  @default(now()) @db.Timestamp(0)
   updated_at          DateTime?                  @default(now()) @db.Timestamp(0)
   deleted_at          DateTime?                  @db.Timestamp(0)
+  is_donor            Boolean                    @default(false)
+  is_volunteer        Boolean                    @default(false)
   campaigns           campaigns[]
   documents           documents[]
   donor_profiles      donor_profiles?
@@ -458,10 +450,13 @@ model volunteer_skills {
   @@index([skill_id], map: "skill_id")
 }
 
-enum role_permissions_role {
-  admin
-  editor
-  volunteer_manager
+model revoked_tokens {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  token_hash String    @unique(map: "idx_token_hash") @db.VarChar(128)
+  expires_at DateTime  @db.DateTime(0)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([expires_at], map: "idx_expires_at")
 }
 
 enum media_media_type {
@@ -489,13 +484,6 @@ enum programs_category {
   disease_prevention
 }
 
-enum event_participants_status {
-  registered
-  confirmed
-  attended
-  no_show
-}
-
 enum partners_type {
   ngo
   corporate
@@ -518,13 +506,6 @@ enum posts_post_type {
   blog
   news
   press_release
-}
-
-enum users_role {
-  admin
-  volunteer
-  donor
-  editor
 }
 
 enum testimonials_type {
@@ -635,4 +616,17 @@ enum campaigns_language {
 enum events_language {
   en
   am
+}
+
+enum event_participants_status {
+  registered
+  confirmed
+  reminded
+  attended
+  no_show
+}
+
+enum users_role {
+  admin
+  user
 }
