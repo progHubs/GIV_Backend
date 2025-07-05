@@ -8,11 +8,11 @@ class SkillService {
   async getAllSkills(filters = {}) {
     try {
       const where = {};
-      
+
       if (filters.category) {
         where.category = filters.category;
       }
-      
+
       if (filters.search) {
         where.OR = [
           { name: { contains: filters.search } },
@@ -184,7 +184,7 @@ class SkillService {
       // If name is being updated, check for duplicates
       if (updateData.name && updateData.name !== existingSkill.name) {
         const duplicateSkill = await prisma.skills.findFirst({
-          where: { 
+          where: {
             name: updateData.name,
             id: { not: parseInt(skillId) }
           }
@@ -252,49 +252,79 @@ class SkillService {
   }
 
   /**
-   * Search skills
+   * Search skills with advanced filtering - DISABLED
+   * Removed due to implementation issues causing timeouts
    */
-  async searchSkills(searchTerm, filters = {}) {
+  /*
+  async searchSkills(searchCriteria, pagination = {}) {
     try {
-      const where = {
-        OR: [
-          { name: { contains: searchTerm } },
-          { description: { contains: searchTerm } },
-          { category: { contains: searchTerm } }
-        ]
-      };
+      const {
+        query,
+        category
+      } = searchCriteria;
 
-      if (filters.category) {
-        where.category = filters.category;
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'name',
+        sortOrder = 'asc'
+      } = pagination;
+
+      // Build simple where clause
+      const where = {};
+
+      if (query) {
+        where.OR = [
+          { name: { contains: query } },
+          { description: { contains: query } },
+          { category: { contains: query } }
+        ];
       }
 
-      const skills = await prisma.skills.findMany({
-        where,
-        include: {
-          _count: {
-            select: {
-              volunteer_skills: true
-            }
-          }
-        },
-        orderBy: { name: 'asc' }
-      });
+      if (category) {
+        where.category = category;
+      }
 
-      // Convert BigInt to string for JSON serialization
-      const serializedSkills = skills.map(skill => ({
-        ...skill,
-        id: skill.id.toString()
-      }));
+      // Calculate pagination
+      const skip = (page - 1) * limit;
+
+      // Simple search without complex includes
+      const [skills, totalCount] = await Promise.all([
+        prisma.skills.findMany({
+          where,
+          orderBy: { [sortBy]: sortOrder },
+          skip,
+          take: limit
+        }),
+        prisma.skills.count({ where })
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limit);
 
       return {
         success: true,
-        data: serializedSkills,
-        count: serializedSkills.length
+        skills: skills.map(skill => convertBigIntToString(skill)),
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        },
+        total: totalCount
       };
+
     } catch (error) {
-      throw new Error(`Failed to search skills: ${error.message}`);
+      logger.error('Error searching skills:', error);
+      return {
+        success: false,
+        error: 'Failed to search skills',
+        code: 'SKILL_SEARCH_ERROR'
+      };
     }
   }
+  */
 
   /**
    * Get volunteer's skills

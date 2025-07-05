@@ -13,15 +13,15 @@ const convertBigIntToString = (obj) => {
   if (obj === null || obj === undefined) {
     return obj;
   }
-  
+
   if (typeof obj === 'bigint') {
     return obj.toString();
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(convertBigIntToString);
   }
-  
+
   if (typeof obj === 'object') {
     const result = {};
     for (const [key, value] of Object.entries(obj)) {
@@ -29,7 +29,7 @@ const convertBigIntToString = (obj) => {
     }
     return result;
   }
-  
+
   return obj;
 };
 
@@ -78,7 +78,7 @@ class DonorService {
       }
 
       if (donation_tier) {
-        where.donation_tier = donation_tier;
+        where.donation_tier = donation_tier.toLowerCase(); // Make case-insensitive
       }
 
       if (is_recurring_donor !== undefined) {
@@ -453,8 +453,15 @@ class DonorService {
         donation_frequency,
         min_total_donated,
         max_total_donated,
+        is_anonymous,
+        has_tax_receipt,
+        preferred_causes,
+        last_donation_after,
+        last_donation_before,
         created_after,
-        created_before
+        created_before,
+        updated_after,
+        updated_before
       } = searchCriteria;
 
       const {
@@ -480,7 +487,7 @@ class DonorService {
       }
 
       if (donation_tier) {
-        where.donation_tier = donation_tier;
+        where.donation_tier = donation_tier.toLowerCase(); // Make case-insensitive
       }
 
       if (is_recurring_donor !== undefined) {
@@ -505,6 +512,36 @@ class DonorService {
         };
       }
 
+      if (is_anonymous !== undefined) {
+        where.is_anonymous = is_anonymous;
+      }
+
+      if (has_tax_receipt !== undefined) {
+        if (has_tax_receipt) {
+          where.tax_receipt_email = { not: null };
+        } else {
+          where.tax_receipt_email = null;
+        }
+      }
+
+      if (preferred_causes) {
+        where.preferred_causes = { contains: preferred_causes };
+      }
+
+      if (last_donation_after) {
+        where.last_donation_date = {
+          ...where.last_donation_date,
+          gte: new Date(last_donation_after)
+        };
+      }
+
+      if (last_donation_before) {
+        where.last_donation_date = {
+          ...where.last_donation_date,
+          lte: new Date(last_donation_before)
+        };
+      }
+
       if (created_after) {
         where.created_at = {
           ...where.created_at,
@@ -516,6 +553,20 @@ class DonorService {
         where.created_at = {
           ...where.created_at,
           lte: new Date(created_before)
+        };
+      }
+
+      if (updated_after) {
+        where.updated_at = {
+          ...where.updated_at,
+          gte: new Date(updated_after)
+        };
+      }
+
+      if (updated_before) {
+        where.updated_at = {
+          ...where.updated_at,
+          lte: new Date(updated_before)
         };
       }
 

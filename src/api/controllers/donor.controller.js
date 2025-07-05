@@ -15,8 +15,8 @@ class DonorController {
       const filters = {
         search: req.query.search,
         donation_tier: req.query.donation_tier,
-        is_recurring_donor: req.query.is_recurring_donor === 'true' ? true : 
-                           req.query.is_recurring_donor === 'false' ? false : undefined,
+        is_recurring_donor: req.query.is_recurring_donor === 'true' ? true :
+          req.query.is_recurring_donor === 'false' ? false : undefined,
         donation_frequency: req.query.donation_frequency,
         created_after: req.query.created_after,
         created_before: req.query.created_before
@@ -218,13 +218,22 @@ class DonorController {
       const searchCriteria = {
         query: req.query.q,
         donation_tier: req.query.donation_tier,
-        is_recurring_donor: req.query.is_recurring_donor === 'true' ? true : 
-                           req.query.is_recurring_donor === 'false' ? false : undefined,
+        is_recurring_donor: req.query.is_recurring_donor === 'true' ? true :
+          req.query.is_recurring_donor === 'false' ? false : undefined,
         donation_frequency: req.query.donation_frequency,
         min_total_donated: req.query.min_total_donated,
         max_total_donated: req.query.max_total_donated,
+        is_anonymous: req.query.is_anonymous === 'true' ? true :
+          req.query.is_anonymous === 'false' ? false : undefined,
+        has_tax_receipt: req.query.has_tax_receipt === 'true' ? true :
+          req.query.has_tax_receipt === 'false' ? false : undefined,
+        preferred_causes: req.query.preferred_causes,
+        last_donation_after: req.query.last_donation_after,
+        last_donation_before: req.query.last_donation_before,
         created_after: req.query.created_after,
-        created_before: req.query.created_before
+        created_before: req.query.created_before,
+        updated_after: req.query.updated_after,
+        updated_before: req.query.updated_before
       };
 
       const pagination = {

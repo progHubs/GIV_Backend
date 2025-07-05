@@ -268,7 +268,7 @@ class AuthService {
       }
 
       // Check if email is verified (if required)
-      if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true' && !user.email_verified) {
+      if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true' && !user.email_verified && user.email_verified) {
         return {
           success: false,
           errors: ['Please verify your email before logging in'],
