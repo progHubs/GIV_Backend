@@ -1,5 +1,7 @@
 const campaignService = require('../../services/campaign.service');
 const logger = require('../../utils/logger.util');
+const { validateCampaignTranslation } = require('../validators/campaign.validator');
+const { convertBigIntToString } = require('../../utils/validation.util');
 
 /**
  * Campaign Controller for GIV Society Backend
@@ -15,7 +17,7 @@ class CampaignController {
       const filters = {
         search: req.query.search,
         category: req.query.category,
-        language: req.query.language,
+        language: req.query.language || 'en',
         is_active: req.query.is_active,
         is_featured: req.query.is_featured,
         start_date: req.query.start_date,
@@ -155,7 +157,7 @@ class CampaignController {
 
       // Check if user is admin or the campaign creator
       const campaign = await campaignService.getCampaignById(id);
-      if (campaign.success && campaign.data.created_by !== req.user.id && req.user.role !== 'admin') {
+      if (campaign.success && campaign.campaign.created_by !== req.user.id && req.user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           error: 'You can only update campaigns you created',
@@ -220,7 +222,7 @@ class CampaignController {
 
       // Check if user is admin or the campaign creator
       const campaign = await campaignService.getCampaignById(id);
-      if (campaign.success && campaign.data.created_by !== req.user.id && req.user.role !== 'admin') {
+      if (campaign.success && campaign.campaign.created_by !== req.user.id && req.user.role !== 'admin') {
         return res.status(403).json({
           success: false,
           error: 'You can only delete campaigns you created',
@@ -340,49 +342,6 @@ class CampaignController {
   }
 
   /**
-   * Get campaign donations
-   * GET /api/campaigns/:id/donations
-   */
-  async getCampaignDonations(req, res) {
-    try {
-      const { id } = req.params;
-      const filters = {
-        payment_status: req.query.payment_status,
-        donation_type: req.query.donation_type
-      };
-
-      const pagination = {
-        page: parseInt(req.query.page) || 1,
-        limit: parseInt(req.query.limit) || 10
-      };
-
-      const result = await campaignService.getCampaignDonations(id, filters, pagination);
-
-      if (!result.success) {
-        return res.status(400).json({
-          success: false,
-          error: result.error,
-          code: result.code
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        data: result.donations,
-        pagination: result.pagination
-      });
-
-    } catch (error) {
-      logger.error('Get campaign donations controller error:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Internal server error',
-        code: 'INTERNAL_ERROR'
-      });
-    }
-  }
-
-  /**
    * Get featured campaigns
    * GET /api/campaigns/featured
    */
@@ -468,6 +427,62 @@ class CampaignController {
         error: 'Internal server error',
         code: 'INTERNAL_ERROR'
       });
+    }
+  }
+
+  /**
+   * Get all translations for a campaign
+   * GET /api/campaigns/:id/translations
+   */
+  async getCampaignTranslations(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await campaignService.getCampaignTranslations(id);
+      if (!result.success) {
+        return res.status(404).json(convertBigIntToString(result));
+      }
+      return res.status(200).json(convertBigIntToString({ success: true, data: result.translations }));
+    } catch (error) {
+      logger.error('Get campaign translations controller error:', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * Add a new translation for a campaign
+   * POST /api/campaigns/:id/translations
+   */
+  async addCampaignTranslation(req, res) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+      const result = await campaignService.addCampaignTranslation(id, req.body, user);
+      if (!result.success) {
+        return res.status(400).json(convertBigIntToString(result));
+      }
+      return res.status(201).json(convertBigIntToString(result));
+    } catch (error) {
+      logger.error('Add campaign translation controller error:', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  }
+
+  /**
+   * Update a translation for a campaign (by language)
+   * PATCH /api/campaigns/:id/translations/:language
+   */
+  async updateCampaignTranslation(req, res) {
+    try {
+      const { id, language } = req.params;
+      const user = req.user;
+      const result = await campaignService.updateCampaignTranslation(id, language, req.body, user);
+      if (!result.success) {
+        return res.status(400).json(convertBigIntToString(result));
+      }
+      return res.status(200).json(convertBigIntToString(result));
+    } catch (error) {
+      logger.error('Update campaign translation controller error:', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }
 }

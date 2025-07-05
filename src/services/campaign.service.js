@@ -14,15 +14,17 @@ const convertBigIntToString = (obj) => {
   if (obj === null || obj === undefined) {
     return obj;
   }
-  
+  // Convert BigInt
   if (typeof obj === 'bigint') {
     return obj.toString();
   }
-  
+  // Convert Decimal.js objects (Prisma decimal)
+  if (typeof obj === 'object' && obj !== null && typeof obj.toFixed === 'function') {
+    return obj.toFixed(2);
+  }
   if (Array.isArray(obj)) {
     return obj.map(convertBigIntToString);
   }
-  
   if (typeof obj === 'object') {
     const result = {};
     for (const [key, value] of Object.entries(obj)) {
@@ -30,7 +32,6 @@ const convertBigIntToString = (obj) => {
     }
     return result;
   }
-  
   return obj;
 };
 
@@ -232,6 +233,11 @@ class CampaignService {
         sanitized.translation_group_id = uuidv4();
       }
 
+      // Fix: JSON.stringify success_stories if present
+      if (sanitized.success_stories) {
+        sanitized.success_stories = JSON.stringify(sanitized.success_stories);
+      }
+
       // Create campaign
       const campaign = await prisma.campaigns.create({
         data: {
@@ -267,6 +273,18 @@ class CampaignService {
 
       // Convert BigInt values to strings
       const processedCampaign = convertBigIntToString(campaign);
+      // Add progress_percentage to single campaign response
+      processedCampaign.progress_percentage = processedCampaign.goal_amount > 0 
+        ? Math.round((processedCampaign.current_amount / processedCampaign.goal_amount) * 100)
+        : 0;
+      // Parse success_stories if present
+      if (processedCampaign.success_stories && typeof processedCampaign.success_stories === 'string') {
+        try {
+          processedCampaign.success_stories = JSON.parse(processedCampaign.success_stories);
+        } catch (e) {
+          processedCampaign.success_stories = [];
+        }
+      }
 
       return {
         success: true,
@@ -671,100 +689,6 @@ class CampaignService {
   }
 
   /**
-   * Get campaign donations
-   * @param {string} campaignId - Campaign ID
-   * @param {Object} filters - Donation filters
-   * @param {Object} pagination - Pagination options
-   * @returns {Object} - Donations list with pagination
-   */
-  async getCampaignDonations(campaignId, filters = {}, pagination = {}) {
-    try {
-      const { payment_status, donation_type } = filters;
-      const { page = 1, limit = 10 } = pagination;
-
-      const where = {
-        campaign_id: parseInt(campaignId)
-      };
-
-      if (payment_status) {
-        where.payment_status = payment_status;
-      }
-
-      if (donation_type) {
-        where.donation_type = donation_type;
-      }
-
-      const skip = (page - 1) * limit;
-
-      const [donations, totalCount] = await Promise.all([
-        prisma.donations.findMany({
-          where,
-          select: {
-            id: true,
-            amount: true,
-            currency: true,
-            donation_type: true,
-            payment_method: true,
-            payment_status: true,
-            is_anonymous: true,
-            notes: true,
-            donated_at: true,
-            donor_profiles: {
-              select: {
-                user_id: true,
-                users: {
-                  select: {
-                    full_name: true,
-                    email: true
-                  }
-                }
-              }
-            }
-          },
-          orderBy: { donated_at: 'desc' },
-          skip,
-          take: limit
-        }),
-        prisma.donations.count({ where })
-      ]);
-
-      const totalPages = Math.ceil(totalCount / limit);
-      const hasNextPage = page < totalPages;
-      const hasPrevPage = page > 1;
-
-      const processedDonations = donations.map(donation => {
-        const processed = convertBigIntToString(donation);
-        if (donation.is_anonymous) {
-          processed.donor_profiles.users.full_name = 'Anonymous Donor';
-          processed.donor_profiles.users.email = 'anonymous@example.com';
-        }
-        return processed;
-      });
-
-      return {
-        success: true,
-        donations: processedDonations,
-        pagination: {
-          page,
-          limit,
-          totalCount,
-          totalPages,
-          hasNextPage,
-          hasPrevPage
-        }
-      };
-
-    } catch (error) {
-      logger.error('Error getting campaign donations:', error);
-      return {
-        success: false,
-        error: 'Failed to retrieve campaign donations',
-        code: 'CAMPAIGN_DONATIONS_ERROR'
-      };
-    }
-  }
-
-  /**
    * Generate slug from title
    * @param {string} title - Campaign title
    * @returns {string} - Generated slug
@@ -776,6 +700,89 @@ class CampaignService {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .trim('-');
+  }
+
+  /**
+   * Get all translations for a campaign (by translation_group_id)
+   * @param {string|number} campaignId
+   * @returns {Promise<Object>}
+   */
+  async getCampaignTranslations(campaignId) {
+    try {
+      const campaign = await prisma.campaigns.findUnique({ where: { id: parseInt(campaignId) } });
+      if (!campaign || !campaign.translation_group_id) return { success: false, error: 'Campaign or translation group not found' };
+      const translations = await prisma.campaigns.findMany({
+        where: { translation_group_id: campaign.translation_group_id, deleted_at: null },
+        orderBy: { language: 'asc' },
+      });
+      return { success: true, translations };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Add a new translation for a campaign (new language in translation group)
+   * @param {string|number} campaignId
+   * @param {Object} data
+   * @param {Object} user
+   * @returns {Promise<Object>}
+   */
+  async addCampaignTranslation(campaignId, data, user) {
+    try {
+      const campaign = await prisma.campaigns.findUnique({ where: { id: parseInt(campaignId) } });
+      if (!campaign || !campaign.translation_group_id) return { success: false, error: 'Campaign or translation group not found' };
+      // Only admin/editor can add
+      if (!user || !['admin', 'editor'].includes(user.role)) return { success: false, error: 'Insufficient permissions' };
+      // Prevent duplicate language
+      const exists = await prisma.campaigns.findFirst({ where: { translation_group_id: campaign.translation_group_id, language: data.language, deleted_at: null } });
+      if (exists) return { success: false, error: 'Translation for this language already exists' };
+      const newTranslation = await prisma.campaigns.create({
+        data: {
+          ...data,
+          start_date: data.start_date ? new Date(data.start_date) : undefined,
+          end_date: data.end_date ? new Date(data.end_date) : undefined,
+          translation_group_id: campaign.translation_group_id,
+          created_by: user.id,
+          created_at: new Date(),
+          updated_at: new Date(),
+        }
+      });
+      return { success: true, translation: newTranslation };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update an existing translation for a campaign (by language in translation group)
+   * @param {string|number} campaignId
+   * @param {string} language
+   * @param {Object} data
+   * @param {Object} user
+   * @returns {Promise<Object>}
+   */
+  async updateCampaignTranslation(campaignId, language, data, user) {
+    try {
+      const campaign = await prisma.campaigns.findUnique({ where: { id: parseInt(campaignId) } });
+      if (!campaign || !campaign.translation_group_id) return { success: false, error: 'Campaign or translation group not found' };
+      // Only admin/editor can update
+      if (!user || !['admin', 'editor'].includes(user.role)) return { success: false, error: 'Insufficient permissions' };
+      const translation = await prisma.campaigns.findFirst({ where: { translation_group_id: campaign.translation_group_id, language, deleted_at: null } });
+      if (!translation) return { success: false, error: 'Translation not found for this language' };
+      const updated = await prisma.campaigns.update({
+        where: { id: translation.id },
+        data: {
+          ...data,
+          start_date: data.start_date ? new Date(data.start_date) : undefined,
+          end_date: data.end_date ? new Date(data.end_date) : undefined,
+          updated_at: new Date(),
+        },
+      });
+      return { success: true, translation: updated };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const skillController = require('../controllers/skill.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
+const { authenticateToken, requireAdmin, requireVolunteerFlag } = require('../../middlewares/auth.middleware');
 const { validateSkillId, validateVolunteerId } = require('../validators/skill.validator');
 
 /**
@@ -30,7 +30,7 @@ router.get('/categories', skillController.getSkillCategories);
  * @desc    Get skills statistics
  * @access  Admin only
  */
-router.get('/stats', authMiddleware.authenticateToken, authMiddleware.requireRole('admin'), skillController.getSkillsStats);
+router.get('/stats', authenticateToken, requireAdmin, skillController.getSkillsStats);
 
 /**
  * @route   GET /api/skills/volunteers/:volunteerId
@@ -45,8 +45,8 @@ router.get('/volunteers/:volunteerId', skillController.getVolunteerSkills);
  * @access  Admin/Volunteer Manager only
  */
 router.post('/volunteers/:volunteerId', 
-  authMiddleware.authenticateToken, 
-  authMiddleware.requireRole('admin', 'volunteer_manager'), 
+  authenticateToken, 
+  requireAdmin, 
   skillController.addSkillToVolunteer
 );
 
@@ -56,8 +56,8 @@ router.post('/volunteers/:volunteerId',
  * @access  Admin/Volunteer Manager only
  */
 router.put('/volunteers/:volunteerId/:skillId', 
-  authMiddleware.authenticateToken, 
-  authMiddleware.requireRole('admin', 'volunteer_manager'), 
+  authenticateToken, 
+  requireAdmin, 
   skillController.updateVolunteerSkill
 );
 
@@ -67,8 +67,8 @@ router.put('/volunteers/:volunteerId/:skillId',
  * @access  Admin/Volunteer Manager only
  */
 router.delete('/volunteers/:volunteerId/:skillId', 
-  authMiddleware.authenticateToken, 
-  authMiddleware.requireRole('admin', 'volunteer_manager'), 
+  authenticateToken, 
+  requireAdmin, 
   skillController.removeSkillFromVolunteer
 );
 
@@ -78,8 +78,8 @@ router.delete('/volunteers/:volunteerId/:skillId',
  * @access  Admin/Volunteer Manager only
  */
 router.put('/volunteers/:volunteerId/:skillId/verify', 
-  authMiddleware.authenticateToken, 
-  authMiddleware.requireRole('admin', 'volunteer_manager'), 
+  authenticateToken, 
+  requireAdmin, 
   skillController.verifyVolunteerSkill
 );
 
@@ -95,20 +95,20 @@ router.get('/:id', skillController.getSkillById);
  * @desc    Create new skill
  * @access  Admin only
  */
-router.post('/', authMiddleware.authenticateToken, authMiddleware.requireRole('admin'), skillController.createSkill);
+router.post('/', authenticateToken, requireAdmin, skillController.createSkill);
 
 /**
  * @route   PUT /api/skills/:id
  * @desc    Update skill
  * @access  Admin only
  */
-router.put('/:id', authMiddleware.authenticateToken, authMiddleware.requireRole('admin'), skillController.updateSkill);
+router.put('/:id', authenticateToken, requireAdmin, skillController.updateSkill);
 
 /**
  * @route   DELETE /api/skills/:id
  * @desc    Delete skill
  * @access  Admin only
  */
-router.delete('/:id', authMiddleware.authenticateToken, authMiddleware.requireRole('admin'), skillController.deleteSkill);
+router.delete('/:id', authenticateToken, requireAdmin, skillController.deleteSkill);
 
 module.exports = router; 

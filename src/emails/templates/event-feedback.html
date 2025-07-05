@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>We Value Your Feedback - GIV Society Ethiopia</title>
+  <style>
+    body { background: #f4f6fb; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
+    .container { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(44,90,160,0.08); overflow: hidden; }
+    .header { background: linear-gradient(90deg, #2c5aa0 60%, #4e8cff 100%); color: #fff; padding: 32px 24px 20px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 2rem; letter-spacing: 1px; }
+    .content { padding: 32px 24px 24px 24px; color: #222; }
+    .content h2 { margin-top: 0; font-size: 1.3rem; color: #2c5aa0; }
+    .event-details { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 1px 4px rgba(44,90,160,0.06); }
+    .event-details p { margin: 8px 0; font-size: 1.05rem; }
+    .cta-btn { display: inline-block; margin: 24px 0 16px 0; padding: 14px 36px; background: linear-gradient(90deg, #2c5aa0 60%, #4e8cff 100%); color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 1.1rem; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(44,90,160,0.10); transition: background 0.2s; }
+    .cta-btn:hover { background: #4e8cff; }
+    .footer { background: #f4f6fb; color: #888; text-align: center; font-size: 0.95rem; padding: 18px 12px; border-top: 1px solid #eaeaea; }
+    @media (max-width: 600px) { .container { margin: 0; border-radius: 0; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>GIV Society Ethiopia</h1>
+    </div>
+    <div class="content">
+      <h2>We Value Your Feedback!</h2>
+      <p>Hello {{fullName}},</p>
+      <p>Thank you for participating in the event below. We would love to hear your thoughts and suggestions to help us improve future events.</p>
+      <div class="event-details">
+        <p><strong>Event:</strong> {{eventTitle}}</p>
+        <p><strong>Date:</strong> {{eventDate}}</p>
+        <p><strong>Time:</strong> {{eventTime}}</p>
+        <p><strong>Location:</strong> {{eventLocation}}</p>
+      </div>
+      <p style="text-align:center;">
+        <a href="{{feedbackUrl}}" class="cta-btn">Leave Feedback</a>
+      </p>
+      <p>Your feedback is greatly appreciated!</p>
+    </div>
+    <div class="footer">
+      &copy; {{year}} GIV Society Ethiopia. All rights reserved.
+    </div>
+  </div>
+</body>
+</html> 

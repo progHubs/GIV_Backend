@@ -5,7 +5,9 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     phone VARCHAR(20),
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'volunteer', 'donor', 'editor') NOT NULL,
+    role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+    is_donor BOOLEAN NOT NULL DEFAULT FALSE,
+    is_volunteer BOOLEAN NOT NULL DEFAULT FALSE,
     profile_image_url VARCHAR(512),
     language_preference ENUM('en', 'am') DEFAULT 'en',
     email_verified BOOLEAN DEFAULT FALSE,
@@ -158,7 +160,7 @@ CREATE TABLE event_participants (
     event_id BIGINT UNSIGNED,
     user_id BIGINT UNSIGNED,
     role ENUM('volunteer', 'attendee', 'organizer') NOT NULL,
-    status ENUM('registered', 'confirmed', 'attended', 'no_show') DEFAULT 'registered',
+    status ENUM('registered', 'confirmed', 'reminded', 'attended', 'no_show') DEFAULT 'registered',
     hours_contributed DECIMAL(5,2),
     feedback TEXT,
     rating TINYINT UNSIGNED CHECK (rating BETWEEN 1 AND 5),
@@ -408,6 +410,16 @@ CREATE TABLE volunteer_skills (
     FOREIGN KEY (volunteer_id) REFERENCES volunteer_profiles(user_id) ON DELETE CASCADE,
     FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE,
     INDEX idx_proficiency (proficiency_level)
+) ENGINE=InnoDB;
+
+-- Revoked tokens table for JWT blacklist
+CREATE TABLE revoked_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    token_hash VARCHAR(128) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY idx_token_hash (token_hash),
+    INDEX idx_expires_at (expires_at)
 ) ENGINE=InnoDB;
 
 -- Add triggers for UUID generation (if needed for translation_group_id)

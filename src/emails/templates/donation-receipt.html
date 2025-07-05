@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donation Receipt - GIV Society Ethiopia</title>
+  <style>
+    body { background: #f4f6fb; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
+    .container { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(44,90,160,0.08); overflow: hidden; }
+    .header { background: linear-gradient(90deg, #2c5aa0 60%, #4e8cff 100%); color: #fff; padding: 32px 24px 20px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 2rem; letter-spacing: 1px; }
+    .content { padding: 32px 24px 24px 24px; color: #222; }
+    .content h2 { margin-top: 0; font-size: 1.3rem; color: #2c5aa0; }
+    .receipt-box { background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 1px 4px rgba(44,90,160,0.06); }
+    .receipt-box p { margin: 8px 0; font-size: 1.05rem; }
+    .footer { background: #f4f6fb; color: #888; text-align: center; font-size: 0.95rem; padding: 18px 12px; border-top: 1px solid #eaeaea; }
+    @media (max-width: 600px) { .container { margin: 0; border-radius: 0; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>GIV Society Ethiopia</h1>
+    </div>
+    <div class="content">
+      <h2>Thank You for Your Donation!</h2>
+      <p>Dear Donor,</p>
+      <p>Thank you for your generous donation to GIV Society Ethiopia.</p>
+      <div class="receipt-box">
+        <h3 style="margin:0 0 10px 0; color:#2c5aa0;">Donation Details:</h3>
+        <p><strong>Amount:</strong> {{currency}} {{amount}}</p>
+        <p><strong>Donation Type:</strong> {{donationType}}</p>
+        <p><strong>Date:</strong> {{date}}</p>
+        <p><strong>Transaction ID:</strong> {{transactionId}}</p>
+      </div>
+      <p>Your donation will make a significant impact in our community.</p>
+      <p>Best regards,<br>The GIV Society Ethiopia Team</p>
+    </div>
+    <div class="footer">
+      &copy; {{year}} GIV Society Ethiopia. All rights reserved.
+    </div>
+  </div>
+</body>
+</html> 

@@ -17,7 +17,7 @@ const {
   validatePasswordChangeData,
   validatePasswordResetData 
 } = require('../utils/validation.util');
-// const emailService = require('./email.service');
+const emailService = require('./email.service.js');
 const securityService = require('./security.service');
 const tokenService = require('./token.service');
 
@@ -73,7 +73,7 @@ class AuthService {
           email: sanitized.email,
           phone: sanitized.phone,
           password_hash: passwordHash,
-          role: sanitized.role,
+          role: 'user',
           language_preference: sanitized.language_preference,
           email_verified: false
         },
@@ -88,18 +88,6 @@ class AuthService {
         }
       });
 
-      // Create profile based on role
-      if (sanitized.role === 'donor') {
-        await prisma.donor_profiles.create({
-          data: {
-            user_id: user.id,
-            is_recurring_donor: false,
-            total_donated: 0.00,
-            is_anonymous: false
-          }
-        });
-      }
-
       // Generate verification token if email verification is required
       let verificationToken = null;
       if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true') {
@@ -107,9 +95,11 @@ class AuthService {
           userId: user.id.toString(),
           email: user.email
         });
-        
-        // Send verification email
-        // await emailService.sendVerificationEmail(user.email, user.full_name, verificationToken);
+        try {
+          await emailService.sendVerificationEmail(user.email, user.full_name, verificationToken);
+        } catch (e) {
+          console.error('Failed to send verification email:', e);
+        }
       }
 
       // Generate access token (if email verification not required)
@@ -120,9 +110,11 @@ class AuthService {
           email: user.email,
           role: user.role
         });
-        
-        // Send welcome email
-        // await emailService.sendWelcomeEmail(user.email, user.full_name);
+        try {
+          await emailService.sendWelcomeEmail(user.email, user.full_name);
+        } catch (e) {
+          console.error('Failed to send welcome email:', e);
+        }
       }
 
       return {
@@ -492,7 +484,11 @@ class AuthService {
       });
 
       // Send password reset email
-      // await emailService.sendPasswordResetEmail(user.email, user.full_name, resetToken);
+      try {
+        await emailService.sendPasswordResetEmail(user.email, user.full_name, resetToken);
+      } catch (e) {
+        console.error('Failed to send password reset email:', e);
+      }
 
       return {
         success: true,
@@ -682,7 +678,11 @@ class AuthService {
       });
 
       // Send verification email
-      // await emailService.sendVerificationEmail(user.email, user.full_name, verificationToken);
+      try {
+        await emailService.sendVerificationEmail(user.email, user.full_name, verificationToken);
+      } catch (e) {
+        console.error('Failed to resend verification email:', e);
+      }
 
       return {
         success: true,

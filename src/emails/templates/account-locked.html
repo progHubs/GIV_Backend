@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Locked - GIV Society Ethiopia</title>
+  <style>
+    body { background: #f4f6fb; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
+    .container { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(220,53,69,0.08); overflow: hidden; }
+    .header { background: linear-gradient(90deg, #dc3545 60%, #ff6f6f 100%); color: #fff; padding: 32px 24px 20px 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 2rem; letter-spacing: 1px; }
+    .content { padding: 32px 24px 24px 24px; color: #222; }
+    .content h2 { margin-top: 0; font-size: 1.3rem; color: #dc3545; }
+    .footer { background: #f4f6fb; color: #888; text-align: center; font-size: 0.95rem; padding: 18px 12px; border-top: 1px solid #eaeaea; }
+    @media (max-width: 600px) { .container { margin: 0; border-radius: 0; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>GIV Society Ethiopia</h1>
+    </div>
+    <div class="content">
+      <h2>Account Locked</h2>
+      <p>Hello {{fullName}},</p>
+      <p>Your account has been temporarily locked due to multiple failed login attempts.</p>
+      <p><b>Lockout expires at: {{lockoutUntil}}</b></p>
+      <p>This is a security measure to protect your account. You can try logging in again after the lockout period expires.</p>
+      <p>If you believe this was done in error or if you need immediate access, please contact our support team.</p>
+    </div>
+    <div class="footer">
+      &copy; {{year}} GIV Society Ethiopia. All rights reserved.
+    </div>
+  </div>
+</body>
+</html> 

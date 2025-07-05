@@ -1,8 +1,34 @@
+const { Resend } = require('resend');
 const { PrismaClient } = require('../generated/prisma');
 const logger = require('../utils/logger.util');
 const { generateVerificationToken } = require('../utils/jwt.util');
+const fs = require('fs');
+const path = require('path');
 
 const prisma = new PrismaClient();
+
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_SENDER = process.env.RESEND_SENDER || 'GIV Society <noreply@givsociety.org>';
+
+const resend = new Resend(RESEND_API_KEY);
+
+function loadTemplate(filename) {
+  try {
+    return fs.readFileSync(path.join(__dirname, '../emails/templates', filename), 'utf8');
+  } catch (err) {
+    logger.error(`Failed to load email template: ${filename}`, err);
+    return null;
+  }
+}
+
+function renderTemplate(template, variables) {
+  if (!template) return '';
+  return template.replace(/{{(\w+)}}/g, (match, key) => {
+    if (variables[key] !== undefined && variables[key] !== null) return variables[key];
+    if (key === 'year') return new Date().getFullYear();
+    return '';
+  });
+}
 
 /**
  * Email Service for GIV Society Backend
@@ -10,23 +36,34 @@ const prisma = new PrismaClient();
  */
 class EmailService {
   constructor() {
-    // Initialize templates safely
+    this.templates = {
+      verification: loadTemplate('verification.html'),
+      passwordReset: loadTemplate('password-reset.html'),
+      welcome: loadTemplate('welcome.html'),
+      accountLocked: loadTemplate('account-locked.html'),
+      donationReceipt: loadTemplate('donation-receipt.html'),
+      eventRegistration: loadTemplate('event-registration.html'),
+      eventReminder: loadTemplate('event-reminder.html'),
+      eventFeedback: loadTemplate('event-feedback.html')
+    };
+  }
+
+  async sendWithResend({ to, subject, html }) {
     try {
-      this.emailTemplates = {
-        verification: this.getVerificationTemplate(),
-        passwordReset: this.getPasswordResetTemplate(),
-        welcome: this.getWelcomeTemplate(),
-        accountLocked: this.getAccountLockedTemplate()
-      };
-    } catch (error) {
-      logger.error('Error initializing email templates:', error);
-      // Fallback to empty templates
-      this.emailTemplates = {
-        verification: '',
-        passwordReset: '',
-        welcome: '',
-        accountLocked: ''
-      };
+      const { data, error } = await resend.emails.send({
+        from: RESEND_SENDER,
+        to: [to],
+        subject,
+        html
+      });
+      if (error) {
+        logger.error('Resend email error:', error);
+        return { success: false, error };
+      }
+      return { success: true, data };
+    } catch (err) {
+      logger.error('Resend sendWithResend exception:', err);
+      return { success: false, error: err };
     }
   }
 
@@ -40,44 +77,22 @@ class EmailService {
   async sendVerificationEmail(email, fullName, token) {
     try {
       const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${token}`;
-      
-      const emailContent = this.emailTemplates.verification
-        .replace('{{fullName}}', fullName)
-        .replace('{{verificationUrl}}', verificationUrl)
-        .replace('{{expiryTime}}', '24 hours');
-
-      // Log email sending
-      await this.logEmail({
-        recipient: email,
-        subject: 'Verify Your Email - GIV Society Ethiopia',
-        template_used: 'verification',
-        content: emailContent,
-        status: 'sent'
-      });
-
+      const html = renderTemplate(this.templates.verification, {
+        fullName,
+        verificationUrl,
+        expiryTime: '24 hours',
+        year: new Date().getFullYear()
+      }) || `<p>Hello ${fullName},<br>Please verify your email: <a href="${verificationUrl}">${verificationUrl}</a></p>`;
+      const subject = 'Verify Your Email - GIV Society Ethiopia';
+      const sendResult = await this.sendWithResend({ to, subject, html });
+      await this.logEmail({ recipient: email, subject, template_used: 'verification', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
+      if (!sendResult.success) throw sendResult.error;
       logger.info(`Verification email sent to ${email}`);
-      
-      return {
-        success: true,
-        message: 'Verification email sent successfully'
-      };
-
+      return { success: true, message: 'Verification email sent successfully' };
     } catch (error) {
       logger.error('Error sending verification email:', error);
-      
-      await this.logEmail({
-        recipient: email,
-        subject: 'Verify Your Email - GIV Society Ethiopia',
-        template_used: 'verification',
-        content: '',
-        status: 'failed',
-        error_message: error?.message || 'Unknown error occurred'
-      });
-
-      return {
-        success: false,
-        message: 'Failed to send verification email'
-      };
+      await this.logEmail({ recipient: email, subject: 'Verify Your Email - GIV Society Ethiopia', template_used: 'verification', content: '', status: 'failed', error_message: error?.message });
+      return { success: false, message: 'Failed to send verification email' };
     }
   }
 
@@ -91,44 +106,22 @@ class EmailService {
   async sendPasswordResetEmail(email, fullName, token) {
     try {
       const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${token}`;
-      
-      const emailContent = this.emailTemplates.passwordReset
-        .replace('{{fullName}}', fullName)
-        .replace('{{resetUrl}}', resetUrl)
-        .replace('{{expiryTime}}', '1 hour');
-
-      // Log email sending
-      await this.logEmail({
-        recipient: email,
-        subject: 'Password Reset Request - GIV Society Ethiopia',
-        template_used: 'password_reset',
-        content: emailContent,
-        status: 'sent'
-      });
-
+      const html = renderTemplate(this.templates.passwordReset, {
+        fullName,
+        resetUrl,
+        expiryTime: '1 hour',
+        year: new Date().getFullYear()
+      }) || `<p>Hello ${fullName},<br>Reset your password: <a href="${resetUrl}">${resetUrl}</a></p>`;
+      const subject = 'Password Reset Request - GIV Society Ethiopia';
+      const sendResult = await this.sendWithResend({ to: email, subject, html });
+      await this.logEmail({ recipient: email, subject, template_used: 'password_reset', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
+      if (!sendResult.success) throw sendResult.error;
       logger.info(`Password reset email sent to ${email}`);
-      
-      return {
-        success: true,
-        message: 'Password reset email sent successfully'
-      };
-
+      return { success: true, message: 'Password reset email sent successfully' };
     } catch (error) {
       logger.error('Error sending password reset email:', error);
-      
-      await this.logEmail({
-        recipient: email,
-        subject: 'Password Reset Request - GIV Society Ethiopia',
-        template_used: 'password_reset',
-        content: '',
-        status: 'failed',
-        error_message: error?.message || 'Unknown error occurred'
-      });
-
-      return {
-        success: false,
-        message: 'Failed to send password reset email'
-      };
+      await this.logEmail({ recipient: email, subject: 'Password Reset Request - GIV Society Ethiopia', template_used: 'password_reset', content: '', status: 'failed', error_message: error?.message });
+      return { success: false, message: 'Failed to send password reset email' };
     }
   }
 
@@ -140,55 +133,49 @@ class EmailService {
    */
   async sendWelcomeEmail(email, fullName) {
     try {
-      // Get template safely
-      let emailContent = '';
-      if (this.emailTemplates.welcome) {
-        emailContent = this.emailTemplates.welcome.replace('{{fullName}}', fullName);
-      } else {
-        // Fallback template
-        emailContent = `
-          <h2>Welcome ${fullName}!</h2>
-          <p>Thank you for joining GIV Society Ethiopia. Your account has been successfully created.</p>
-          <p>Best regards,<br>The GIV Society Ethiopia Team</p>
-        `;
-      }
-
-      // Log email sending
-      await this.logEmail({
-        recipient: email,
-        subject: 'Welcome to GIV Society Ethiopia',
-        template_used: 'welcome',
-        content: emailContent,
-        status: 'sent'
-      });
-
+      const html = renderTemplate(this.templates.welcome, {
+        fullName,
+        year: new Date().getFullYear()
+      }) || `<h2>Welcome ${fullName}!</h2><p>Thank you for joining GIV Society Ethiopia.</p>`;
+      const subject = 'Welcome to GIV Society Ethiopia';
+      const sendResult = await this.sendWithResend({ to: email, subject, html });
+      await this.logEmail({ recipient: email, subject, template_used: 'welcome', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
+      if (!sendResult.success) throw sendResult.error;
       logger.info(`Welcome email sent to ${email}`);
-      
-      return {
-        success: true,
-        message: 'Welcome email sent successfully'
-      };
-
+      return { success: true, message: 'Welcome email sent successfully' };
     } catch (error) {
       logger.error('Error sending welcome email:', error);
-      
-      try {
-        await this.logEmail({
-          recipient: email,
-          subject: 'Welcome to GIV Society Ethiopia',
-          template_used: 'welcome',
-          content: '',
-          status: 'failed',
-          error_message: error?.message || 'Unknown error occurred'
-        });
-      } catch (logError) {
-        logger.error('Error logging failed email:', logError);
-      }
+      await this.logEmail({ recipient: email, subject: 'Welcome to GIV Society Ethiopia', template_used: 'welcome', content: '', status: 'failed', error_message: error?.message });
+      return { success: false, message: 'Failed to send welcome email' };
+    }
+  }
 
-      return {
-        success: false,
-        message: 'Failed to send welcome email'
-      };
+  /**
+   * Send donation receipt email
+   * @param {string} email - User email
+   * @param {Object} donation - Donation data
+   * @returns {Object} - Result of email sending
+   */
+  async sendDonationReceipt(email, donation) {
+    try {
+      const html = renderTemplate(this.templates.donationReceipt, {
+        amount: donation.amount,
+        currency: donation.currency,
+        donationType: donation.donation_type,
+        date: new Date(donation.donated_at).toLocaleDateString(),
+        transactionId: donation.transaction_id || 'N/A',
+        year: new Date().getFullYear()
+      }) || `<h2>Thank You for Your Donation!</h2><p>Amount: ${donation.currency} ${donation.amount}</p>`;
+      const subject = 'Donation Receipt - GIV Society Ethiopia';
+      const sendResult = await this.sendWithResend({ to: email, subject, html });
+      await this.logEmail({ recipient: email, subject, template_used: 'donation_receipt', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
+      if (!sendResult.success) throw sendResult.error;
+      logger.info(`Donation receipt sent to ${email}`);
+      return { success: true, message: 'Donation receipt sent successfully' };
+    } catch (error) {
+      logger.error('Error sending donation receipt:', error);
+      await this.logEmail({ recipient: email, subject: 'Donation Receipt - GIV Society Ethiopia', template_used: 'donation_receipt', content: '', status: 'failed', error_message: error?.message });
+      return { success: false, message: 'Failed to send donation receipt' };
     }
   }
 
@@ -201,42 +188,113 @@ class EmailService {
    */
   async sendAccountLockedEmail(email, fullName, lockoutUntil) {
     try {
-      const emailContent = this.emailTemplates.accountLocked
-        .replace('{{fullName}}', fullName)
-        .replace('{{lockoutUntil}}', lockoutUntil.toLocaleString());
-
-      // Log email sending
-      await this.logEmail({
-        recipient: email,
-        subject: 'Account Temporarily Locked - GIV Society Ethiopia',
-        template_used: 'account_locked',
-        content: emailContent,
-        status: 'sent'
-      });
-
+      const html = renderTemplate(this.templates.accountLocked, {
+        fullName,
+        lockoutUntil: lockoutUntil.toLocaleString(),
+        year: new Date().getFullYear()
+      }) || `<h2>Account Locked</h2><p>Hello ${fullName},<br>Your account is locked until ${lockoutUntil.toLocaleString()}.</p>`;
+      const subject = 'Account Temporarily Locked - GIV Society Ethiopia';
+      const sendResult = await this.sendWithResend({ to: email, subject, html });
+      await this.logEmail({ recipient: email, subject, template_used: 'account_locked', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
+      if (!sendResult.success) throw sendResult.error;
       logger.info(`Account locked email sent to ${email}`);
-      
-      return {
-        success: true,
-        message: 'Account locked notification sent successfully'
-      };
-
+      return { success: true, message: 'Account locked notification sent successfully' };
     } catch (error) {
       logger.error('Error sending account locked email:', error);
-      
-      await this.logEmail({
-        recipient: email,
-        subject: 'Account Temporarily Locked - GIV Society Ethiopia',
-        template_used: 'account_locked',
-        content: '',
-        status: 'failed',
-        error_message: error?.message || 'Unknown error occurred'
-      });
+      await this.logEmail({ recipient: email, subject: 'Account Temporarily Locked - GIV Society Ethiopia', template_used: 'account_locked', content: '', status: 'failed', error_message: error?.message });
+      return { success: false, message: 'Failed to send account locked notification' };
+    }
+  }
 
-      return {
-        success: false,
-        message: 'Failed to send account locked notification'
-      };
+  /**
+   * Send event registration confirmation
+   * @param {string} email - User email
+   * @param {string} fullName - User full name
+   * @param {Object} event - Event data
+   * @returns {Object} - Result of email sending
+   */
+  async sendEventRegistrationConfirmation(email, fullName, event) {
+    try {
+      const html = renderTemplate(this.templates.eventRegistration, {
+        fullName,
+        eventTitle: event.title,
+        eventDate: event.event_date ? new Date(event.event_date).toLocaleDateString() : '',
+        eventTime: event.event_time ? event.event_time.toString().slice(0,5) : '',
+        eventLocation: event.location || 'TBA',
+        year: new Date().getFullYear()
+      }) || `<p>Hello ${fullName},<br>You have successfully registered for the event: <b>${event.title}</b>.</p>`;
+      const subject = `Registration Confirmed: ${event.title}`;
+      const sendResult = await this.sendWithResend({ to: email, subject, html });
+      await this.logEmail({ recipient: email, subject, template_used: 'event_registration', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
+      if (!sendResult.success) throw sendResult.error;
+      logger.info(`Event registration confirmation sent to ${email}`);
+      return { success: true, message: 'Event registration confirmation sent successfully' };
+    } catch (error) {
+      logger.error('Error sending event registration confirmation:', error);
+      await this.logEmail({ recipient: email, subject: 'Event Registration Confirmation', template_used: 'event_registration', content: '', status: 'failed', error_message: error?.message });
+      return { success: false, message: 'Failed to send event registration confirmation' };
+    }
+  }
+
+  /**
+   * Send event reminder
+   * @param {string} email - User email
+   * @param {string} fullName - User full name
+   * @param {Object} event - Event data
+   * @returns {Object} - Result of email sending
+   */
+  async sendEventReminder(email, fullName, event) {
+    try {
+      const html = renderTemplate(this.templates.eventReminder, {
+        fullName,
+        eventTitle: event.title,
+        eventDate: event.event_date ? new Date(event.event_date).toLocaleDateString() : '',
+        eventTime: event.event_time ? event.event_time.toString().slice(0,5) : '',
+        eventLocation: event.location || 'TBA',
+        year: new Date().getFullYear()
+      }) || `<p>Hello ${fullName},<br>This is a reminder for the event: <b>${event.title}</b>.</p>`;
+      const subject = `Reminder: ${event.title} is coming up!`;
+      const sendResult = await this.sendWithResend({ to: email, subject, html });
+      await this.logEmail({ recipient: email, subject, template_used: 'event_reminder', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
+      if (!sendResult.success) throw sendResult.error;
+      logger.info(`Event reminder sent to ${email}`);
+      return { success: true, message: 'Event reminder sent successfully' };
+    } catch (error) {
+      logger.error('Error sending event reminder:', error);
+      await this.logEmail({ recipient: email, subject: 'Event Reminder', template_used: 'event_reminder', content: '', status: 'failed', error_message: error?.message });
+      return { success: false, message: 'Failed to send event reminder' };
+    }
+  }
+
+  /**
+   * Send event feedback request
+   * @param {string} email - User email
+   * @param {string} fullName - User full name
+   * @param {Object} event - Event data
+   * @param {string} feedbackUrl - Feedback URL
+   * @returns {Object} - Result of email sending
+   */
+  async sendEventFeedbackRequest(email, fullName, event, feedbackUrl) {
+    try {
+      const html = renderTemplate(this.templates.eventFeedback, {
+        fullName,
+        eventTitle: event.title,
+        eventDate: event.event_date ? new Date(event.event_date).toLocaleDateString() : '',
+        eventTime: event.event_time ? event.event_time.toString().slice(0,5) : '',
+        eventLocation: event.location || 'TBA',
+        feedbackUrl: feedbackUrl || '#',
+        year: new Date().getFullYear()
+      }) || `<p>Hello ${fullName},<br>Thank you for attending ${event.title}. Please provide your feedback: <a href='${feedbackUrl}'>Feedback Form</a></p>`;
+      const subject = `We Value Your Feedback: ${event.title}`;
+      const sendResult = await this.sendWithResend({ to: email, subject, html });
+      await this.logEmail({ recipient: email, subject, template_used: 'event_feedback', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
+      if (!sendResult.success) throw sendResult.error;
+      logger.info(`Event feedback request sent to ${email}`);
+      return { success: true, message: 'Event feedback request sent successfully' };
+    } catch (error) {
+      logger.error('Error sending event feedback request:', error);
+      await this.logEmail({ recipient: email, subject: 'Event Feedback Request', template_used: 'event_feedback', content: '', status: 'failed', error_message: error?.message });
+      return { success: false, message: 'Failed to send event feedback request' };
     }
   }
 
@@ -260,181 +318,6 @@ class EmailService {
     } catch (error) {
       logger.error('Error logging email:', error);
     }
-  }
-
-  /**
-   * Get email verification template
-   * @returns {string} - Email template
-   */
-  getVerificationTemplate() {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Verify Your Email - GIV Society Ethiopia</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #2c5aa0; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background-color: #f9f9f9; }
-          .button { display: inline-block; padding: 12px 24px; background-color: #2c5aa0; color: white; text-decoration: none; border-radius: 5px; }
-          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>GIV Society Ethiopia</h1>
-          </div>
-          <div class="content">
-            <h2>Hello {{fullName}},</h2>
-            <p>Thank you for registering with GIV Society Ethiopia. To complete your registration, please verify your email address by clicking the button below:</p>
-            <p style="text-align: center;">
-              <a href="{{verificationUrl}}" class="button">Verify Email Address</a>
-            </p>
-            <p>This verification link will expire in {{expiryTime}}.</p>
-            <p>If you didn't create an account with us, please ignore this email.</p>
-            <p>Best regards,<br>The GIV Society Ethiopia Team</p>
-          </div>
-          <div class="footer">
-            <p>This email was sent to you because you registered with GIV Society Ethiopia.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  /**
-   * Get password reset template
-   * @returns {string} - Email template
-   */
-  getPasswordResetTemplate() {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Password Reset - GIV Society Ethiopia</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #2c5aa0; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background-color: #f9f9f9; }
-          .button { display: inline-block; padding: 12px 24px; background-color: #2c5aa0; color: white; text-decoration: none; border-radius: 5px; }
-          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>GIV Society Ethiopia</h1>
-          </div>
-          <div class="content">
-            <h2>Hello {{fullName}},</h2>
-            <p>We received a request to reset your password. Click the button below to create a new password:</p>
-            <p style="text-align: center;">
-              <a href="{{resetUrl}}" class="button">Reset Password</a>
-            </p>
-            <p>This link will expire in {{expiryTime}}.</p>
-            <p>If you didn't request a password reset, please ignore this email.</p>
-            <p>Best regards,<br>The GIV Society Ethiopia Team</p>
-          </div>
-          <div class="footer">
-            <p>This email was sent to you because you requested a password reset.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  /**
-   * Get welcome email template
-   * @returns {string} - Email template
-   */
-  getWelcomeTemplate() {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Welcome to GIV Society Ethiopia</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #2c5aa0; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background-color: #f9f9f9; }
-          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>GIV Society Ethiopia</h1>
-          </div>
-          <div class="content">
-            <h2>Welcome {{fullName}}!</h2>
-            <p>Thank you for joining GIV Society Ethiopia. Your account has been successfully created and verified.</p>
-            <p>You can now:</p>
-            <ul>
-              <li>Access your dashboard</li>
-              <li>Update your profile</li>
-              <li>Participate in our programs</li>
-              <li>Connect with other members</li>
-            </ul>
-            <p>If you have any questions, feel free to contact our support team.</p>
-            <p>Best regards,<br>The GIV Society Ethiopia Team</p>
-          </div>
-          <div class="footer">
-            <p>Welcome to the GIV Society Ethiopia community!</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  /**
-   * Get account locked template
-   * @returns {string} - Email template
-   */
-  getAccountLockedTemplate() {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Account Locked - GIV Society Ethiopia</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background-color: #f9f9f9; }
-          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>GIV Society Ethiopia</h1>
-          </div>
-          <div class="content">
-            <h2>Hello {{fullName}},</h2>
-            <p>Your account has been temporarily locked due to multiple failed login attempts.</p>
-            <p><strong>Lockout expires at: {{lockoutUntil}}</strong></p>
-            <p>This is a security measure to protect your account. You can try logging in again after the lockout period expires.</p>
-            <p>If you believe this was done in error or if you need immediate access, please contact our support team.</p>
-            <p>Best regards,<br>The GIV Society Ethiopia Team</p>
-          </div>
-          <div class="footer">
-            <p>This email was sent to you because your account was temporarily locked for security reasons.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
   }
 
   /**

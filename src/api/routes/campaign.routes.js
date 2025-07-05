@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const campaignController = require('../controllers/campaign.controller');
-const { authenticateToken, requireEditor, requireAdmin } = require('../../middlewares/auth.middleware');
+const { authenticateToken, requireAdmin } = require('../../middlewares/auth.middleware');
 
 /**
  * Campaign Routes for GIV Society Backend
@@ -15,19 +15,19 @@ router.get('/featured', campaignController.getFeaturedCampaigns);
 router.get('/active', campaignController.getActiveCampaigns);
 router.get('/stats', campaignController.getCampaignStats);
 router.get('/:id', campaignController.getCampaignById);
-router.get('/:id/donations', campaignController.getCampaignDonations);
+router.get('/:id/translations', campaignController.getCampaignTranslations);
 
 // Protected routes (authentication required)
 router.use(authenticateToken);
 
 // Admin/Editor only routes
 router.post('/', 
-  requireEditor, 
+  requireAdmin, 
   campaignController.createCampaign
 );
 
 router.put('/:id', 
-  requireEditor, 
+  requireAdmin, 
   campaignController.updateCampaign
 );
 
@@ -35,5 +35,8 @@ router.delete('/:id',
   requireAdmin, 
   campaignController.deleteCampaign
 );
+
+router.post('/:id/translations', requireAdmin, campaignController.addCampaignTranslation);
+router.patch('/:id/translations/:language', requireAdmin, campaignController.updateCampaignTranslation);
 
 module.exports = router; 
