@@ -386,6 +386,121 @@ class UserService {
   }
 
   /**
+   * Reactivate a soft-deleted user
+   * @param {string} userId - User ID to reactivate
+   * @param {Object} newData - New user data for reactivation
+   * @returns {Object} - Reactivation result
+   */
+  async reactivateUser(userId, newData = {}) {
+    try {
+      // Check if user exists and is soft-deleted
+      const existingUser = await prisma.users.findFirst({
+        where: {
+          id: BigInt(userId),
+          deleted_at: { not: null }
+        },
+        include: {
+          volunteer_profiles: true,
+          donor_profiles: true
+        }
+      });
+
+      if (!existingUser) {
+        return {
+          success: false,
+          error: 'Deleted user not found',
+          code: 'USER_NOT_FOUND'
+        };
+      }
+
+      // Prepare update data
+      const updateData = {
+        deleted_at: null,
+        updated_at: new Date(),
+        ...newData
+      };
+
+      // Reactivate user
+      const reactivatedUser = await prisma.users.update({
+        where: { id: BigInt(userId) },
+        data: updateData,
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          phone: true,
+          role: true,
+          profile_image_url: true,
+          language_preference: true,
+          email_verified: true,
+          created_at: true,
+          updated_at: true
+        }
+      });
+
+      logger.info(`User ${userId} reactivated successfully`);
+
+      return {
+        success: true,
+        user: {
+          ...reactivatedUser,
+          id: reactivatedUser.id.toString()
+        },
+        message: 'User reactivated successfully'
+      };
+
+    } catch (error) {
+      logger.error('Error reactivating user:', error);
+      return {
+        success: false,
+        error: 'Failed to reactivate user'
+      };
+    }
+  }
+
+  /**
+   * Find user by email (including soft-deleted users)
+   * @param {string} email - User email
+   * @param {boolean} includeDeleted - Whether to include soft-deleted users
+   * @returns {Object} - User or null
+   */
+  async findUserByEmail(email, includeDeleted = false) {
+    try {
+      const where = { email: email.toLowerCase() };
+
+      if (!includeDeleted) {
+        where.deleted_at = null;
+      }
+
+      const user = await prisma.users.findFirst({
+        where,
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          phone: true,
+          role: true,
+          profile_image_url: true,
+          language_preference: true,
+          email_verified: true,
+          created_at: true,
+          updated_at: true,
+          deleted_at: true
+        }
+      });
+
+      return user ? {
+        ...user,
+        id: user.id.toString()
+      } : null;
+
+    } catch (error) {
+      logger.error('Error finding user by email:', error);
+      return null;
+    }
+  }
+
+  /**
    * Search users
    * @param {Object} searchCriteria - Search criteria
    * @param {Object} pagination - Pagination options
