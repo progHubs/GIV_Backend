@@ -341,17 +341,33 @@ const deletePost = async (req, res) => {
 };
 
 /**
- * Search posts
+ * Search posts with pagination
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
 const searchPosts = async (req, res) => {
   try {
-    const posts = await Post.search(req.query.q);
+    const { q, page = 1, limit = 10 } = req.query;
+
+    if (!q || q.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        error: "Search query is required",
+      });
+    }
+
+    const options = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+    };
+
+    const result = await Post.search(q.trim(), options);
 
     res.json({
       success: true,
-      data: posts,
+      data: result.posts,
+      pagination: result.pagination,
+      query: q.trim(),
     });
   } catch (error) {
     logger.error("Error searching posts:", error);

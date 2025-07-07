@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const commentController = require("../controllers/comment.controllers");
 const {
+  authenticateToken,
   optionalAuth,
   requireAdmin,
 } = require("../../middlewares/auth.middleware");
@@ -9,17 +10,17 @@ const {
 // Get all comments for a post
 router.get("/:post_id/comments", commentController.getCommentsByPost);
 
-// Create a comment on a post
+// Create a comment on a post (requires authentication)
 router.post(
   "/:post_id/comments",
-  optionalAuth,
+  authenticateToken,
   commentController.createComment
 );
 
-// Reply to a comment
+// Reply to a comment (requires authentication)
 router.post(
   "/:post_id/comments/:parent_id/reply",
-  optionalAuth,
+  authenticateToken,
   commentController.replyToComment
 );
 

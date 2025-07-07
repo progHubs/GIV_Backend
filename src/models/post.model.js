@@ -11,11 +11,11 @@ const serializePost = (post) => {
   // Only include safe user data
   const safeUserData = post.users
     ? {
-        id: post.users.id.toString(),
-        full_name: post.users.full_name,
-        profile_image_url: post.users.profile_image_url,
-        role: post.users.role,
-      }
+      id: post.users.id.toString(),
+      full_name: post.users.full_name,
+      profile_image_url: post.users.profile_image_url,
+      role: post.users.role,
+    }
     : null;
 
   return {
@@ -143,17 +143,39 @@ class Post {
     });
   }
 
-  static async search(query) {
-    const posts = await prisma.posts.findMany({
-      where: {
-        OR: [{ title: { contains: query } }, { content: { contains: query } }],
-      },
-      include: {
-        users: true,
-      },
-    });
+  static async search(query, options = {}) {
+    const { page = 1, limit = 10 } = options;
 
-    return posts.map(serializePost);
+    const where = {
+      OR: [{ title: { contains: query } }, { content: { contains: query } }],
+    };
+
+    const [posts, total] = await Promise.all([
+      prisma.posts.findMany({
+        where,
+        include: {
+          users: true,
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          created_at: "desc",
+        },
+      }),
+      prisma.posts.count({ where }),
+    ]);
+
+    return {
+      posts: posts.map(serializePost),
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    };
   }
 
   static async query(options = {}) {

@@ -93,19 +93,23 @@ router.post(
   cleanupTempFiles
 );
 
-// Update post (requires authentication + ownership or admin/editor role)
+// Update post (requires admin role only)
 router.put(
   "/:id",
   authenticateToken,
   requireAdmin,
-  checkPostOwnership // This middleware checks ownership and permissions uploadImage.single("feature_image"), handleUploadError, updatePost, cleanupTempFiles
+  uploadImage.single("feature_image"),
+  handleUploadError,
+  updatePost,
+  cleanupTempFiles
 );
 
-// Delete post (requires authentication + admin role only)
+// Delete post (requires admin role only)
 router.delete(
   "/:id",
   authenticateToken,
-  requireAdmin // Only admins can delete posts deletePost
+  requireAdmin,
+  deletePost
 );
 
 module.exports = router;

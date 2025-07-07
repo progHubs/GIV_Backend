@@ -19,6 +19,7 @@ const {
 router.get("/", getFAQs);
 router.get("/search", searchFAQs);
 router.get("/categories", getFAQCategories);
+router.get("/recent", getRecentFAQs);
 router.get("/category/:category", getFAQsByCategory);
 router.get("/id/:id", getFAQById);
 
@@ -32,6 +33,5 @@ router.delete("/:id", authenticateToken, requireAdmin, deleteFAQ);
 router.put("/sort/bulk", authenticateToken, requireAdmin, updateFAQSortOrder);
 
 router.patch("/:id/toggle-visibility", authenticateToken, requireAdmin, toggleFAQVisibility);
-router.get("/recent", getRecentFAQs);
 
 module.exports = router;

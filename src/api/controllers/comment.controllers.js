@@ -1,10 +1,22 @@
 const Comment = require("../../models/comment.models");
 
-// Get all comments for a post
+// Get all comments for a post with pagination
 async function getCommentsByPost(req, res) {
   try {
-    const comments = await Comment.findByPostId(req.params.post_id);
-    res.json({ success: true, data: comments });
+    const { page = 1, limit = 20 } = req.query;
+
+    const options = {
+      page: parseInt(page),
+      limit: parseInt(limit)
+    };
+
+    const result = await Comment.findByPostId(req.params.post_id, options);
+
+    res.json({
+      success: true,
+      data: result.comments,
+      pagination: result.pagination
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -18,9 +30,19 @@ async function createComment(req, res) {
       return res
         .status(400)
         .json({ success: false, error: "Content is required" });
+
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required to comment",
+        code: "AUTH_REQUIRED"
+      });
+    }
+
     const comment = await Comment.create({
       postId: req.params.post_id,
-      userId: 0, //req.user.id,
+      userId: req.user.id,
       content,
     });
     res.status(201).json({ success: true, data: comment });
@@ -37,10 +59,20 @@ async function replyToComment(req, res) {
       return res
         .status(400)
         .json({ success: false, error: "Content is required" });
+
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required to reply",
+        code: "AUTH_REQUIRED"
+      });
+    }
+
     const comment = await Comment.reply({
       postId: req.params.post_id,
       parentId: req.params.parent_id,
-      userId: 0, //req.user.id,
+      userId: req.user.id,
       content,
     });
     res.status(201).json({ success: true, data: comment });
@@ -57,7 +89,17 @@ async function updateComment(req, res) {
       return res
         .status(400)
         .json({ success: false, error: "Content is required" });
-    const updated = await Comment.update(req.params.comment_id, 0, {
+
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+        code: "AUTH_REQUIRED"
+      });
+    }
+
+    const updated = await Comment.update(req.params.comment_id, req.user.id, {
       content,
     });
     if (!updated)
@@ -74,9 +116,18 @@ async function updateComment(req, res) {
 // Delete a comment (soft delete)
 async function deleteComment(req, res) {
   try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+        code: "AUTH_REQUIRED"
+      });
+    }
+
     const deleted = await Comment.softDelete(
       req.params.comment_id,
-      0 //req.user.id
+      req.user.id
     );
     if (!deleted)
       return res.status(404).json({

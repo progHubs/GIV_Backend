@@ -2,28 +2,62 @@ const prisma = require("../config/prisma");
 
 const serializeComment = (comment) => {
   if (!comment) return null;
+
+  // Only include safe user data
+  const safeUserData = comment.users
+    ? {
+      id: comment.users.id.toString(),
+      full_name: comment.users.full_name,
+      profile_image_url: comment.users.profile_image_url,
+      role: comment.users.role,
+    }
+    : null;
+
   return {
     ...comment,
     id: comment.id.toString(),
     post_id: comment.post_id ? comment.post_id.toString() : null,
     user_id: comment.user_id ? comment.user_id.toString() : null,
     parent_id: comment.parent_id ? comment.parent_id.toString() : null,
+    users: safeUserData,
   };
 };
 
 class Comment {
-  static async findByPostId(postId) {
+  static async findByPostId(postId, options = {}) {
+    const { page = 1, limit = 20 } = options;
+
+    // Get total count for pagination
+    const total = await prisma.comments.count({
+      where: { post_id: BigInt(postId), deleted_at: null }
+    });
+
     const comments = await prisma.comments.findMany({
       where: { post_id: BigInt(postId), deleted_at: null },
+      include: {
+        users: {
+          select: {
+            id: true,
+            full_name: true,
+            profile_image_url: true,
+            role: true
+          }
+        }
+      },
       orderBy: { created_at: "asc" },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
     const serialized = comments.map(serializeComment);
-    // Build a map of id -> comment
+
+    // Build a map of id -> comment for threading
     const map = {};
     serialized.forEach((c) => {
       c.children = [];
       map[c.id] = c;
     });
+
     const roots = [];
     serialized.forEach((c) => {
       if (c.parent_id && map[c.parent_id]) {
@@ -32,7 +66,18 @@ class Comment {
         roots.push(c);
       }
     });
-    return roots;
+
+    return {
+      comments: roots,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      }
+    };
   }
 
   static async create({ postId, userId, content }) {
@@ -99,7 +144,21 @@ class Comment {
   static async toggleLike(commentId) {
     const comment = await prisma.comments.findUnique({
       where: { id: BigInt(commentId) },
+      include: {
+        users: {
+          select: {
+            id: true,
+            full_name: true,
+            profile_image_url: true,
+            role: true
+          }
+        }
+      }
     });
+    if (!comment) return null;
+
+    // TODO: Implement proper like functionality when likes column is added to comments table
+    // For now, just return the comment
     return serializeComment(comment);
   }
 }
