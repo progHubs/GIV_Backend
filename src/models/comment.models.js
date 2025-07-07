@@ -17,7 +17,22 @@ class Comment {
       where: { post_id: BigInt(postId), deleted_at: null },
       orderBy: { created_at: "asc" },
     });
-    return comments.map(serializeComment);
+    const serialized = comments.map(serializeComment);
+    // Build a map of id -> comment
+    const map = {};
+    serialized.forEach((c) => {
+      c.children = [];
+      map[c.id] = c;
+    });
+    const roots = [];
+    serialized.forEach((c) => {
+      if (c.parent_id && map[c.parent_id]) {
+        map[c.parent_id].children.push(c);
+      } else {
+        roots.push(c);
+      }
+    });
+    return roots;
   }
 
   static async create({ postId, userId, content }) {

@@ -186,6 +186,9 @@ app.get("/auth", (req, res) => {
 app.get("/test/upload", (req, res) => {
   res.render("FileUploader");
 });
+app.get("/test/comment", (req, res) => {
+  res.render("Comment");
+});
 
 // Mount routes
 app.use(`${apiPrefix}/auth`, authRoutes);
@@ -247,6 +250,7 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`🧪 FAQ Test Page: http://localhost:${PORT}/test/faq`);
     console.log(`🔐 Auth Page: http://localhost:${PORT}/auth`);
     console.log(`🧪 Upload Test Page: http://localhost:${PORT}/test/upload`);
+    console.log(`🧪 Comment Test Page: http://localhost:${PORT}/test/comment`);
   });
 }
 
