@@ -1,4 +1,4 @@
-const { PrismaClient } = require('../generated/prisma');
+const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { convertBigIntToString } = require('../utils/validation.util');
 const logger = require('../utils/logger.util');

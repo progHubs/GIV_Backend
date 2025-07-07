@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-const { PrismaClient } = require('../generated/prisma');
-=======
 const { PrismaClient } = require("@prisma/client");
->>>>>>> feature/Post
 
 const prisma = new PrismaClient({
   log:

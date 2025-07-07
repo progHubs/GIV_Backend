@@ -1,4 +1,4 @@
-const { PrismaClient } = require('../generated/prisma');
+const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger.util');
 const crypto = require('crypto');
 
@@ -22,10 +22,10 @@ class TokenService {
     try {
       // Hash the refresh token for storage
       const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-      
+
       // Calculate expiration (7 days from now)
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      
+
       // Store refresh token in site_interactions table (temporary solution)
       await prisma.site_interactions.create({
         data: {
@@ -44,7 +44,7 @@ class TokenService {
       });
 
       logger.info(`Refresh token stored for user ${userId}, session ${sessionId}`);
-      
+
       return {
         success: true,
         sessionId,
@@ -69,7 +69,7 @@ class TokenService {
   async validateRefreshToken(refreshToken, userId) {
     try {
       const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-      
+
       // Find the token in site_interactions
       const tokenRecord = await prisma.site_interactions.findFirst({
         where: {
@@ -93,7 +93,7 @@ class TokenService {
 
       // Parse metadata
       const metadata = JSON.parse(tokenRecord.metadata);
-      
+
       // Check if token is revoked
       if (metadata.is_revoked) {
         return {
@@ -134,7 +134,7 @@ class TokenService {
   async revokeRefreshToken(refreshToken, userId) {
     try {
       const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-      
+
       // Find and mark token as revoked
       const tokenRecord = await prisma.site_interactions.findFirst({
         where: {
@@ -187,7 +187,7 @@ class TokenService {
   async createSession(userId, sessionId, ipAddress, userAgent) {
     try {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      
+
       await prisma.site_interactions.create({
         data: {
           user_id: BigInt(userId),
@@ -204,7 +204,7 @@ class TokenService {
       });
 
       logger.info(`Session created for user ${userId}, session ${sessionId}`);
-      
+
       return {
         success: true,
         sessionId,
@@ -247,7 +247,7 @@ class TokenService {
       }
 
       const metadata = JSON.parse(sessionRecord.metadata);
-      
+
       if (!metadata.is_active) {
         return {
           valid: false,
@@ -330,7 +330,7 @@ class TokenService {
   async cleanupExpiredTokens() {
     try {
       const cutoffDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
-      
+
       // Clean up expired refresh tokens
       const expiredTokens = await prisma.site_interactions.findMany({
         where: {
@@ -344,7 +344,7 @@ class TokenService {
       for (const token of expiredTokens) {
         const metadata = JSON.parse(token.metadata);
         const expiresAt = new Date(metadata.expires_at);
-        
+
         if (expiresAt < new Date()) {
           await prisma.site_interactions.update({
             where: { id: token.id },
@@ -369,7 +369,7 @@ class TokenService {
       for (const session of expiredSessions) {
         const metadata = JSON.parse(session.metadata);
         const expiresAt = new Date(metadata.expires_at);
-        
+
         if (expiresAt < new Date()) {
           await prisma.site_interactions.update({
             where: { id: session.id },
@@ -382,7 +382,7 @@ class TokenService {
       }
 
       logger.info(`Cleaned up ${expiredTokens.length} expired tokens and ${expiredSessions.length} expired sessions`);
-      
+
       return {
         success: true,
         tokensCleaned: expiredTokens.length,

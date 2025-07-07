@@ -1,4 +1,4 @@
-const { PrismaClient } = require('../generated/prisma');
+const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const emailService = require('./email.service.js');
 const { Parser } = require('json2csv');
@@ -164,7 +164,7 @@ class EventService {
         }
       });
       // Set is_volunteer flag to true for the user
-      if(!user.is_volunteer) {
+      if (!user.is_volunteer) {
         await prisma.users.update({ where: { id: BigInt(user.id) }, data: { is_volunteer: true } });
       }
       // Increment registered_count

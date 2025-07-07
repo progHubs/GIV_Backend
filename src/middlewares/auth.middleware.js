@@ -1,5 +1,5 @@
 const { verifyToken, extractTokenFromHeader } = require("../utils/jwt.util");
-const { PrismaClient } = require("../generated/prisma");
+const { PrismaClient } = require("@prisma/client");
 const { isAccessTokenRevoked } = require("../services/token.service");
 
 const prisma = new PrismaClient();

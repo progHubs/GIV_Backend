@@ -1,4 +1,4 @@
-const { PrismaClient } = require('../generated/prisma');
+const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger.util');
 
 const prisma = new PrismaClient();
@@ -24,7 +24,7 @@ class SecurityService {
       const key = `${email}:${ipAddress}`;
       const currentAttempts = this.failedAttempts.get(key) || 0;
       const newAttempts = currentAttempts + 1;
-      
+
       this.failedAttempts.set(key, newAttempts);
 
       // Log the failed attempt

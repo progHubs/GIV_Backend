@@ -1,5 +1,5 @@
 const { Resend } = require('resend');
-const { PrismaClient } = require('../generated/prisma');
+const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger.util');
 const { generateVerificationToken } = require('../utils/jwt.util');
 const fs = require('fs');
@@ -221,7 +221,7 @@ class EmailService {
         fullName,
         eventTitle: event.title,
         eventDate: event.event_date ? new Date(event.event_date).toLocaleDateString() : '',
-        eventTime: event.event_time ? event.event_time.toString().slice(0,5) : '',
+        eventTime: event.event_time ? event.event_time.toString().slice(0, 5) : '',
         eventLocation: event.location || 'TBA',
         year: new Date().getFullYear()
       }) || `<p>Hello ${fullName},<br>You have successfully registered for the event: <b>${event.title}</b>.</p>`;
@@ -251,7 +251,7 @@ class EmailService {
         fullName,
         eventTitle: event.title,
         eventDate: event.event_date ? new Date(event.event_date).toLocaleDateString() : '',
-        eventTime: event.event_time ? event.event_time.toString().slice(0,5) : '',
+        eventTime: event.event_time ? event.event_time.toString().slice(0, 5) : '',
         eventLocation: event.location || 'TBA',
         year: new Date().getFullYear()
       }) || `<p>Hello ${fullName},<br>This is a reminder for the event: <b>${event.title}</b>.</p>`;
@@ -282,7 +282,7 @@ class EmailService {
         fullName,
         eventTitle: event.title,
         eventDate: event.event_date ? new Date(event.event_date).toLocaleDateString() : '',
-        eventTime: event.event_time ? event.event_time.toString().slice(0,5) : '',
+        eventTime: event.event_time ? event.event_time.toString().slice(0, 5) : '',
         eventLocation: event.location || 'TBA',
         feedbackUrl: feedbackUrl || '#',
         year: new Date().getFullYear()

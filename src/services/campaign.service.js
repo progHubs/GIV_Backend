@@ -1,4 +1,4 @@
-const { PrismaClient } = require('../generated/prisma');
+const { PrismaClient } = require('@prisma/client');
 const logger = require('../utils/logger.util');
 const { v4: uuidv4 } = require('uuid');
 const { validateCreateCampaign, validateUpdateCampaign } = require('../api/validators/campaign.validator');
