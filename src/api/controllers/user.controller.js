@@ -15,16 +15,25 @@ class UserController {
       const filters = {
         search: req.query.search,
         role: req.query.role,
-        email_verified: req.query.email_verified === 'true' ? true : 
-                       req.query.email_verified === 'false' ? false : undefined,
+        email_verified: req.query.email_verified === 'true' ? true :
+          req.query.email_verified === 'false' ? false : undefined,
         language_preference: req.query.language_preference,
+        is_donor: req.query.is_donor === 'true' ? true :
+          req.query.is_donor === 'false' ? false : undefined,
+        is_volunteer: req.query.is_volunteer === 'true' ? true :
+          req.query.is_volunteer === 'false' ? false : undefined,
+        has_profile_image: req.query.has_profile_image === 'true' ? true :
+          req.query.has_profile_image === 'false' ? false : undefined,
+        phone: req.query.phone,
         created_after: req.query.created_after,
-        created_before: req.query.created_before
+        created_before: req.query.created_before,
+        updated_after: req.query.updated_after,
+        updated_before: req.query.updated_before
       };
 
       const pagination = {
         page: parseInt(req.query.page) || 1,
-        limit: parseInt(req.query.limit) || 10,
+        limit: Math.min(parseInt(req.query.limit) || 10, 100), // Max 100 items per page
         sortBy: req.query.sortBy || 'created_at',
         sortOrder: req.query.sortOrder || 'desc'
       };
@@ -218,15 +227,26 @@ class UserController {
       const searchCriteria = {
         query: req.query.q,
         role: req.query.role,
-        email_verified: req.query.email_verified === 'true' ? true : 
-                       req.query.email_verified === 'false' ? false : undefined,
+        email_verified: req.query.email_verified === 'true' ? true :
+          req.query.email_verified === 'false' ? false : undefined,
         language_preference: req.query.language_preference,
-        has_volunteer_profile: req.query.has_volunteer_profile === 'true' ? true : 
-                              req.query.has_volunteer_profile === 'false' ? false : undefined,
-        has_donor_profile: req.query.has_donor_profile === 'true' ? true : 
-                          req.query.has_donor_profile === 'false' ? false : undefined,
+        is_donor: req.query.is_donor === 'true' ? true :
+          req.query.is_donor === 'false' ? false : undefined,
+        is_volunteer: req.query.is_volunteer === 'true' ? true :
+          req.query.is_volunteer === 'false' ? false : undefined,
+        has_volunteer_profile: req.query.has_volunteer_profile === 'true' ? true :
+          req.query.has_volunteer_profile === 'false' ? false : undefined,
+        has_donor_profile: req.query.has_donor_profile === 'true' ? true :
+          req.query.has_donor_profile === 'false' ? false : undefined,
+        has_profile_image: req.query.has_profile_image === 'true' ? true :
+          req.query.has_profile_image === 'false' ? false : undefined,
+        phone: req.query.phone,
+        email: req.query.email,
+        full_name: req.query.full_name,
         created_after: req.query.created_after,
-        created_before: req.query.created_before
+        created_before: req.query.created_before,
+        updated_after: req.query.updated_after,
+        updated_before: req.query.updated_before
       };
 
       const pagination = {

@@ -24,6 +24,9 @@ router.get('/stats', authenticateToken, requireAdmin, donationController.getDona
 router.patch('/:id/status', authenticateToken, requireAdmin, donationController.updateDonationStatus);
 router.delete('/:id', authenticateToken, requireAdmin, donationController.deleteDonation);
 
+// Search route - authenticated users can search donations (with access control)
+router.get('/search', authenticateToken, donationController.searchDonations);
+
 // Authenticated routes - users must be logged in
 router.get('/', authenticateToken, donationController.getDonations);
 router.get('/:id', authenticateToken, donationController.getDonationById);

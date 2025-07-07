@@ -185,29 +185,41 @@ class SkillController {
   }
 
   /**
-   * Search skills
+   * Search skills with advanced filtering - DISABLED
+   * Removed due to implementation issues causing timeouts
    */
+  /*
   async searchSkills(req, res) {
     try {
-      const { q, category } = req.query;
+      // Simplified search criteria
+      const searchCriteria = {
+        query: req.query.q,
+        category: req.query.category
+      };
 
-      if (!q) {
+      const pagination = {
+        page: parseInt(req.query.page) || 1,
+        limit: Math.min(parseInt(req.query.limit) || 10, 100),
+        sortBy: req.query.sortBy || 'name',
+        sortOrder: req.query.sortOrder || 'asc'
+      };
+
+      const result = await skillService.searchSkills(searchCriteria, pagination);
+
+      if (!result.success) {
         return res.status(400).json({
           success: false,
-          message: 'Search term is required',
-          code: 'SEARCH_TERM_REQUIRED'
+          error: result.error,
+          code: result.code
         });
       }
-
-      const filters = { category };
-      const result = await skillService.searchSkills(q, filters);
 
       res.status(200).json({
         success: true,
         message: 'Skills search completed',
-        data: result.data,
-        count: result.count,
-        searchTerm: q
+        data: result.skills,
+        pagination: result.pagination,
+        total: result.total
       });
     } catch (error) {
       res.status(500).json({
@@ -217,6 +229,7 @@ class SkillController {
       });
     }
   }
+  */
 
   /**
    * Get volunteer's skills
@@ -264,8 +277,8 @@ class SkillController {
       const proficiency_level = value.proficiencyLevel;
 
       const result = await skillService.addSkillToVolunteer(
-        volunteerId, 
-        value.skillId, 
+        volunteerId,
+        value.skillId,
         proficiency_level
       );
 
@@ -434,7 +447,7 @@ module.exports = {
   createSkill: controller.createSkill.bind(controller),
   updateSkill: controller.updateSkill.bind(controller),
   deleteSkill: controller.deleteSkill.bind(controller),
-  searchSkills: controller.searchSkills.bind(controller),
+  // searchSkills: controller.searchSkills.bind(controller), // Removed due to implementation issues
   getVolunteerSkills: controller.getVolunteerSkills.bind(controller),
   addSkillToVolunteer: controller.addSkillToVolunteer.bind(controller),
   updateVolunteerSkill: controller.updateVolunteerSkill.bind(controller),
@@ -442,4 +455,4 @@ module.exports = {
   verifyVolunteerSkill: controller.verifyVolunteerSkill.bind(controller),
   getSkillCategories: controller.getSkillCategories.bind(controller),
   getSkillsStats: controller.getSkillsStats.bind(controller),
-}; 
+};

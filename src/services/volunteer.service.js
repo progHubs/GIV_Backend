@@ -13,15 +13,15 @@ const convertBigIntToString = (obj) => {
   if (obj === null || obj === undefined) {
     return obj;
   }
-  
+
   if (typeof obj === 'bigint') {
     return obj.toString();
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(convertBigIntToString);
   }
-  
+
   if (typeof obj === 'object') {
     const result = {};
     for (const [key, value] of Object.entries(obj)) {
@@ -29,7 +29,7 @@ const convertBigIntToString = (obj) => {
     }
     return result;
   }
-  
+
   return obj;
 };
 
@@ -507,10 +507,21 @@ class VolunteerService {
         background_check_status,
         training_completed,
         has_skills,
+        has_certificate,
+        has_emergency_contact,
         min_hours,
         max_hours,
+        min_rating,
+        max_rating,
+        min_events,
+        max_events,
+        skill_category,
+        skill_name,
+        proficiency_level,
         created_after,
-        created_before
+        created_before,
+        updated_after,
+        updated_before
       } = searchCriteria;
 
       const {
@@ -561,6 +572,22 @@ class VolunteerService {
         }
       }
 
+      if (has_certificate !== undefined) {
+        if (has_certificate) {
+          where.certificate_url = { not: null };
+        } else {
+          where.certificate_url = null;
+        }
+      }
+
+      if (has_emergency_contact !== undefined) {
+        if (has_emergency_contact) {
+          where.emergency_contact_name = { not: null };
+        } else {
+          where.emergency_contact_name = null;
+        }
+      }
+
       if (min_hours !== undefined) {
         where.total_hours = {
           ...where.total_hours,
@@ -575,6 +602,52 @@ class VolunteerService {
         };
       }
 
+      if (min_rating !== undefined) {
+        where.rating = {
+          ...where.rating,
+          gte: parseFloat(min_rating)
+        };
+      }
+
+      if (max_rating !== undefined) {
+        where.rating = {
+          ...where.rating,
+          lte: parseFloat(max_rating)
+        };
+      }
+
+      if (min_events !== undefined) {
+        where.events_participated = {
+          ...where.events_participated,
+          gte: parseInt(min_events)
+        };
+      }
+
+      if (max_events !== undefined) {
+        where.events_participated = {
+          ...where.events_participated,
+          lte: parseInt(max_events)
+        };
+      }
+
+      // Skill-based filtering
+      if (skill_category || skill_name || proficiency_level) {
+        const skillWhere = {};
+        if (skill_category) {
+          skillWhere.skills = { category: skill_category };
+        }
+        if (skill_name) {
+          skillWhere.skills = {
+            ...skillWhere.skills,
+            name: { contains: skill_name }
+          };
+        }
+        if (proficiency_level) {
+          skillWhere.proficiency_level = proficiency_level;
+        }
+        where.volunteer_skills = { some: skillWhere };
+      }
+
       if (created_after) {
         where.created_at = {
           ...where.created_at,
@@ -586,6 +659,20 @@ class VolunteerService {
         where.created_at = {
           ...where.created_at,
           lte: new Date(created_before)
+        };
+      }
+
+      if (updated_after) {
+        where.updated_at = {
+          ...where.updated_at,
+          gte: new Date(updated_after)
+        };
+      }
+
+      if (updated_before) {
+        where.updated_at = {
+          ...where.updated_at,
+          lte: new Date(updated_before)
         };
       }
 

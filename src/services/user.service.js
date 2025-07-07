@@ -22,8 +22,14 @@ class UserService {
         role,
         email_verified,
         language_preference,
+        is_donor,
+        is_volunteer,
+        has_profile_image,
+        phone,
         created_after,
-        created_before
+        created_before,
+        updated_after,
+        updated_before
       } = filters;
 
       const {
@@ -40,8 +46,9 @@ class UserService {
 
       if (search) {
         where.OR = [
-          { full_name: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } }
+          { full_name: { contains: search } },
+          { email: { contains: search } },
+          { phone: { contains: search } }
         ];
       }
 
@@ -57,6 +64,26 @@ class UserService {
         where.language_preference = language_preference;
       }
 
+      if (is_donor !== undefined) {
+        where.is_donor = is_donor;
+      }
+
+      if (is_volunteer !== undefined) {
+        where.is_volunteer = is_volunteer;
+      }
+
+      if (has_profile_image !== undefined) {
+        if (has_profile_image) {
+          where.profile_image_url = { not: null };
+        } else {
+          where.profile_image_url = null;
+        }
+      }
+
+      if (phone) {
+        where.phone = { contains: phone };
+      }
+
       if (created_after) {
         where.created_at = {
           ...where.created_at,
@@ -68,6 +95,20 @@ class UserService {
         where.created_at = {
           ...where.created_at,
           lte: new Date(created_before)
+        };
+      }
+
+      if (updated_after) {
+        where.updated_at = {
+          ...where.updated_at,
+          gte: new Date(updated_after)
+        };
+      }
+
+      if (updated_before) {
+        where.updated_at = {
+          ...where.updated_at,
+          lte: new Date(updated_before)
         };
       }
 
@@ -386,6 +427,121 @@ class UserService {
   }
 
   /**
+   * Reactivate a soft-deleted user
+   * @param {string} userId - User ID to reactivate
+   * @param {Object} newData - New user data for reactivation
+   * @returns {Object} - Reactivation result
+   */
+  async reactivateUser(userId, newData = {}) {
+    try {
+      // Check if user exists and is soft-deleted
+      const existingUser = await prisma.users.findFirst({
+        where: {
+          id: BigInt(userId),
+          deleted_at: { not: null }
+        },
+        include: {
+          volunteer_profiles: true,
+          donor_profiles: true
+        }
+      });
+
+      if (!existingUser) {
+        return {
+          success: false,
+          error: 'Deleted user not found',
+          code: 'USER_NOT_FOUND'
+        };
+      }
+
+      // Prepare update data
+      const updateData = {
+        deleted_at: null,
+        updated_at: new Date(),
+        ...newData
+      };
+
+      // Reactivate user
+      const reactivatedUser = await prisma.users.update({
+        where: { id: BigInt(userId) },
+        data: updateData,
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          phone: true,
+          role: true,
+          profile_image_url: true,
+          language_preference: true,
+          email_verified: true,
+          created_at: true,
+          updated_at: true
+        }
+      });
+
+      logger.info(`User ${userId} reactivated successfully`);
+
+      return {
+        success: true,
+        user: {
+          ...reactivatedUser,
+          id: reactivatedUser.id.toString()
+        },
+        message: 'User reactivated successfully'
+      };
+
+    } catch (error) {
+      logger.error('Error reactivating user:', error);
+      return {
+        success: false,
+        error: 'Failed to reactivate user'
+      };
+    }
+  }
+
+  /**
+   * Find user by email (including soft-deleted users)
+   * @param {string} email - User email
+   * @param {boolean} includeDeleted - Whether to include soft-deleted users
+   * @returns {Object} - User or null
+   */
+  async findUserByEmail(email, includeDeleted = false) {
+    try {
+      const where = { email: email.toLowerCase() };
+
+      if (!includeDeleted) {
+        where.deleted_at = null;
+      }
+
+      const user = await prisma.users.findFirst({
+        where,
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          phone: true,
+          role: true,
+          profile_image_url: true,
+          language_preference: true,
+          email_verified: true,
+          created_at: true,
+          updated_at: true,
+          deleted_at: true
+        }
+      });
+
+      return user ? {
+        ...user,
+        id: user.id.toString()
+      } : null;
+
+    } catch (error) {
+      logger.error('Error finding user by email:', error);
+      return null;
+    }
+  }
+
+  /**
    * Search users
    * @param {Object} searchCriteria - Search criteria
    * @param {Object} pagination - Pagination options
@@ -398,10 +554,18 @@ class UserService {
         role,
         email_verified,
         language_preference,
+        is_donor,
+        is_volunteer,
         has_volunteer_profile,
         has_donor_profile,
+        has_profile_image,
+        phone,
+        email,
+        full_name,
         created_after,
-        created_before
+        created_before,
+        updated_after,
+        updated_before
       } = searchCriteria;
 
       const {
@@ -424,6 +588,18 @@ class UserService {
         ];
       }
 
+      if (full_name) {
+        where.full_name = { contains: full_name };
+      }
+
+      if (email) {
+        where.email = { contains: email };
+      }
+
+      if (phone) {
+        where.phone = { contains: phone };
+      }
+
       if (role) {
         where.role = role;
       }
@@ -434,6 +610,22 @@ class UserService {
 
       if (language_preference) {
         where.language_preference = language_preference;
+      }
+
+      if (is_donor !== undefined) {
+        where.is_donor = is_donor;
+      }
+
+      if (is_volunteer !== undefined) {
+        where.is_volunteer = is_volunteer;
+      }
+
+      if (has_profile_image !== undefined) {
+        if (has_profile_image) {
+          where.profile_image_url = { not: null };
+        } else {
+          where.profile_image_url = null;
+        }
       }
 
       if (has_volunteer_profile !== undefined) {
@@ -463,6 +655,20 @@ class UserService {
         where.created_at = {
           ...where.created_at,
           lte: new Date(created_before)
+        };
+      }
+
+      if (updated_after) {
+        where.updated_at = {
+          ...where.updated_at,
+          gte: new Date(updated_after)
+        };
+      }
+
+      if (updated_before) {
+        where.updated_at = {
+          ...where.updated_at,
+          lte: new Date(updated_before)
         };
       }
 

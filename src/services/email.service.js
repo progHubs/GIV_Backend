@@ -76,15 +76,17 @@ class EmailService {
    */
   async sendVerificationEmail(email, fullName, token) {
     try {
-      const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${token}`;
+      const apiVersion = process.env.API_VERSION || 'v1';
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+      const verificationUrl = `${backendUrl}/api/${apiVersion}/auth/verify-email/${token}`;
       const html = renderTemplate(this.templates.verification, {
         fullName,
         verificationUrl,
         expiryTime: '24 hours',
         year: new Date().getFullYear()
-      }) || `<p>Hello ${fullName},<br>Please verify your email: <a href="${verificationUrl}">${verificationUrl}</a></p>`;
+      }) || `<p>Hello ${fullName},<br>Please verify your email: <a href=\"${verificationUrl}\">${verificationUrl}</a></p>`;
       const subject = 'Verify Your Email - GIV Society Ethiopia';
-      const sendResult = await this.sendWithResend({ to, subject, html });
+      const sendResult = await this.sendWithResend({ to: email, subject, html });
       await this.logEmail({ recipient: email, subject, template_used: 'verification', content: html, status: sendResult.success ? 'sent' : 'failed', error_message: sendResult.error?.message });
       if (!sendResult.success) throw sendResult.error;
       logger.info(`Verification email sent to ${email}`);

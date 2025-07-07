@@ -35,6 +35,74 @@ exports.getEvents = async (req, res) => {
 };
 
 /**
+ * Search events with advanced filtering
+ * @route GET /api/v1/events/search
+ */
+exports.searchEvents = async (req, res) => {
+  try {
+    const searchCriteria = {
+      query: req.query.q,
+      status: req.query.status,
+      event_type: req.query.event_type,
+      location: req.query.location,
+      is_featured: req.query.is_featured === 'true' ? true :
+        req.query.is_featured === 'false' ? false : undefined,
+      is_recurring: req.query.is_recurring === 'true' ? true :
+        req.query.is_recurring === 'false' ? false : undefined,
+      requires_registration: req.query.requires_registration === 'true' ? true :
+        req.query.requires_registration === 'false' ? false : undefined,
+      has_capacity_limit: req.query.has_capacity_limit === 'true' ? true :
+        req.query.has_capacity_limit === 'false' ? false : undefined,
+      min_capacity: req.query.min_capacity,
+      max_capacity: req.query.max_capacity,
+      min_registered: req.query.min_registered,
+      max_registered: req.query.max_registered,
+      start_date_after: req.query.start_date_after,
+      start_date_before: req.query.start_date_before,
+      end_date_after: req.query.end_date_after,
+      end_date_before: req.query.end_date_before,
+      created_after: req.query.created_after,
+      created_before: req.query.created_before,
+      updated_after: req.query.updated_after,
+      updated_before: req.query.updated_before
+    };
+
+    const pagination = {
+      page: parseInt(req.query.page) || 1,
+      limit: Math.min(parseInt(req.query.limit) || 10, 100),
+      sortBy: req.query.sortBy || 'event_date',
+      sortOrder: req.query.sortOrder || 'asc'
+    };
+
+    const lang = req.query.lang || 'en';
+    const result = await eventService.searchEvents(searchCriteria, pagination, lang);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error,
+        code: result.code
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: convertBigIntToString(result.events),
+      pagination: result.pagination,
+      total: result.total
+    });
+
+  } catch (error) {
+    console.error('Error searching events:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+};
+
+/**
  * Get event by ID
  * @route GET /api/v1/events/:id
  */

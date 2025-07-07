@@ -41,6 +41,28 @@ model campaigns {
   @@index([translation_group_id], map: "idx_translation_group")
 }
 
+model comments {
+  id             BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  post_id        BigInt     @db.UnsignedBigInt
+  user_id        BigInt     @db.UnsignedBigInt
+  content        String     @db.Text
+  parent_id      BigInt?    @db.UnsignedBigInt
+  is_approved    Boolean?   @default(true)
+  created_at     DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?  @default(now()) @db.Timestamp(0)
+  deleted_at     DateTime?  @db.Timestamp(0)
+  posts          posts      @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "comments_ibfk_1")
+  users          users      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "comments_ibfk_2")
+  comments       comments?  @relation("commentsTocomments", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "comments_ibfk_3")
+  other_comments comments[] @relation("commentsTocomments")
+
+  @@index([is_approved], map: "idx_approved")
+  @@index([created_at], map: "idx_created_at")
+  @@index([parent_id], map: "idx_parent_id")
+  @@index([post_id], map: "idx_post_id")
+  @@index([user_id], map: "idx_user_id")
+}
+
 model contact_messages {
   id           BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
   name         String                   @db.VarChar(100)
@@ -307,13 +329,13 @@ model posts {
   users                users?          @relation(fields: [author_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "posts_ibfk_1")
 
   @@index([author_id], map: "author_id")
+  @@index([created_at], map: "idx_created_at")
+  @@index([is_featured], map: "idx_featured")
   @@index([language], map: "idx_language")
+  @@index([likes], map: "idx_likes")
   @@index([post_type], map: "idx_post_type")
   @@index([slug], map: "idx_slug")
   @@index([translation_group_id], map: "idx_translation_group")
-  @@index([created_at], map: "idx_created_at")
-  @@index([is_featured], map: "idx_featured")
-  @@index([likes], map: "idx_likes")
   @@index([views], map: "idx_views")
   @@fulltext([title, content], map: "idx_content")
   @@fulltext([tags], map: "idx_tags")
@@ -343,6 +365,15 @@ model programs {
   @@index([start_date, end_date], map: "idx_date_range")
   @@index([language], map: "idx_language")
   @@index([translation_group_id], map: "idx_translation_group")
+}
+
+model revoked_tokens {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  token_hash String    @unique(map: "idx_token_hash") @db.VarChar(128)
+  expires_at DateTime  @db.DateTime(0)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([expires_at], map: "idx_expires_at")
 }
 
 model site_interactions {
@@ -462,37 +493,6 @@ model volunteer_skills {
   @@index([skill_id], map: "skill_id")
 }
 
-model revoked_tokens {
-  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  token_hash String    @unique(map: "idx_token_hash") @db.VarChar(128)
-  expires_at DateTime  @db.DateTime(0)
-  created_at DateTime? @default(now()) @db.Timestamp(0)
-
-  @@index([expires_at], map: "idx_expires_at")
-}
-
-model comments {
-  id             BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
-  post_id        BigInt     @db.UnsignedBigInt
-  user_id        BigInt     @db.UnsignedBigInt
-  content        String     @db.Text
-  parent_id      BigInt?    @db.UnsignedBigInt
-  is_approved    Boolean?   @default(true)
-  created_at     DateTime?  @default(now()) @db.Timestamp(0)
-  updated_at     DateTime?  @default(now()) @db.Timestamp(0)
-  deleted_at     DateTime?  @db.Timestamp(0)
-  posts          posts      @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "comments_ibfk_1")
-  users          users      @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "comments_ibfk_2")
-  comments       comments?  @relation("commentsTocomments", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "comments_ibfk_3")
-  other_comments comments[] @relation("commentsTocomments")
-
-  @@index([is_approved], map: "idx_approved")
-  @@index([created_at], map: "idx_created_at")
-  @@index([parent_id], map: "idx_parent_id")
-  @@index([post_id], map: "idx_post_id")
-  @@index([user_id], map: "idx_user_id")
-}
-
 enum media_media_type {
   image
   video
@@ -548,6 +548,11 @@ enum posts_post_type {
   blog
   news
   press_release
+}
+
+enum users_role {
+  admin
+  user
 }
 
 enum testimonials_type {
@@ -610,11 +615,6 @@ enum partners_language {
   am
 }
 
-enum posts_language {
-  en
-  am
-}
-
 enum media_language {
   en
   am
@@ -643,6 +643,11 @@ enum programs_language {
   am
 }
 
+enum posts_language {
+  en
+  am
+}
+
 enum events_status {
   upcoming
   ongoing
@@ -658,9 +663,4 @@ enum campaigns_language {
 enum events_language {
   en
   am
-}
-
-enum users_role {
-  admin
-  user
 }
