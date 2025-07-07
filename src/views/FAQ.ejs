@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FAQ API Test Page</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { padding: 2rem; }
+    .debug-panel { background: #f8f9fa; border: 1px solid #dee2e6; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; }
+    .spinner-border { width: 1.5rem; height: 1.5rem; }
+    .form-section { margin-bottom: 2rem; }
+    pre { background: #f1f1f1; padding: 1rem; border-radius: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Navigation Header -->
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <h1 class="mb-2">FAQ API Test Page</h1>
+        <p class="text-muted mb-0">Test all FAQ endpoints. API base: <code>/api/v1/faqs</code></p>
+      </div>
+      <div class="col-md-4 text-end">
+        <div id="authStatus" class="mb-2">
+          <span class="badge bg-secondary">Not Authenticated</span>
+        </div>
+        <div id="navButtons">
+          <a href="/auth" class="btn btn-outline-primary btn-sm me-2">
+            <i class="fas fa-sign-in-alt"></i> Login
+          </a>
+          <a href="/test/post" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-file-alt"></i> Post Testing
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREATE FAQ -->
+    <div class="form-section">
+      <h3>Create FAQ</h3>
+      <form id="createFAQForm">
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label">Question</label>
+            <input type="text" class="form-control" name="question" value="What is GIV Society and what does it do?" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Answer</label>
+            <input type="text" class="form-control" name="answer" value="GIV Society is a non-profit organization dedicated to empowering communities through volunteering, donations, and impactful programs. We connect volunteers and donors to causes that matter." required>
+          </div>
+        </div>
+        <div class="row g-2 mt-2">
+          <div class="col-md-3">
+            <label class="form-label">Category</label>
+            <input type="text" class="form-control" name="category" value="General">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Language</label>
+            <select class="form-select" name="language">
+              <option value="en" selected>en</option>
+              <option value="am">am</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Is Active</label>
+            <select class="form-select" name="is_active">
+              <option value="true" selected>true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Sort Order</label>
+            <input type="number" class="form-control" name="sort_order" value="1">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Create FAQ</button>
+        <span id="createFAQSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="createFAQDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- UPDATE FAQ -->
+    <div class="form-section">
+      <h3>Update FAQ</h3>
+      <form id="updateFAQForm">
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label">FAQ ID</label>
+            <input type="number" class="form-control" name="id" required>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">Question (optional)</label>
+            <input type="text" class="form-control" name="question">
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">Answer (optional)</label>
+            <input type="text" class="form-control" name="answer">
+          </div>
+        </div>
+        <div class="row g-2 mt-2">
+          <div class="col-md-3">
+            <label class="form-label">Category</label>
+            <input type="text" class="form-control" name="category">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Language</label>
+            <select class="form-select" name="language">
+              <option value="">(no change)</option>
+              <option value="en">en</option>
+              <option value="am">am</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Is Active</label>
+            <select class="form-select" name="is_active">
+              <option value="">(no change)</option>
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Sort Order</label>
+            <input type="number" class="form-control" name="sort_order">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-warning mt-3">Update FAQ</button>
+        <span id="updateFAQSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="updateFAQDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- DELETE FAQ -->
+    <div class="form-section">
+      <h3>Delete FAQ</h3>
+      <form id="deleteFAQForm">
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label">FAQ ID</label>
+            <input type="number" class="form-control" name="id" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-danger mt-3">Delete FAQ</button>
+        <span id="deleteFAQSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="deleteFAQDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- GET FAQ BY ID -->
+    <div class="form-section">
+      <h3>Get FAQ by ID</h3>
+      <form id="getFAQByIdForm">
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label">FAQ ID</label>
+            <input type="number" class="form-control" name="id" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-info mt-3">Get FAQ</button>
+        <span id="getFAQByIdSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="getFAQByIdDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- GET ALL FAQs -->
+    <div class="form-section">
+      <h3>Get All FAQs</h3>
+      <form id="getAllFAQsForm">
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label">Page</label>
+            <input type="number" class="form-control" name="page" value="1">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Limit</label>
+            <input type="number" class="form-control" name="limit" value="10">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Category</label>
+            <input type="text" class="form-control" name="category">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Language</label>
+            <select class="form-select" name="language">
+              <option value="">(all)</option>
+              <option value="en">en</option>
+              <option value="am">am</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Is Active</label>
+            <select class="form-select" name="is_active">
+              <option value="">(all)</option>
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success mt-3">Get FAQs</button>
+        <span id="getAllFAQsSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="getAllFAQsDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- SEARCH FAQs -->
+    <div class="form-section">
+      <h3>Search FAQs</h3>
+      <form id="searchFAQsForm">
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label">Query</label>
+            <input type="text" class="form-control" name="q" value="GIV Society">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Page</label>
+            <input type="number" class="form-control" name="page" value="1">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Limit</label>
+            <input type="number" class="form-control" name="limit" value="10">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Category</label>
+            <input type="text" class="form-control" name="category">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Language</label>
+            <select class="form-select" name="language">
+              <option value="">(all)</option>
+              <option value="en">en</option>
+              <option value="am">am</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-secondary mt-3">Search FAQs</button>
+        <span id="searchFAQsSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="searchFAQsDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- GET FAQS BY CATEGORY -->
+    <div class="form-section">
+      <h3>Get FAQs by Category</h3>
+      <form id="getFAQsByCategoryForm">
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label">Category</label>
+            <input type="text" class="form-control" name="category" value="General">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Page</label>
+            <input type="number" class="form-control" name="page" value="1">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Limit</label>
+            <input type="number" class="form-control" name="limit" value="10">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Language</label>
+            <select class="form-select" name="language">
+              <option value="">(all)</option>
+              <option value="en">en</option>
+              <option value="am">am</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-dark mt-3">Get by Category</button>
+        <span id="getFAQsByCategorySpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="getFAQsByCategoryDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- GET FAQ CATEGORIES -->
+    <div class="form-section">
+      <h3>Get FAQ Categories</h3>
+      <form id="getFAQCategoriesForm">
+        <button type="submit" class="btn btn-outline-primary">Get Categories</button>
+        <span id="getFAQCategoriesSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="getFAQCategoriesDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- BULK SORT ORDER -->
+    <div class="form-section">
+      <h3>Bulk Update FAQ Sort Order</h3>
+      <form id="bulkSortFAQForm">
+        <div class="mb-2">
+          <label class="form-label">Sort Data (JSON array: [{"id":1,"sort_order":2},...])</label>
+          <textarea class="form-control" name="sortData" rows="2" placeholder='[{"id":1,"sort_order":2}]'></textarea>
+        </div>
+        <button type="submit" class="btn btn-outline-warning">Bulk Update Sort</button>
+        <span id="bulkSortFAQSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="bulkSortFAQDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- TOGGLE FAQ VISIBILITY -->
+    <div class="form-section">
+      <h3>Toggle FAQ Visibility</h3>
+      <form id="toggleFAQVisibilityForm">
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label">FAQ ID</label>
+            <input type="number" class="form-control" name="id" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-outline-secondary mt-3">Toggle Visibility</button>
+        <span id="toggleFAQVisibilitySpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="toggleFAQVisibilityDebug" class="debug-panel d-none"></div>
+    </div>
+
+    <!-- GET RECENT FAQs -->
+    <div class="form-section">
+      <h3>Get Recent FAQs</h3>
+      <form id="getRecentFAQsForm">
+        <div class="row g-2">
+          <div class="col-md-2">
+            <label class="form-label">Limit</label>
+            <input type="number" class="form-control" name="limit" value="5" min="1" max="50">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-outline-info mt-3">Get Recent</button>
+        <span id="getRecentFAQsSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </form>
+      <div id="getRecentFAQsDebug" class="debug-panel d-none"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const apiBase = '/api/v1/faqs';
+
+    // Helper to show debug info
+    function showDebug(id, req, res, status, error) {
+      const panel = document.getElementById(id);
+      panel.classList.remove('d-none');
+      panel.innerHTML =
+        `<b>Status:</b> ${status}<br>` +
+        (error ? `<b style='color:red'>Error:</b> ${error}<br>` : '') +
+        `<b>Request:</b> <pre>${JSON.stringify(req, null, 2)}</pre>` +
+        `<b>Response:</b> <pre>${JSON.stringify(res, null, 2)}</pre>`;
+    }
+    function hideDebug(id) {
+      document.getElementById(id).classList.add('d-none');
+    }
+    function showSpinner(id) {
+      document.getElementById(id).classList.remove('d-none');
+    }
+    function hideSpinner(id) {
+      document.getElementById(id).classList.add('d-none');
+    }
+
+    // CREATE FAQ
+    document.getElementById('createFAQForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('createFAQDebug');
+      showSpinner('createFAQSpinner');
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form));
+      data.is_active = data.is_active === 'true';
+      data.sort_order = parseInt(data.sort_order);
+      try {
+        const res = await fetch(apiBase, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        showDebug('createFAQDebug', data, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('createFAQDebug', data, {}, 'ERR', err.message);
+      }
+      hideSpinner('createFAQSpinner');
+    };
+
+    // UPDATE FAQ
+    document.getElementById('updateFAQForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('updateFAQDebug');
+      showSpinner('updateFAQSpinner');
+      const form = e.target;
+      const id = form.id.value;
+      const data = Object.fromEntries(new FormData(form));
+      delete data.id;
+      if (data.is_active === '') delete data.is_active;
+      else if (data.is_active !== undefined) data.is_active = data.is_active === 'true';
+      if (data.sort_order === '') delete data.sort_order;
+      else if (data.sort_order !== undefined) data.sort_order = parseInt(data.sort_order);
+      if (data.language === '') delete data.language;
+      if (data.category === '') delete data.category;
+      if (data.question === '') delete data.question;
+      if (data.answer === '') delete data.answer;
+      try {
+        const res = await fetch(`${apiBase}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        showDebug('updateFAQDebug', {id, ...data}, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('updateFAQDebug', {id, ...data}, {}, 'ERR', err.message);
+      }
+      hideSpinner('updateFAQSpinner');
+    };
+
+    // DELETE FAQ
+    document.getElementById('deleteFAQForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('deleteFAQDebug');
+      showSpinner('deleteFAQSpinner');
+      const id = e.target.id.value;
+      try {
+        const res = await fetch(`${apiBase}/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        showDebug('deleteFAQDebug', {id}, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('deleteFAQDebug', {id}, {}, 'ERR', err.message);
+      }
+      hideSpinner('deleteFAQSpinner');
+    };
+
+    // GET FAQ BY ID
+    document.getElementById('getFAQByIdForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('getFAQByIdDebug');
+      showSpinner('getFAQByIdSpinner');
+      const id = e.target.id.value;
+      try {
+        const res = await fetch(`${apiBase}/id/${id}`);
+        const json = await res.json();
+        showDebug('getFAQByIdDebug', {id}, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('getFAQByIdDebug', {id}, {}, 'ERR', err.message);
+      }
+      hideSpinner('getFAQByIdSpinner');
+    };
+
+    // GET ALL FAQs
+    document.getElementById('getAllFAQsForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('getAllFAQsDebug');
+      showSpinner('getAllFAQsSpinner');
+      const form = e.target;
+      const params = new URLSearchParams(Object.fromEntries(new FormData(form)));
+      try {
+        const res = await fetch(`${apiBase}?${params}`);
+        const json = await res.json();
+        showDebug('getAllFAQsDebug', Object.fromEntries(new FormData(form)), json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('getAllFAQsDebug', Object.fromEntries(new FormData(form)), {}, 'ERR', err.message);
+      }
+      hideSpinner('getAllFAQsSpinner');
+    };
+
+    // SEARCH FAQs
+    document.getElementById('searchFAQsForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('searchFAQsDebug');
+      showSpinner('searchFAQsSpinner');
+      const form = e.target;
+      const params = new URLSearchParams(Object.fromEntries(new FormData(form)));
+      try {
+        const res = await fetch(`${apiBase}/search?${params}`);
+        const json = await res.json();
+        showDebug('searchFAQsDebug', Object.fromEntries(new FormData(form)), json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('searchFAQsDebug', Object.fromEntries(new FormData(form)), {}, 'ERR', err.message);
+      }
+      hideSpinner('searchFAQsSpinner');
+    };
+
+    // GET FAQS BY CATEGORY
+    document.getElementById('getFAQsByCategoryForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('getFAQsByCategoryDebug');
+      showSpinner('getFAQsByCategorySpinner');
+      const form = e.target;
+      const category = form.category.value;
+      const params = new URLSearchParams({
+        page: form.page.value,
+        limit: form.limit.value,
+        language: form.language.value
+      });
+      try {
+        const res = await fetch(`${apiBase}/category/${encodeURIComponent(category)}?${params}`);
+        const json = await res.json();
+        showDebug('getFAQsByCategoryDebug', {category, page: form.page.value, limit: form.limit.value, language: form.language.value}, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('getFAQsByCategoryDebug', {category, page: form.page.value, limit: form.limit.value, language: form.language.value}, {}, 'ERR', err.message);
+      }
+      hideSpinner('getFAQsByCategorySpinner');
+    };
+
+    // GET FAQ CATEGORIES
+    document.getElementById('getFAQCategoriesForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('getFAQCategoriesDebug');
+      showSpinner('getFAQCategoriesSpinner');
+      try {
+        const res = await fetch(`${apiBase}/categories`);
+        const json = await res.json();
+        showDebug('getFAQCategoriesDebug', {}, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('getFAQCategoriesDebug', {}, {}, 'ERR', err.message);
+      }
+      hideSpinner('getFAQCategoriesSpinner');
+    };
+
+    // BULK SORT ORDER
+    document.getElementById('bulkSortFAQForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('bulkSortFAQDebug');
+      showSpinner('bulkSortFAQSpinner');
+      const form = e.target;
+      let sortData;
+      try {
+        sortData = JSON.parse(form.sortData.value);
+      } catch (err) {
+        showDebug('bulkSortFAQDebug', {sortData: form.sortData.value}, {}, 'ERR', 'Invalid JSON: ' + err.message);
+        hideSpinner('bulkSortFAQSpinner');
+        return;
+      }
+      try {
+        const res = await fetch(`${apiBase}/sort/bulk`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sortData })
+        });
+        const json = await res.json();
+        showDebug('bulkSortFAQDebug', {sortData}, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('bulkSortFAQDebug', {sortData}, {}, 'ERR', err.message);
+      }
+      hideSpinner('bulkSortFAQSpinner');
+    };
+
+    // TOGGLE FAQ VISIBILITY
+    document.getElementById('toggleFAQVisibilityForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('toggleFAQVisibilityDebug');
+      showSpinner('toggleFAQVisibilitySpinner');
+      const id = e.target.id.value;
+      try {
+        const res = await fetch(`${apiBase}/${id}/toggle-visibility`, {
+          method: 'PATCH',
+        });
+        const json = await res.json();
+        showDebug('toggleFAQVisibilityDebug', {id}, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('toggleFAQVisibilityDebug', {id}, {}, 'ERR', err.message);
+      }
+      hideSpinner('toggleFAQVisibilitySpinner');
+    };
+
+    // GET RECENT FAQs
+    document.getElementById('getRecentFAQsForm').onsubmit = async function(e) {
+      e.preventDefault();
+      hideDebug('getRecentFAQsDebug');
+      showSpinner('getRecentFAQsSpinner');
+      const limit = e.target.limit.value;
+      const params = new URLSearchParams();
+      if (limit) params.append('limit', limit);
+      try {
+        const res = await fetch(`${apiBase}/recent?${params}`);
+        const json = await res.json();
+        showDebug('getRecentFAQsDebug', {limit}, json, res.status, !res.ok ? json.error : null);
+      } catch (err) {
+        showDebug('getRecentFAQsDebug', {limit}, {}, 'ERR', err.message);
+      }
+      hideSpinner('getRecentFAQsSpinner');
+    };
+
+    // Authentication status check
+    async function checkAuthStatus() {
+      try {
+        const response = await fetch('/api/v1/auth/me', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include' // Include cookies for authentication
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // User is authenticated
+          document.getElementById('authStatus').innerHTML = `
+            <span class="badge bg-success">Authenticated as ${result.user.full_name}</span>
+          `;
+          document.getElementById('navButtons').innerHTML = `
+            <a href="/auth" class="btn btn-outline-primary btn-sm me-2">
+              <i class="fas fa-user"></i> Profile
+            </a>
+            <a href="/test/post" class="btn btn-outline-success btn-sm me-2">
+              <i class="fas fa-file-alt"></i> Post Testing
+            </a>
+            <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+          `;
+        } else {
+          // User is not authenticated
+          document.getElementById('authStatus').innerHTML = `
+            <span class="badge bg-secondary">Not Authenticated</span>
+          `;
+          document.getElementById('navButtons').innerHTML = `
+            <a href="/auth" class="btn btn-outline-primary btn-sm me-2">
+              <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            <a href="/test/post" class="btn btn-outline-success btn-sm">
+              <i class="fas fa-file-alt"></i> Post Testing
+            </a>
+          `;
+        }
+      } catch (error) {
+        console.log('Auth check failed:', error);
+        // Keep default state (not authenticated)
+      }
+    }
+
+    // Logout function
+    async function logout() {
+      try {
+        const response = await fetch('/api/v1/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include' // Include cookies for authentication
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Refresh the page to update auth status
+          window.location.reload();
+        } else {
+          alert('Logout failed');
+        }
+      } catch (error) {
+        alert('Logout failed: ' + error.message);
+      }
+    }
+
+    // Check auth status on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuthStatus();
+    });
+  </script>
+</body>
+</html>

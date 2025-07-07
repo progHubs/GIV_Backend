@@ -1,16 +1,20 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const userController = require('../controllers/user.controller');
-const { authenticateToken, requireAdmin } = require('../../middlewares/auth.middleware');
-const { userUpdateValidation } = require('../validators/user.validator');
-const { generalLimiter } = require('../../middlewares/rate-limit.middleware');
+const userController = require("../controllers/user.controller");
+const {
+  authenticateToken,
+  requireAdmin,
+} = require("../../middlewares/auth.middleware");
+const { userUpdateValidation } = require("../validators/user.validator");
+const { generalLimiter } = require("../../middlewares/rate-limit.middleware");
 
 /**
  * @route   GET /api/users
  * @desc    Get all users (admin only)
  * @access  Private (Admin)
  */
-router.get('/', 
+router.get(
+  "/",
   authenticateToken,
   requireAdmin,
   generalLimiter,
@@ -22,7 +26,8 @@ router.get('/',
  * @desc    Get current user profile
  * @access  Private
  */
-router.get('/me',
+router.get(
+  "/me",
   authenticateToken,
   generalLimiter,
   userController.getCurrentUser
@@ -33,7 +38,8 @@ router.get('/me',
  * @desc    Search users
  * @access  Private (Admin)
  */
-router.get('/search',
+router.get(
+  "/search",
   authenticateToken,
   requireAdmin,
   generalLimiter,
@@ -45,7 +51,8 @@ router.get('/search',
  * @desc    Get user statistics (admin only)
  * @access  Private (Admin)
  */
-router.get('/stats',
+router.get(
+  "/stats",
   authenticateToken,
   requireAdmin,
   generalLimiter,
@@ -57,7 +64,8 @@ router.get('/stats',
  * @desc    Get user by ID
  * @access  Private (Admin or own profile)
  */
-router.get('/:id',
+router.get(
+  "/:id",
   authenticateToken,
   generalLimiter,
   userController.getUserById
@@ -68,7 +76,8 @@ router.get('/:id',
  * @desc    Update current user profile
  * @access  Private
  */
-router.put('/me',
+router.put(
+  "/me",
   authenticateToken,
   generalLimiter,
   userUpdateValidation,
@@ -80,7 +89,8 @@ router.put('/me',
  * @desc    Update user profile (admin or own profile)
  * @access  Private (Admin or own profile)
  */
-router.put('/:id',
+router.put(
+  "/:id",
   authenticateToken,
   generalLimiter,
   userUpdateValidation,
@@ -92,11 +102,12 @@ router.put('/:id',
  * @desc    Delete user (admin only)
  * @access  Private (Admin)
  */
-router.delete('/:id',
+router.delete(
+  "/:id",
   authenticateToken,
   requireAdmin,
   generalLimiter,
   userController.deleteUser
 );
 
-module.exports = router; 
+module.exports = router;

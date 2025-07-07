@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Post API Testing</title>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Custom CSS -->
+    <style>
+      .response-box {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 10px 0;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .form-section {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .spinner-border {
+        display: none;
+        width: 1rem;
+        height: 1rem;
+        margin-right: 0.5rem;
+      }
+      .btn.loading .spinner-border {
+        display: inline-block;
+      }
+      .btn.loading .btn-text {
+        display: none;
+      }
+      .debug-info {
+        font-family: monospace;
+        font-size: 0.9em;
+        color: #6c757d;
+        margin-top: 10px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-left: 3px solid #17a2b8;
+      }
+      .error-message {
+        color: #dc3545;
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .success-message {
+        color: #28a745;
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .nav-tabs .nav-link {
+        color: #495057;
+        border: none;
+        border-bottom: 2px solid transparent;
+      }
+      .nav-tabs .nav-link.active {
+        color: #007bff;
+        border-bottom: 2px solid #007bff;
+        background: none;
+      }
+      .tab-content {
+        padding: 20px 0;
+      }
+      .section-container {
+        display: none;
+      }
+      .section-container.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <!-- Navigation Header -->
+      <div class="row mb-4">
+        <div class="col-md-8">
+          <h1 class="mb-2">Post API Testing Interface</h1>
+          <p class="text-muted mb-0">
+            Test all Post endpoints with authentication
+          </p>
+        </div>
+        <div class="col-md-4 text-end">
+          <div id="authStatus" class="mb-2">
+            <span class="badge bg-secondary">Not Authenticated</span>
+          </div>
+          <div id="navButtons">
+            <a href="/auth" class="btn btn-outline-primary btn-sm me-2">
+              <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            <a href="/test/faq" class="btn btn-outline-info btn-sm">
+              <i class="fas fa-question-circle"></i> FAQ Testing
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <ul class="nav nav-tabs mb-4" id="postTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link active"
+            id="create-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#create"
+            type="button"
+            role="tab"
+          >
+            Create Post
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="get-all-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#get-all"
+            type="button"
+            role="tab"
+          >
+            Get All Posts
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="get-by-id-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#get-by-id"
+            type="button"
+            role="tab"
+          >
+            Get by ID
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="get-by-slug-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#get-by-slug"
+            type="button"
+            role="tab"
+          >
+            Get by Slug
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="update-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#update"
+            type="button"
+            role="tab"
+          >
+            Update Post
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="delete-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#delete"
+            type="button"
+            role="tab"
+          >
+            Delete Post
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="search-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#search"
+            type="button"
+            role="tab"
+          >
+            Search Posts
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="query-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#query"
+            type="button"
+            role="tab"
+          >
+            Advanced Query
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="featured-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#featured"
+            type="button"
+            role="tab"
+          >
+            Featured Posts
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="by-author-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#by-author"
+            type="button"
+            role="tab"
+          >
+            By Author
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="by-tag-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#by-tag"
+            type="button"
+            role="tab"
+          >
+            By Tag
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="by-type-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#by-type"
+            type="button"
+            role="tab"
+          >
+            By Type
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="related-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#related"
+            type="button"
+            role="tab"
+          >
+            Related Posts
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="views-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#views"
+            type="button"
+            role="tab"
+          >
+            Increment Views
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="like-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#like"
+            type="button"
+            role="tab"
+          >
+            Like/Unlike
+          </button>
+        </li>
+      </ul>
+
+      <!-- Tab Content -->
+      <div class="tab-content" id="postTabContent">
+        <!-- Create Post Tab -->
+        <div class="tab-pane fade show active" id="create" role="tabpanel">
+          <%- include('./routes/create-post') %>
+        </div>
+
+        <!-- Get All Posts Tab -->
+        <div class="tab-pane fade" id="get-all" role="tabpanel">
+          <%- include('./routes/get-posts') %>
+        </div>
+
+        <!-- Get by ID Tab -->
+        <div class="tab-pane fade" id="get-by-id" role="tabpanel">
+          <%- include('./routes/get-post-by-id') %>
+        </div>
+
+        <!-- Get by Slug Tab -->
+        <div class="tab-pane fade" id="get-by-slug" role="tabpanel">
+          <%- include('./routes/get-post-by-slug') %>
+        </div>
+
+        <!-- Update Post Tab -->
+        <div class="tab-pane fade" id="update" role="tabpanel">
+          <%- include('./routes/update-post') %>
+        </div>
+
+        <!-- Delete Post Tab -->
+        <div class="tab-pane fade" id="delete" role="tabpanel">
+          <%- include('./routes/delete-post') %>
+        </div>
+
+        <!-- Search Posts Tab -->
+        <div class="tab-pane fade" id="search" role="tabpanel">
+          <%- include('./routes/search-posts') %>
+        </div>
+
+        <!-- Query Posts Tab -->
+        <div class="tab-pane fade" id="query" role="tabpanel">
+          <%- include('./routes/query-posts') %>
+        </div>
+
+        <!-- Featured Posts Tab -->
+        <div class="tab-pane fade" id="featured" role="tabpanel">
+          <div class="form-section">
+            <button id="btn-featured-posts" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Featured Posts</span>
+            </button>
+            <div id="response-featured" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- By Author Tab -->
+        <div class="tab-pane fade" id="by-author" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-author-id"
+              class="form-control mb-2"
+              placeholder="Author User ID"
+            />
+            <button id="btn-by-author" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Posts by Author</span>
+            </button>
+            <div id="response-by-author" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- By Tag Tab -->
+        <div class="tab-pane fade" id="by-tag" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-tag"
+              class="form-control mb-2"
+              placeholder="Tag (e.g. news)"
+            />
+            <button id="btn-by-tag" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Posts by Tag</span>
+            </button>
+            <div id="response-by-tag" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- By Type Tab -->
+        <div class="tab-pane fade" id="by-type" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-type"
+              class="form-control mb-2"
+              placeholder="Type (e.g. blog, news)"
+            />
+            <button id="btn-by-type" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Posts by Type</span>
+            </button>
+            <div id="response-by-type" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- Related Posts Tab -->
+        <div class="tab-pane fade" id="related" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-related-id"
+              class="form-control mb-2"
+              placeholder="Post ID"
+            />
+            <button id="btn-related" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Related Posts</span>
+            </button>
+            <div id="response-related" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- Increment Views Tab -->
+        <div class="tab-pane fade" id="views" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-views-id"
+              class="form-control mb-2"
+              placeholder="Post ID"
+            />
+            <button id="btn-views" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Increment Views</span>
+            </button>
+            <div id="response-views" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- Like/Unlike Tab -->
+        <div class="tab-pane fade" id="like" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-like-id"
+              class="form-control mb-2"
+              placeholder="Post ID"
+            />
+            <button id="btn-like" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Like/Unlike Post</span>
+            </button>
+            <div id="response-like" class="response-box"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- State Management and Utilities -->
+    <script>
+      // Global state management
+      const AppState = {
+        currentTab: "create",
+        apiBaseUrl: "/api/v1/posts",
+        isLoading: false,
+        lastResponse: null,
+        debugMode: false,
+      };
+
+      // API Base URL
+      const API_BASE_URL = AppState.apiBaseUrl;
+
+      // Enhanced debug logging with more detailed error information
+      function logDebug(elementId, message, data = null) {
+        if (!AppState.debugMode) return;
+
+        const debugElement = document.getElementById(elementId);
+        if (!debugElement) return;
+
+        const timestamp = new Date().toLocaleTimeString();
+        let debugMessage = `[${timestamp}] ${message}`;
+        if (data) {
+          debugMessage += "\n" + JSON.stringify(data, null, 2);
+        }
+        debugElement.innerHTML = `<pre>${debugMessage}</pre>`;
+        debugElement.style.display = "block";
+        console.log(`[${timestamp}]`, message, data);
+      }
+
+      // Enhanced error logging function
+      async function logDetailedError(
+        debugElementId,
+        error,
+        response = null,
+        requestData = null
+      ) {
+        if (!AppState.debugMode) return;
+
+        const timestamp = new Date().toLocaleTimeString();
+        let errorDetails = {
+          timestamp: timestamp,
+          error: {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+          },
+        };
+
+        if (response) {
+          errorDetails.response = {
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url,
+            headers: Object.fromEntries(response.headers.entries()),
+          };
+        }
+
+        if (requestData) {
+          errorDetails.request = requestData;
+        }
+
+        // Try to get response body for more details
+        if (response) {
+          try {
+            const responseText = await response.text();
+            errorDetails.responseBody = responseText;
+
+            // Try to parse as JSON
+            try {
+              const responseJson = JSON.parse(responseText);
+              errorDetails.responseJson = responseJson;
+            } catch (parseError) {
+              errorDetails.responseText = responseText;
+            }
+          } catch (textError) {
+            errorDetails.responseTextError = textError.message;
+          }
+        }
+
+        logDebug(debugElementId, "DETAILED ERROR INFORMATION:", errorDetails);
+        console.error("DETAILED ERROR:", errorDetails);
+      }
+
+      // Enhanced response display with formatting
+      function displayResponse(elementId, data, isError = false) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        let formattedResponse = "";
+
+        if (isError) {
+          formattedResponse = `<div class="error-message">
+            <strong>Error:</strong><br>
+            ${JSON.stringify(data, null, 2)}
+          </div>`;
+        } else {
+          if (data.success) {
+            formattedResponse = `<div class="success-message">
+              <strong>Success!</strong>
+            </div>`;
+          }
+          formattedResponse += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        element.innerHTML = formattedResponse;
+        AppState.lastResponse = data;
+      }
+
+      // Helper function to set button loading state
+      function setButtonLoading(button, isLoading) {
+        if (!button) return;
+
+        if (isLoading) {
+          button.classList.add("loading");
+          button.disabled = true;
+          const btnText = button.querySelector(".btn-text");
+          const loadingText = button.querySelector(".loading-text");
+          if (btnText) btnText.style.display = "none";
+          if (loadingText) loadingText.style.display = "inline";
+        } else {
+          button.classList.remove("loading");
+          button.disabled = false;
+          const btnText = button.querySelector(".btn-text");
+          const loadingText = button.querySelector(".loading-text");
+          if (btnText) btnText.style.display = "inline";
+          if (loadingText) loadingText.style.display = "none";
+        }
+      }
+
+      // Tab management
+      function switchTab(tabId) {
+        AppState.currentTab = tabId;
+
+        // Update active tab
+        document.querySelectorAll(".nav-link").forEach((link) => {
+          link.classList.remove("active");
+        });
+        document
+          .querySelector(`[data-bs-target="#${tabId}"]`)
+          .classList.add("active");
+
+        // Update active content
+        document.querySelectorAll(".tab-pane").forEach((pane) => {
+          pane.classList.remove("show", "active");
+        });
+        document.getElementById(tabId).classList.add("show", "active");
+
+        // Clear previous responses
+        clearAllResponses();
+      }
+
+      // Clear all response boxes
+      function clearAllResponses() {
+        const responseBoxes = document.querySelectorAll(".response-box");
+        responseBoxes.forEach((box) => {
+          box.innerHTML = "";
+        });
+
+        const debugBoxes = document.querySelectorAll(".debug-info");
+        debugBoxes.forEach((box) => {
+          box.style.display = "none";
+        });
+      }
+
+      // Initialize the application
+      document.addEventListener("DOMContentLoaded", function () {
+        // Set up tab event listeners
+        document.querySelectorAll(".nav-link").forEach((link) => {
+          link.addEventListener("click", function (e) {
+            const target = this.getAttribute("data-bs-target");
+            const tabId = target.replace("#", "");
+            switchTab(tabId);
+          });
+        });
+
+        // Add debug mode toggle
+        const debugToggle = document.createElement("button");
+        debugToggle.className =
+          "btn btn-outline-secondary btn-sm position-fixed";
+        debugToggle.style.cssText = "top: 20px; right: 20px; z-index: 1000;";
+        debugToggle.textContent = "Debug: OFF";
+        debugToggle.onclick = function () {
+          AppState.debugMode = !AppState.debugMode;
+          this.textContent = `Debug: ${AppState.debugMode ? "ON" : "OFF"}`;
+          this.className = AppState.debugMode
+            ? "btn btn-warning btn-sm position-fixed"
+            : "btn btn-outline-secondary btn-sm position-fixed";
+        };
+        document.body.appendChild(debugToggle);
+
+        console.log("Post API Testing Interface initialized");
+      });
+
+      // Global error handler
+      window.addEventListener("error", function (e) {
+        console.error("Global error:", e.error);
+        if (AppState.debugMode) {
+          alert(`Error: ${e.error.message}`);
+        }
+      });
+
+      // Authentication status check
+      async function checkAuthStatus() {
+        try {
+          const response = await fetch("/api/v1/auth/me", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include", // Include cookies for authentication
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // User is authenticated
+            document.getElementById("authStatus").innerHTML = `
+              <span class="badge bg-success">Authenticated as ${result.user.full_name}</span>
+            `;
+            document.getElementById("navButtons").innerHTML = `
+              <a href="/auth" class="btn btn-outline-primary btn-sm me-2">
+                <i class="fas fa-user"></i> Profile
+              </a>
+              <a href="/test/faq" class="btn btn-outline-info btn-sm me-2">
+                <i class="fas fa-question-circle"></i> FAQ Testing
+              </a>
+              <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </button>
+            `;
+          } else {
+            // User is not authenticated
+            document.getElementById("authStatus").innerHTML = `
+              <span class="badge bg-secondary">Not Authenticated</span>
+            `;
+            document.getElementById("navButtons").innerHTML = `
+              <a href="/auth" class="btn btn-outline-primary btn-sm me-2">
+                <i class="fas fa-sign-in-alt"></i> Login
+              </a>
+              <a href="/test/faq" class="btn btn-outline-info btn-sm">
+                <i class="fas fa-question-circle"></i> FAQ Testing
+              </a>
+            `;
+          }
+        } catch (error) {
+          console.log("Auth check failed:", error);
+          // Keep default state (not authenticated)
+        }
+      }
+
+      // Logout function
+      async function logout() {
+        try {
+          const response = await fetch("/api/v1/auth/logout", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include", // Include cookies for authentication
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Refresh the page to update auth status
+            window.location.reload();
+          } else {
+            alert("Logout failed");
+          }
+        } catch (error) {
+          alert("Logout failed: " + error.message);
+        }
+      }
+
+      // Check auth status on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        checkAuthStatus();
+      });
+
+      // Add JS handlers for advanced post routes
+      // Featured Posts
+      const btnFeatured = document.getElementById("btn-featured-posts");
+      if (btnFeatured) {
+        btnFeatured.addEventListener("click", async function () {
+          setButtonLoading(btnFeatured, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/featured/all`);
+            const data = await res.json();
+            displayResponse("response-featured", data, !data.success);
+          } catch (e) {
+            displayResponse("response-featured", e, true);
+          } finally {
+            setButtonLoading(btnFeatured, false);
+          }
+        });
+      }
+      // By Author
+      const btnByAuthor = document.getElementById("btn-by-author");
+      if (btnByAuthor) {
+        btnByAuthor.addEventListener("click", async function () {
+          const userId = document.getElementById("input-author-id").value;
+          setButtonLoading(btnByAuthor, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/author/${userId}`);
+            const data = await res.json();
+            displayResponse("response-by-author", data, !data.success);
+          } catch (e) {
+            displayResponse("response-by-author", e, true);
+          } finally {
+            setButtonLoading(btnByAuthor, false);
+          }
+        });
+      }
+      // By Tag
+      const btnByTag = document.getElementById("btn-by-tag");
+      if (btnByTag) {
+        btnByTag.addEventListener("click", async function () {
+          const tag = document.getElementById("input-tag").value;
+          setButtonLoading(btnByTag, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/tag/${tag}`);
+            const data = await res.json();
+            displayResponse("response-by-tag", data, !data.success);
+          } catch (e) {
+            displayResponse("response-by-tag", e, true);
+          } finally {
+            setButtonLoading(btnByTag, false);
+          }
+        });
+      }
+      // By Type
+      const btnByType = document.getElementById("btn-by-type");
+      if (btnByType) {
+        btnByType.addEventListener("click", async function () {
+          const type = document.getElementById("input-type").value;
+          setButtonLoading(btnByType, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/type/${type}`);
+            const data = await res.json();
+            displayResponse("response-by-type", data, !data.success);
+          } catch (e) {
+            displayResponse("response-by-type", e, true);
+          } finally {
+            setButtonLoading(btnByType, false);
+          }
+        });
+      }
+      // Related Posts
+      const btnRelated = document.getElementById("btn-related");
+      if (btnRelated) {
+        btnRelated.addEventListener("click", async function () {
+          const postId = document.getElementById("input-related-id").value;
+          setButtonLoading(btnRelated, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/id/${postId}/related`);
+            const data = await res.json();
+            displayResponse("response-related", data, !data.success);
+          } catch (e) {
+            displayResponse("response-related", e, true);
+          } finally {
+            setButtonLoading(btnRelated, false);
+          }
+        });
+      }
+      // Increment Views
+      const btnViews = document.getElementById("btn-views");
+      if (btnViews) {
+        btnViews.addEventListener("click", async function () {
+          const postId = document.getElementById("input-views-id").value;
+          setButtonLoading(btnViews, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/id/${postId}/view`, {
+              method: "POST",
+            });
+            const data = await res.json();
+            displayResponse("response-views", data, !data.success);
+          } catch (e) {
+            displayResponse("response-views", e, true);
+          } finally {
+            setButtonLoading(btnViews, false);
+          }
+        });
+      }
+      // Like/Unlike
+      const btnLike = document.getElementById("btn-like");
+      if (btnLike) {
+        btnLike.addEventListener("click", async function () {
+          const postId = document.getElementById("input-like-id").value;
+          setButtonLoading(btnLike, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/id/${postId}/like`, {
+              method: "POST",
+            });
+            const data = await res.json();
+            displayResponse("response-like", data, !data.success);
+          } catch (e) {
+            displayResponse("response-like", e, true);
+          } finally {
+            setButtonLoading(btnLike, false);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
