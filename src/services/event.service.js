@@ -163,6 +163,10 @@ class EventService {
           registered_at: new Date(),
         }
       });
+      // Set is_volunteer flag to true for the user
+      if(!user.is_volunteer) {
+        await prisma.users.update({ where: { id: BigInt(user.id) }, data: { is_volunteer: true } });
+      }
       // Increment registered_count
       await prisma.events.update({ where: { id: BigInt(eventId) }, data: { registered_count: { increment: 1 } } });
 
