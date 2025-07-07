@@ -40,6 +40,7 @@ const skillRoutes = require("./api/routes/skill.routes");
 const analyticsRoutes = require("./api/routes/analytics.routes");
 const emailRoutes = require("./api/routes/email.routes");
 const stripeRoutes = require("./api/routes/stripe.routes");
+const uploadRoutes = require("./api/routes/upload.routes");
 
 // Import cleanup function
 const cleanupRevokedTokens = require("./jobs/cleanupRevokedTokens");
@@ -181,6 +182,9 @@ app.get("/test/faq", (req, res) => {
 app.get("/auth", (req, res) => {
   res.render("Auth");
 });
+app.get("/test/upload", (req, res) => {
+  res.render("FileUploader");
+});
 
 // Mount routes
 app.use(`${apiPrefix}/auth`, authRoutes);
@@ -203,6 +207,7 @@ app.use(`${apiPrefix}/skills`, skillRoutes);
 app.use(`${apiPrefix}/analytics`, analyticsRoutes);
 app.use(`${apiPrefix}/emails`, emailRoutes);
 app.use(`${apiPrefix}/payments/stripe`, stripeRoutes);
+app.use(`${apiPrefix}/upload`, uploadRoutes);
 
 // --- Stripe Success/Cancel Pages ---
 app.get("/donation-success", (req, res) => {
@@ -239,6 +244,7 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`🧪 Test Page: http://localhost:${PORT}/test/post`);
     console.log(`🧪 FAQ Test Page: http://localhost:${PORT}/test/faq`);
     console.log(`🔐 Auth Page: http://localhost:${PORT}/auth`);
+    console.log(`🧪 Upload Test Page: http://localhost:${PORT}/test/upload`);
   });
 }
 

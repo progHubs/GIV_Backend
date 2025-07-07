@@ -1,6 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { uploadImage } = require("../../middlewares/uploadMiddleware");
+const {
+  uploadImage,
+  handleUploadError,
+  cleanupTempFiles,
+} = require("../../middlewares/uploadMiddleware");
 const {
   authenticateToken,
   requireRole,
@@ -56,7 +60,9 @@ router.post(
   checkPostCreationPermission,
   rateLimitPostCreation,
   uploadImage.single("feature_image"),
-  createPost
+  handleUploadError,
+  createPost,
+  cleanupTempFiles
 );
 
 // Update post (requires authentication + ownership or admin/editor role)
@@ -65,7 +71,9 @@ router.put(
   authenticateToken,
   checkPostOwnership, // This middleware checks ownership and permissions
   uploadImage.single("feature_image"),
-  updatePost
+  handleUploadError,
+  updatePost,
+  cleanupTempFiles
 );
 
 // Delete post (requires authentication + admin role only)
