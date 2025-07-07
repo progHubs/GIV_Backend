@@ -145,7 +145,7 @@ app.use(
 );
 
 // --- View Engine ---
-app.set("views", path.join(__dirname));
+app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
 // --- Health Check ---
@@ -177,6 +177,9 @@ app.get("/test/post", (req, res) => {
 });
 app.get("/test/faq", (req, res) => {
   res.render("FAQ");
+});
+app.get("/auth", (req, res) => {
+  res.render("Auth");
 });
 
 // Mount routes
@@ -235,6 +238,7 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
     console.log(`🧪 Test Page: http://localhost:${PORT}/test/post`);
     console.log(`🧪 FAQ Test Page: http://localhost:${PORT}/test/faq`);
+    console.log(`🔐 Auth Page: http://localhost:${PORT}/auth`);
   });
 }
 

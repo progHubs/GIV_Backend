@@ -8,6 +8,40 @@ const logger = require("../../utils/logger.util");
 const prisma = require("../../config/prisma");
 
 /**
+ * Check database status for post creation
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const checkPostStatus = async (req, res) => {
+  try {
+    const userCount = await prisma.users.count();
+    const adminUser = await prisma.users.findFirst({
+      where: { role: "admin" },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        hasUsers: userCount > 0,
+        userCount,
+        hasAdminUser: !!adminUser,
+        canCreatePosts: userCount > 0,
+        message:
+          userCount === 0
+            ? "No users found. Run 'npm run db:seed' to populate the database."
+            : "Database is ready for post creation.",
+      },
+    });
+  } catch (error) {
+    logger.error("Error checking post status:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Create a new post
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -39,20 +73,9 @@ const createPost = async (req, res) => {
       });
     }
 
-    // Find admin user
-    const adminUser = await prisma.users.findFirst({
-      where: { role: "admin" },
-    });
-
-    if (!adminUser) {
-      return res.status(500).json({
-        success: false,
-        error: "No admin user found in the system",
-      });
-    }
-
-    // Add author information - using admin user for testing
-    validation.sanitized.author_id = "60";
+    // Set the authenticated user as the author
+    const authorId = req.user.id;
+    validation.sanitized.author_id = authorId;
 
     // Create post
     const post = await Post.create(validation.sanitized);
@@ -60,6 +83,7 @@ const createPost = async (req, res) => {
     res.status(201).json({
       success: true,
       data: post,
+      message: "Post created successfully",
     });
   } catch (error) {
     logger.error("Error creating post:", error);
@@ -167,6 +191,7 @@ const updatePost = async (req, res) => {
   try {
     const postId = req.params.id;
     let postData = req.body;
+    const currentUser = req.user;
 
     // Check if post exists before attempting to update
     const existingPost = await Post.findById(postId);
@@ -177,6 +202,9 @@ const updatePost = async (req, res) => {
         error: `Post with ID ${postId} not found`,
       });
     }
+
+    // Authorization is handled by checkPostOwnership middleware
+    // The post is already available in req.post from the middleware
 
     // Handle image upload if present
     if (req.file) {
@@ -256,11 +284,34 @@ const updatePost = async (req, res) => {
  */
 const deletePost = async (req, res) => {
   try {
-    await Post.delete(req.params.id);
+    const postId = req.params.id;
+    const currentUser = req.user;
+
+    // Check if post exists before attempting to delete
+    const existingPost = await Post.findById(postId);
+    if (!existingPost) {
+      logger.warn(`Post with ID ${postId} not found for deletion`);
+      return res.status(404).json({
+        success: false,
+        error: `Post with ID ${postId} not found`,
+      });
+    }
+
+    // Authorization is handled by requireAdmin middleware
+    // Only admins can reach this point
+
+    // Delete post
+    await Post.delete(postId);
 
     res.json({
       success: true,
       message: "Post deleted successfully",
+      deletedPost: {
+        id: existingPost.id,
+        title: existingPost.title,
+        deletedBy: currentUser.id,
+        deletedAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     logger.error("Error deleting post:", error);
@@ -437,6 +488,7 @@ const queryPosts = async (req, res) => {
 };
 
 module.exports = {
+  checkPostStatus,
   createPost,
   getPosts,
   getPostById,

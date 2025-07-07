@@ -1,6 +1,6 @@
-const { verifyToken, extractTokenFromHeader } = require('../utils/jwt.util');
-const { PrismaClient } = require('../generated/prisma');
-const { isAccessTokenRevoked } = require('../services/token.service');
+const { verifyToken, extractTokenFromHeader } = require("../utils/jwt.util");
+const { PrismaClient } = require("../generated/prisma");
+const { isAccessTokenRevoked } = require("../services/token.service");
 
 const prisma = new PrismaClient();
 
@@ -18,32 +18,32 @@ const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     const token = extractTokenFromHeader(authHeader);
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Access token is required',
-        code: 'MISSING_TOKEN'
+        message: "Access token is required",
+        code: "MISSING_TOKEN",
       });
     }
-    
+
     // Check if token is blacklisted
     if (await isAccessTokenRevoked(token)) {
       return res.status(401).json({
         success: false,
-        message: 'Token has been revoked',
-        code: 'TOKEN_REVOKED'
+        message: "Token has been revoked",
+        code: "TOKEN_REVOKED",
       });
     }
-    
+
     // Verify token
-    const decoded = verifyToken(token, 'giv-society-users');
-    
+    const decoded = verifyToken(token, "giv-society-users");
+
     // Check if user exists and is not deleted
     const user = await prisma.users.findFirst({
       where: {
         id: BigInt(decoded.userId),
-        deleted_at: null
+        deleted_at: null,
       },
       select: {
         id: true,
@@ -53,55 +53,58 @@ const authenticateToken = async (req, res, next) => {
         email_verified: true,
         language_preference: true,
         profile_image_url: true,
-        created_at: true
-      }
+        created_at: true,
+      },
     });
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'User not found or account deleted',
-        code: 'USER_NOT_FOUND'
+        message: "User not found or account deleted",
+        code: "USER_NOT_FOUND",
       });
     }
-    
+
     // Check if email is verified (optional, can be configured)
-    if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true' && !user.email_verified) {
+    if (
+      process.env.REQUIRE_EMAIL_VERIFICATION === "true" &&
+      !user.email_verified
+    ) {
       return res.status(403).json({
         success: false,
-        message: 'Email verification required',
-        code: 'EMAIL_NOT_VERIFIED'
+        message: "Email verification required",
+        code: "EMAIL_NOT_VERIFIED",
       });
     }
-    
+
     // Attach user to request
     req.user = {
       ...user,
-      id: user.id.toString() // Convert BigInt to string for consistency
+      id: user.id.toString(), // Convert BigInt to string for consistency
     };
-    
+
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
-    
-    if (error.message === 'Token has expired') {
+    console.error("Authentication error:", error);
+
+    if (error.message === "Token has expired") {
       return res.status(401).json({
         success: false,
-        message: 'Token has expired',
-        code: 'TOKEN_EXPIRED'
+        message: "Token has expired",
+        code: "TOKEN_EXPIRED",
       });
-    } else if (error.message === 'Invalid token') {
+    } else if (error.message === "Invalid token") {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token',
-        code: 'INVALID_TOKEN'
+        message: "Invalid token",
+        code: "INVALID_TOKEN",
       });
     }
-    
+
     return res.status(500).json({
       success: false,
-      message: 'Authentication failed',
-      code: 'AUTH_ERROR'
+      message: "Authentication failed",
+      code: "AUTH_ERROR",
     });
   }
 };
@@ -116,19 +119,19 @@ const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     const token = extractTokenFromHeader(authHeader);
-    
+
     if (!token) {
       return next(); // Continue without authentication
     }
-    
+
     // Verify token
-    const decoded = verifyToken(token, 'giv-society-users');
-    
+    const decoded = verifyToken(token, "giv-society-users");
+
     // Check if user exists and is not deleted
     const user = await prisma.users.findFirst({
       where: {
         id: BigInt(decoded.userId),
-        deleted_at: null
+        deleted_at: null,
       },
       select: {
         id: true,
@@ -138,21 +141,21 @@ const optionalAuth = async (req, res, next) => {
         email_verified: true,
         language_preference: true,
         profile_image_url: true,
-        created_at: true
-      }
+        created_at: true,
+      },
     });
-    
+
     if (user) {
       req.user = {
         ...user,
-        id: user.id.toString()
+        id: user.id.toString(),
       };
     }
-    
+
     next();
   } catch (error) {
     // Continue without authentication on error
-    console.warn('Optional authentication failed:', error.message);
+    console.warn("Optional authentication failed:", error.message);
     next();
   }
 };
@@ -167,17 +170,17 @@ const requireRole = (...allowedRoles) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        message: 'Authentication required',
-        code: 'AUTH_REQUIRED'
+        message: "Authentication required",
+        code: "AUTH_REQUIRED",
       });
     }
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Insufficient permissions',
-        code: 'INSUFFICIENT_PERMISSIONS',
+        message: "Insufficient permissions",
+        code: "INSUFFICIENT_PERMISSIONS",
         requiredRoles: allowedRoles,
-        userRole: req.user.role
+        userRole: req.user.role,
       });
     }
     next();
@@ -187,8 +190,8 @@ const requireRole = (...allowedRoles) => {
 /**
  * Only keep requireAdmin and (optionally) requireUser
  */
-const requireAdmin = requireRole('admin');
-const requireUser = requireRole('user');
+const requireAdmin = requireRole("admin");
+const requireUser = requireRole("user");
 
 /**
  * New flag-based middleware
@@ -197,8 +200,8 @@ const requireDonorFlag = (req, res, next) => {
   if (!req.user || req.user.is_donor !== true) {
     return res.status(403).json({
       success: false,
-      message: 'Donor profile required',
-      code: 'DONOR_PROFILE_REQUIRED'
+      message: "Donor profile required",
+      code: "DONOR_PROFILE_REQUIRED",
     });
   }
   next();
@@ -208,8 +211,8 @@ const requireVolunteerFlag = (req, res, next) => {
   if (!req.user || req.user.is_volunteer !== true) {
     return res.status(403).json({
       success: false,
-      message: 'Volunteer profile required',
-      code: 'VOLUNTEER_PROFILE_REQUIRED'
+      message: "Volunteer profile required",
+      code: "VOLUNTEER_PROFILE_REQUIRED",
     });
   }
   next();
@@ -226,45 +229,45 @@ const authRateLimit = (req, res, next) => {
   const clientIP = req.ip || req.connection.remoteAddress;
   const now = Date.now();
   const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxAttempts = 5;
-  
+  const maxAttempts = 100; // this will be changed to 5 in production
+
   // Initialize rate limit store if not exists
   if (!req.app.locals.authRateLimit) {
     req.app.locals.authRateLimit = new Map();
   }
-  
+
   const rateLimitStore = req.app.locals.authRateLimit;
   const key = `auth_${clientIP}`;
-  
+
   if (!rateLimitStore.has(key)) {
     rateLimitStore.set(key, {
       attempts: 1,
-      resetTime: now + windowMs
+      resetTime: now + windowMs,
     });
     return next();
   }
-  
+
   const record = rateLimitStore.get(key);
-  
+
   // Reset if window has passed
   if (now > record.resetTime) {
     record.attempts = 1;
     record.resetTime = now + windowMs;
     return next();
   }
-  
+
   // Check if limit exceeded
   if (record.attempts >= maxAttempts) {
     const retryAfter = Math.ceil((record.resetTime - now) / 1000);
-    
+
     return res.status(429).json({
       success: false,
-      message: 'Too many authentication attempts. Please try again later.',
-      code: 'RATE_LIMIT_EXCEEDED',
-      retryAfter
+      message: "Too many authentication attempts. Please try again later.",
+      code: "RATE_LIMIT_EXCEEDED",
+      retryAfter,
     });
   }
-  
+
   // Increment attempts
   record.attempts++;
   next();
@@ -280,19 +283,19 @@ const requireEmailVerification = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
-      message: 'Authentication required',
-      code: 'AUTH_REQUIRED'
+      message: "Authentication required",
+      code: "AUTH_REQUIRED",
     });
   }
-  
+
   if (!req.user.email_verified) {
     return res.status(403).json({
       success: false,
-      message: 'Email verification required to access this resource',
-      code: 'EMAIL_VERIFICATION_REQUIRED'
+      message: "Email verification required to access this resource",
+      code: "EMAIL_VERIFICATION_REQUIRED",
     });
   }
-  
+
   next();
 };
 
@@ -306,34 +309,34 @@ const requireActiveUser = async (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
-      message: 'Authentication required',
-      code: 'AUTH_REQUIRED'
+      message: "Authentication required",
+      code: "AUTH_REQUIRED",
     });
   }
-  
+
   try {
     const user = await prisma.users.findFirst({
       where: {
         id: BigInt(req.user.id),
-        deleted_at: null
-      }
+        deleted_at: null,
+      },
     });
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Account has been deactivated',
-        code: 'ACCOUNT_DEACTIVATED'
+        message: "Account has been deactivated",
+        code: "ACCOUNT_DEACTIVATED",
       });
     }
-    
+
     next();
   } catch (error) {
-    console.error('Active user check error:', error);
+    console.error("Active user check error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to verify account status',
-      code: 'ACCOUNT_CHECK_ERROR'
+      message: "Failed to verify account status",
+      code: "ACCOUNT_CHECK_ERROR",
     });
   }
 };
@@ -346,40 +349,42 @@ const requireActiveUser = async (req, res, next) => {
  */
 const logAuthAttempt = async (req, res, next) => {
   const originalSend = res.send;
-  
-  res.send = function(data) {
+
+  res.send = function (data) {
     // Log authentication attempt
     const logData = {
       ip_address: req.ip || req.connection.remoteAddress,
-      user_agent: req.get('User-Agent'),
+      user_agent: req.get("User-Agent"),
       endpoint: req.originalUrl,
       method: req.method,
       status: res.statusCode,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
-    
+
     if (req.user) {
       logData.user_id = req.user.id;
     }
-    
+
     // Log to database (optional)
-    prisma.site_interactions.create({
-      data: {
-        user_id: req.user ? BigInt(req.user.id) : null,
-        session_id: req.sessionID || null,
-        page: req.originalUrl,
-        action: 'auth_attempt',
-        metadata: JSON.stringify(logData),
-        ip_address: logData.ip_address,
-        user_agent: logData.user_agent
-      }
-    }).catch(error => {
-      console.error('Failed to log auth attempt:', error);
-    });
-    
+    prisma.site_interactions
+      .create({
+        data: {
+          user_id: req.user ? BigInt(req.user.id) : null,
+          session_id: req.sessionID || null,
+          page: req.originalUrl,
+          action: "auth_attempt",
+          metadata: JSON.stringify(logData),
+          ip_address: logData.ip_address,
+          user_agent: logData.user_agent,
+        },
+      })
+      .catch((error) => {
+        console.error("Failed to log auth attempt:", error);
+      });
+
     originalSend.call(this, data);
   };
-  
+
   next();
 };
 
@@ -394,5 +399,5 @@ module.exports = {
   authRateLimit,
   requireEmailVerification,
   requireActiveUser,
-  logAuthAttempt
-}; 
+  logAuthAttempt,
+};
