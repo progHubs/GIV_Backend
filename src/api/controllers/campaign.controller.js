@@ -263,22 +263,48 @@ class CampaignController {
   }
 
   /**
-   * Search campaigns
+   * Search campaigns with advanced filtering
    * GET /api/campaigns/search
    */
   async searchCampaigns(req, res) {
     try {
-      const { q, language } = req.query;
+      const searchCriteria = {
+        query: req.query.q,
+        status: req.query.status,
+        category: req.query.category,
+        is_featured: req.query.is_featured === 'true' ? true :
+          req.query.is_featured === 'false' ? false : undefined,
+        is_urgent: req.query.is_urgent === 'true' ? true :
+          req.query.is_urgent === 'false' ? false : undefined,
+        has_image: req.query.has_image === 'true' ? true :
+          req.query.has_image === 'false' ? false : undefined,
+        min_goal: req.query.min_goal,
+        max_goal: req.query.max_goal,
+        min_raised: req.query.min_raised,
+        max_raised: req.query.max_raised,
+        min_donors: req.query.min_donors,
+        max_donors: req.query.max_donors,
+        min_progress: req.query.min_progress,
+        max_progress: req.query.max_progress,
+        start_date_after: req.query.start_date_after,
+        start_date_before: req.query.start_date_before,
+        end_date_after: req.query.end_date_after,
+        end_date_before: req.query.end_date_before,
+        created_after: req.query.created_after,
+        created_before: req.query.created_before,
+        updated_after: req.query.updated_after,
+        updated_before: req.query.updated_before
+      };
 
-      if (!q) {
-        return res.status(400).json({
-          success: false,
-          error: 'Search query is required',
-          code: 'SEARCH_QUERY_REQUIRED'
-        });
-      }
+      const pagination = {
+        page: parseInt(req.query.page) || 1,
+        limit: Math.min(parseInt(req.query.limit) || 10, 100),
+        sortBy: req.query.sortBy || 'created_at',
+        sortOrder: req.query.sortOrder || 'desc'
+      };
 
-      const result = await campaignService.searchCampaigns(q, language);
+      const language = req.query.language || req.query.lang || 'en';
+      const result = await campaignService.searchCampaigns(searchCriteria, pagination, language);
 
       if (!result.success) {
         return res.status(400).json({
@@ -291,7 +317,8 @@ class CampaignController {
       return res.status(200).json({
         success: true,
         data: result.campaigns,
-        count: result.count
+        pagination: result.pagination,
+        total: result.total
       });
 
     } catch (error) {

@@ -140,3 +140,4 @@ coverage/
 
 /tests
 /src/generated/prisma
+/Frontend

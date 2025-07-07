@@ -324,6 +324,211 @@ class DonationService {
       return { success: false, error: 'Failed to process Stripe donation', code: 'STRIPE_DONATION_ERROR' };
     }
   }
+
+  /**
+   * Search donations with advanced filtering
+   * @param {Object} searchCriteria - Search criteria
+   * @param {Object} pagination - Pagination options
+   * @param {Object} user - Current user (for access control)
+   * @returns {Object} - Search results
+   */
+  async searchDonations(searchCriteria, pagination = {}, user = null) {
+    try {
+      const {
+        query,
+        status,
+        payment_method,
+        is_anonymous,
+        is_recurring,
+        has_tax_receipt,
+        min_amount,
+        max_amount,
+        currency,
+        campaign_id,
+        donor_id,
+        donor_email,
+        donor_name,
+        created_after,
+        created_before,
+        updated_after,
+        updated_before
+      } = searchCriteria;
+
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'created_at',
+        sortOrder = 'desc'
+      } = pagination;
+
+      // Build where clause
+      const where = {};
+
+      // Access control: donors can only see their own donations
+      if (user && user.role !== 'admin' && user.is_donor) {
+        where.donor_id = BigInt(user.id);
+      }
+
+      if (query) {
+        where.OR = [
+          { notes: { contains: query } },
+          { transaction_id: { contains: query } },
+          { currency: { contains: query } }
+        ];
+      }
+
+      if (status) {
+        where.payment_status = status;
+      }
+
+      if (payment_method) {
+        where.payment_method = payment_method;
+      }
+
+      if (is_anonymous !== undefined) {
+        where.is_anonymous = is_anonymous;
+      }
+
+      if (is_recurring !== undefined) {
+        where.donation_type = is_recurring ? 'recurring' : 'one_time';
+      }
+
+      if (has_tax_receipt !== undefined) {
+        if (has_tax_receipt) {
+          where.receipt_url = { not: null };
+        } else {
+          where.receipt_url = null;
+        }
+      }
+
+      if (min_amount !== undefined) {
+        where.amount = {
+          ...where.amount,
+          gte: parseFloat(min_amount)
+        };
+      }
+
+      if (max_amount !== undefined) {
+        where.amount = {
+          ...where.amount,
+          lte: parseFloat(max_amount)
+        };
+      }
+
+      if (currency) {
+        where.currency = currency;
+      }
+
+      if (campaign_id) {
+        where.campaign_id = BigInt(campaign_id);
+      }
+
+      if (donor_id) {
+        where.donor_id = BigInt(donor_id);
+      }
+
+      // Filter by donor email or name (requires join)
+      if (donor_email || donor_name) {
+        const donorWhere = {};
+        if (donor_email) {
+          donorWhere.users = { email: { contains: donor_email } };
+        }
+        if (donor_name) {
+          donorWhere.users = {
+            ...donorWhere.users,
+            full_name: { contains: donor_name }
+          };
+        }
+        where.donor_profiles = donorWhere;
+      }
+
+      if (created_after) {
+        where.created_at = {
+          ...where.created_at,
+          gte: new Date(created_after)
+        };
+      }
+
+      if (created_before) {
+        where.created_at = {
+          ...where.created_at,
+          lte: new Date(created_before)
+        };
+      }
+
+      if (updated_after) {
+        where.updated_at = {
+          ...where.updated_at,
+          gte: new Date(updated_after)
+        };
+      }
+
+      if (updated_before) {
+        where.updated_at = {
+          ...where.updated_at,
+          lte: new Date(updated_before)
+        };
+      }
+
+      // Calculate pagination
+      const skip = (page - 1) * limit;
+
+      // Search donations with pagination
+      const [donations, totalCount] = await Promise.all([
+        prisma.donations.findMany({
+          where,
+          include: {
+            campaigns: {
+              select: {
+                id: true,
+                title: true,
+                category: true
+              }
+            },
+            donor_profiles: {
+              include: {
+                users: {
+                  select: {
+                    id: true,
+                    full_name: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: { [sortBy]: sortOrder },
+          skip,
+          take: limit
+        }),
+        prisma.donations.count({ where })
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      return {
+        success: true,
+        donations: donations.map(convertBigIntToString),
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        },
+        total: totalCount
+      };
+
+    } catch (error) {
+      logger.error('Error searching donations:', error);
+      return {
+        success: false,
+        error: 'Failed to search donations',
+        code: 'DONATION_SEARCH_ERROR'
+      };
+    }
+  }
 }
 
 module.exports = new DonationService(); 

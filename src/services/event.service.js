@@ -527,6 +527,228 @@ class EventService {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * Search events with advanced filtering
+   * @param {Object} searchCriteria - Search criteria
+   * @param {Object} pagination - Pagination options
+   * @param {string} lang - Language preference
+   * @returns {Object} - Search results
+   */
+  async searchEvents(searchCriteria, pagination = {}, lang = 'en') {
+    try {
+      const {
+        query,
+        status,
+        event_type,
+        location,
+        is_featured,
+        is_recurring,
+        requires_registration,
+        has_capacity_limit,
+        min_capacity,
+        max_capacity,
+        min_registered,
+        max_registered,
+        start_date_after,
+        start_date_before,
+        end_date_after,
+        end_date_before,
+        created_after,
+        created_before,
+        updated_after,
+        updated_before
+      } = searchCriteria;
+
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'event_date',
+        sortOrder = 'asc'
+      } = pagination;
+
+      // Build where clause
+      const where = {
+        deleted_at: null
+      };
+
+      if (lang) {
+        where.language = lang;
+      }
+
+      if (query) {
+        where.OR = [
+          { title: { contains: query } },
+          { description: { contains: query } },
+          { location: { contains: query } },
+          { category: { contains: query } }
+        ];
+      }
+
+      if (status) {
+        where.status = status;
+      }
+
+      if (event_type) {
+        where.category = event_type;
+      }
+
+      if (location) {
+        where.location = { contains: location };
+      }
+
+      if (is_featured !== undefined) {
+        where.is_featured = is_featured;
+      }
+
+      if (is_recurring !== undefined) {
+        where.is_recurring = is_recurring;
+      }
+
+      if (requires_registration !== undefined) {
+        where.requires_registration = requires_registration;
+      }
+
+      if (has_capacity_limit !== undefined) {
+        if (has_capacity_limit) {
+          where.capacity = { not: null };
+        } else {
+          where.capacity = null;
+        }
+      }
+
+      if (min_capacity !== undefined) {
+        where.capacity = {
+          ...where.capacity,
+          gte: parseInt(min_capacity)
+        };
+      }
+
+      if (max_capacity !== undefined) {
+        where.capacity = {
+          ...where.capacity,
+          lte: parseInt(max_capacity)
+        };
+      }
+
+      if (min_registered !== undefined) {
+        where.registered_count = {
+          ...where.registered_count,
+          gte: parseInt(min_registered)
+        };
+      }
+
+      if (max_registered !== undefined) {
+        where.registered_count = {
+          ...where.registered_count,
+          lte: parseInt(max_registered)
+        };
+      }
+
+      if (start_date_after) {
+        where.event_date = {
+          ...where.event_date,
+          gte: new Date(start_date_after)
+        };
+      }
+
+      if (start_date_before) {
+        where.event_date = {
+          ...where.event_date,
+          lte: new Date(start_date_before)
+        };
+      }
+
+      if (end_date_after) {
+        where.event_date = {
+          ...where.event_date,
+          gte: new Date(end_date_after)
+        };
+      }
+
+      if (end_date_before) {
+        where.event_date = {
+          ...where.event_date,
+          lte: new Date(end_date_before)
+        };
+      }
+
+      if (created_after) {
+        where.created_at = {
+          ...where.created_at,
+          gte: new Date(created_after)
+        };
+      }
+
+      if (created_before) {
+        where.created_at = {
+          ...where.created_at,
+          lte: new Date(created_before)
+        };
+      }
+
+      if (updated_after) {
+        where.updated_at = {
+          ...where.updated_at,
+          gte: new Date(updated_after)
+        };
+      }
+
+      if (updated_before) {
+        where.updated_at = {
+          ...where.updated_at,
+          lte: new Date(updated_before)
+        };
+      }
+
+      // Calculate pagination
+      const skip = (page - 1) * limit;
+
+      // Search events with pagination
+      const [events, totalCount] = await Promise.all([
+        prisma.events.findMany({
+          where,
+          include: {
+            event_participants: {
+              select: {
+                user_id: true,
+                status: true,
+                role: true
+              }
+            }
+          },
+          orderBy: { [sortBy]: sortOrder },
+          skip,
+          take: limit
+        }),
+        prisma.events.count({ where })
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      return {
+        success: true,
+        events: events.map(convertBigIntToString),
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        },
+        total: totalCount
+      };
+
+    } catch (error) {
+      console.error('Error searching events:', error);
+      return {
+        success: false,
+        error: 'Failed to search events',
+        code: 'EVENT_SEARCH_ERROR'
+      };
+    }
+  }
 }
 
-module.exports = new EventService(); 
+module.exports = new EventService();

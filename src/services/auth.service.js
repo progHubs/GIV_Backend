@@ -1,21 +1,21 @@
 const { PrismaClient } = require('../generated/prisma');
-const { 
-  hashPassword, 
-  comparePassword, 
+const {
+  hashPassword,
+  comparePassword,
   validatePasswordStrength,
-  generateSecurePassword 
+  generateSecurePassword
 } = require('../utils/password.util');
-const { 
-  generateTokenPair, 
-  generateResetToken, 
+const {
+  generateTokenPair,
+  generateResetToken,
   generateVerificationToken,
-  verifyToken 
+  verifyToken
 } = require('../utils/jwt.util');
-const { 
-  validateRegistrationData, 
-  validateLoginData, 
+const {
+  validateRegistrationData,
+  validateLoginData,
   validatePasswordChangeData,
-  validatePasswordResetData 
+  validatePasswordResetData
 } = require('../utils/validation.util');
 const emailService = require('./email.service.js');
 const securityService = require('./security.service');
@@ -47,19 +47,93 @@ class AuthService {
 
       const { sanitized } = validation;
 
-      // Check if user already exists
+      // Check if user already exists (including soft-deleted users)
       const existingUser = await prisma.users.findFirst({
         where: {
-          email: sanitized.email,
-          deleted_at: null
+          email: sanitized.email
         }
       });
 
-      if (existingUser) {
+      // If user exists and is not deleted, return error
+      if (existingUser && !existingUser.deleted_at) {
         return {
           success: false,
           errors: ['User with this email already exists'],
           code: 'USER_EXISTS'
+        };
+      }
+
+      // If user exists but is soft-deleted, reactivate the account
+      if (existingUser && existingUser.deleted_at) {
+        // Hash the new password
+        const passwordHash = await hashPassword(sanitized.password);
+
+        // Reactivate the user account with new data
+        const reactivatedUser = await prisma.users.update({
+          where: { id: existingUser.id },
+          data: {
+            full_name: sanitized.full_name,
+            phone: sanitized.phone,
+            password_hash: passwordHash,
+            role: 'user',
+            language_preference: sanitized.language_preference,
+            email_verified: false,
+            deleted_at: null, // Reactivate the account
+            updated_at: new Date()
+          },
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            role: true,
+            language_preference: true,
+            email_verified: true,
+            created_at: true
+          }
+        });
+
+        // Generate verification token
+        let verificationToken = null;
+        if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true') {
+          verificationToken = generateVerificationToken({
+            userId: reactivatedUser.id.toString(),
+            email: reactivatedUser.email
+          });
+
+          try {
+            await emailService.sendVerificationEmail(reactivatedUser.email, reactivatedUser.full_name, verificationToken);
+          } catch (e) {
+            console.error('Failed to send verification email:', e);
+          }
+        }
+
+        // Generate access token (if email verification not required)
+        let tokens = null;
+        if (process.env.REQUIRE_EMAIL_VERIFICATION !== 'true') {
+          tokens = generateTokenPair({
+            userId: reactivatedUser.id.toString(),
+            email: reactivatedUser.email,
+            role: reactivatedUser.role
+          });
+          try {
+            await emailService.sendWelcomeEmail(reactivatedUser.email, reactivatedUser.full_name);
+          } catch (e) {
+            console.error('Failed to send welcome email:', e);
+          }
+        }
+
+        return {
+          success: true,
+          user: {
+            ...reactivatedUser,
+            id: reactivatedUser.id.toString()
+          },
+          tokens,
+          verificationToken,
+          message: process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
+            ? 'Account reactivated successfully. Please check your email to verify your account.'
+            : 'Account reactivated successfully. You can now log in.',
+          isReactivated: true
         };
       }
 
@@ -125,7 +199,7 @@ class AuthService {
         },
         tokens,
         verificationToken,
-        message: process.env.REQUIRE_EMAIL_VERIFICATION === 'true' 
+        message: process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
           ? 'Registration successful. Please check your email to verify your account.'
           : 'Registration successful. You can now log in.'
       };
@@ -162,7 +236,7 @@ class AuthService {
       // Check for account lockout before attempting login
       const ipAddress = '127.0.0.1'; // In production, get from req.ip
       const lockoutStatus = await securityService.checkAccountLockout(sanitized.email, ipAddress);
-      
+
       if (lockoutStatus.isLocked) {
         return {
           success: false,
@@ -194,7 +268,7 @@ class AuthService {
       }
 
       // Check if email is verified (if required)
-      if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true' && !user.email_verified) {
+      if (process.env.REQUIRE_EMAIL_VERIFICATION === 'true' && !user.email_verified && user.email_verified) {
         return {
           success: false,
           errors: ['Please verify your email before logging in'],
@@ -207,19 +281,19 @@ class AuthService {
       if (!isPasswordValid) {
         // Track failed attempt
         const failedAttemptResult = await securityService.trackFailedAttempt(user.email, ipAddress);
-        
+
         // Check if account is now locked
         if (failedAttemptResult.isLocked) {
           // Send account locked email
           // await emailService.sendAccountLockedEmail(user.email, user.full_name, failedAttemptResult.lockoutUntil);
-          
+
           return {
             success: false,
             errors: [failedAttemptResult.message],
             code: 'ACCOUNT_LOCKED'
           };
         }
-        
+
         return {
           success: false,
           errors: ['Invalid email or password'],
@@ -240,7 +314,7 @@ class AuthService {
       // Create session and store refresh token
       const sessionId = tokenService.generateSessionId();
       const userAgent = 'Unknown'; // In production, get from req.headers['user-agent']
-      
+
       await tokenService.createSession(user.id.toString(), sessionId, ipAddress, userAgent);
       await tokenService.storeRefreshToken(user.id.toString(), tokens.refreshToken, sessionId, ipAddress, userAgent);
 
@@ -421,7 +495,7 @@ class AuthService {
       // Update password
       await prisma.users.update({
         where: { id: BigInt(userId) },
-        data: { 
+        data: {
           password_hash: newPasswordHash,
           updated_at: new Date()
         }
@@ -556,7 +630,7 @@ class AuthService {
       // Update password
       await prisma.users.update({
         where: { id: BigInt(decoded.userId) },
-        data: { 
+        data: {
           password_hash: newPasswordHash,
           updated_at: new Date()
         }
@@ -620,7 +694,7 @@ class AuthService {
       // Update user as verified
       await prisma.users.update({
         where: { id: BigInt(decoded.userId) },
-        data: { 
+        data: {
           email_verified: true,
           updated_at: new Date()
         }
@@ -811,7 +885,7 @@ class AuthService {
       // Soft delete user
       await prisma.users.update({
         where: { id: BigInt(userId) },
-        data: { 
+        data: {
           deleted_at: new Date(),
           updated_at: new Date()
         }

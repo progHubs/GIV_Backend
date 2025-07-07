@@ -17,8 +17,8 @@ class VolunteerController {
         location: req.query.location,
         area_of_expertise: req.query.area_of_expertise,
         background_check_status: req.query.background_check_status,
-        training_completed: req.query.training_completed === 'true' ? true : 
-                           req.query.training_completed === 'false' ? false : undefined,
+        training_completed: req.query.training_completed === 'true' ? true :
+          req.query.training_completed === 'false' ? false : undefined,
         availability: req.query.availability,
         created_after: req.query.created_after,
         created_before: req.query.created_before
@@ -222,14 +222,27 @@ class VolunteerController {
         location: req.query.location,
         area_of_expertise: req.query.area_of_expertise,
         background_check_status: req.query.background_check_status,
-        training_completed: req.query.training_completed === 'true' ? true : 
-                           req.query.training_completed === 'false' ? false : undefined,
-        has_skills: req.query.has_skills === 'true' ? true : 
-                   req.query.has_skills === 'false' ? false : undefined,
+        training_completed: req.query.training_completed === 'true' ? true :
+          req.query.training_completed === 'false' ? false : undefined,
+        has_skills: req.query.has_skills === 'true' ? true :
+          req.query.has_skills === 'false' ? false : undefined,
+        has_certificate: req.query.has_certificate === 'true' ? true :
+          req.query.has_certificate === 'false' ? false : undefined,
+        has_emergency_contact: req.query.has_emergency_contact === 'true' ? true :
+          req.query.has_emergency_contact === 'false' ? false : undefined,
         min_hours: req.query.min_hours,
         max_hours: req.query.max_hours,
+        min_rating: req.query.min_rating,
+        max_rating: req.query.max_rating,
+        min_events: req.query.min_events,
+        max_events: req.query.max_events,
+        skill_category: req.query.skill_category,
+        skill_name: req.query.skill_name,
+        proficiency_level: req.query.proficiency_level,
         created_after: req.query.created_after,
-        created_before: req.query.created_before
+        created_before: req.query.created_before,
+        updated_after: req.query.updated_after,
+        updated_before: req.query.updated_before
       };
 
       const pagination = {

@@ -28,6 +28,12 @@ router.get('/calendar', eventController.getCalendarEvents);
 router.get('/featured', eventController.getFeaturedEvents);
 
 /**
+ * @route GET /api/v1/events/search
+ * @desc Search events with advanced filtering (public)
+ */
+router.get('/search', eventController.searchEvents);
+
+/**
  * @route POST /api/v1/events
  * @desc Create a new event (admin)
  */

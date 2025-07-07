@@ -205,6 +205,11 @@ CREATE TABLE posts (
     post_type ENUM('blog', 'news', 'press_release') NOT NULL,
     author_id BIGINT UNSIGNED,
     feature_image VARCHAR(512),
+    views INT UNSIGNED DEFAULT 0,
+    likes INT UNSIGNED DEFAULT 0,
+    comments_count INT UNSIGNED DEFAULT 0,
+    is_featured BOOLEAN DEFAULT FALSE,
+    tags TEXT,
     language ENUM('en', 'am') DEFAULT 'en',
     translation_group_id VARCHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -214,7 +219,33 @@ CREATE TABLE posts (
     INDEX idx_post_type (post_type),
     INDEX idx_language (language),
     INDEX idx_translation_group (translation_group_id),
-    FULLTEXT INDEX idx_content (title, content)
+    INDEX idx_featured (is_featured),
+    INDEX idx_views (views),
+    INDEX idx_likes (likes),
+    INDEX idx_created_at (created_at),
+    FULLTEXT INDEX idx_content (title, content),
+    FULLTEXT INDEX idx_tags (tags)
+) ENGINE=InnoDB;
+
+-- Comments table
+CREATE TABLE comments (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    post_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    content TEXT NOT NULL,
+    parent_id BIGINT UNSIGNED NULL,
+    is_approved BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE,
+    INDEX idx_post_id (post_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_parent_id (parent_id),
+    INDEX idx_approved (is_approved),
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB;
 
 -- Media table
@@ -422,8 +453,43 @@ CREATE TABLE revoked_tokens (
     INDEX idx_expires_at (expires_at)
 ) ENGINE=InnoDB;
 
--- Add triggers for UUID generation (if needed for translation_group_id)
+-- Add triggers for comment count management
 DELIMITER //
+
+CREATE TRIGGER after_insert_comment
+AFTER INSERT ON comments
+FOR EACH ROW
+BEGIN
+  UPDATE posts SET comments_count = comments_count + 1
+  WHERE id = NEW.post_id;
+END//
+
+CREATE TRIGGER after_delete_comment
+AFTER DELETE ON comments
+FOR EACH ROW
+BEGIN
+  UPDATE posts SET comments_count = comments_count - 1
+  WHERE id = OLD.post_id;
+END//
+
+CREATE TRIGGER after_update_comment
+AFTER UPDATE ON comments
+FOR EACH ROW
+BEGIN
+  -- Handle soft delete (when deleted_at is set)
+  IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
+    UPDATE posts SET comments_count = comments_count - 1
+    WHERE id = NEW.post_id;
+  END IF;
+
+  -- Handle restore from soft delete (when deleted_at is cleared)
+  IF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL THEN
+    UPDATE posts SET comments_count = comments_count + 1
+    WHERE id = NEW.post_id;
+  END IF;
+END//
+
+-- Add triggers for UUID generation (if needed for translation_group_id)
 
 CREATE TRIGGER before_insert_campaigns
 BEFORE INSERT ON campaigns

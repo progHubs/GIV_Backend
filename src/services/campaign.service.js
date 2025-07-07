@@ -158,7 +158,7 @@ class CampaignService {
       // Convert BigInt values to strings and calculate progress
       const processedCampaigns = campaigns.map(campaign => {
         const processed = convertBigIntToString(campaign);
-        processed.progress_percentage = campaign.goal_amount > 0 
+        processed.progress_percentage = campaign.goal_amount > 0
           ? Math.round((campaign.current_amount / campaign.goal_amount) * 100)
           : 0;
         return processed;
@@ -274,7 +274,7 @@ class CampaignService {
       // Convert BigInt values to strings
       const processedCampaign = convertBigIntToString(campaign);
       // Add progress_percentage to single campaign response
-      processedCampaign.progress_percentage = processedCampaign.goal_amount > 0 
+      processedCampaign.progress_percentage = processedCampaign.goal_amount > 0
         ? Math.round((processedCampaign.current_amount / processedCampaign.goal_amount) * 100)
         : 0;
       // Parse success_stories if present
@@ -356,7 +356,7 @@ class CampaignService {
 
       // Convert BigInt values to strings and calculate progress
       const processedCampaign = convertBigIntToString(campaign);
-      processedCampaign.progress_percentage = campaign.goal_amount > 0 
+      processedCampaign.progress_percentage = campaign.goal_amount > 0
         ? Math.round((campaign.current_amount / campaign.goal_amount) * 100)
         : 0;
 
@@ -461,7 +461,7 @@ class CampaignService {
 
       // Convert BigInt values to strings and calculate progress
       const processedCampaign = convertBigIntToString(updatedCampaign);
-      processedCampaign.progress_percentage = updatedCampaign.goal_amount > 0 
+      processedCampaign.progress_percentage = updatedCampaign.goal_amount > 0
         ? Math.round((updatedCampaign.current_amount / updatedCampaign.goal_amount) * 100)
         : 0;
 
@@ -526,62 +526,265 @@ class CampaignService {
   }
 
   /**
-   * Search campaigns
-   * @param {string} query - Search query
+   * Search campaigns with advanced filtering
+   * @param {Object} searchCriteria - Search criteria
+   * @param {Object} pagination - Pagination options
    * @param {string} language - Language filter
    * @returns {Object} - Search results
    */
-  async searchCampaigns(query, language = null) {
+  async searchCampaigns(searchCriteria, pagination = {}, language = null) {
     try {
+      const {
+        query,
+        status,
+        category,
+        is_featured,
+        // is_urgent, // Field doesn't exist in database
+        has_image,
+        min_goal,
+        max_goal,
+        min_raised,
+        max_raised,
+        min_donors,
+        max_donors,
+        min_progress,
+        max_progress,
+        start_date_after,
+        start_date_before,
+        end_date_after,
+        end_date_before,
+        created_after,
+        created_before,
+        updated_after,
+        updated_before
+      } = searchCriteria;
+
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'created_at',
+        sortOrder = 'desc'
+      } = pagination;
+
+      // Build where clause
       const where = {
-        deleted_at: null,
-        OR: [
-          { title: { contains: query } },
-          { description: { contains: query } },
-          { slug: { contains: query } }
-        ]
+        deleted_at: null
       };
 
       if (language) {
         where.language = language;
       }
 
-      const campaigns = await prisma.campaigns.findMany({
-        where,
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          description: true,
-          goal_amount: true,
-          current_amount: true,
-          start_date: true,
-          end_date: true,
-          is_active: true,
-          is_featured: true,
-          category: true,
-          progress_bar_color: true,
-          image_url: true,
-          language: true,
-          created_at: true
-        },
-        orderBy: { created_at: 'desc' },
-        take: 20
-      });
+      if (query) {
+        where.OR = [
+          { title: { contains: query } },
+          { description: { contains: query } },
+          { slug: { contains: query } },
+          { category: { contains: query } }
+        ];
+      }
+
+      // Note: status field doesn't exist in campaigns table, using is_active instead
+      if (status) {
+        if (status === 'active') {
+          where.is_active = true;
+        } else if (status === 'inactive') {
+          where.is_active = false;
+        }
+      }
+
+      if (category) {
+        where.category = category;
+      }
+
+      if (is_featured !== undefined) {
+        where.is_featured = is_featured;
+      }
+
+      // Note: is_urgent field doesn't exist in campaigns table, skipping this filter
+      // if (is_urgent !== undefined) {
+      //   where.is_urgent = is_urgent;
+      // }
+
+      if (has_image !== undefined) {
+        if (has_image) {
+          where.image_url = { not: null };
+        } else {
+          where.image_url = null;
+        }
+      }
+
+      if (min_goal !== undefined) {
+        where.goal_amount = {
+          ...where.goal_amount,
+          gte: parseFloat(min_goal)
+        };
+      }
+
+      if (max_goal !== undefined) {
+        where.goal_amount = {
+          ...where.goal_amount,
+          lte: parseFloat(max_goal)
+        };
+      }
+
+      if (min_raised !== undefined) {
+        where.current_amount = {
+          ...where.current_amount,
+          gte: parseFloat(min_raised)
+        };
+      }
+
+      if (max_raised !== undefined) {
+        where.current_amount = {
+          ...where.current_amount,
+          lte: parseFloat(max_raised)
+        };
+      }
+
+      if (min_donors !== undefined) {
+        where.donor_count = {
+          ...where.donor_count,
+          gte: parseInt(min_donors)
+        };
+      }
+
+      if (max_donors !== undefined) {
+        where.donor_count = {
+          ...where.donor_count,
+          lte: parseInt(max_donors)
+        };
+      }
+
+      // Progress percentage filtering (requires calculation)
+      let progressFilter = null;
+      if (min_progress !== undefined || max_progress !== undefined) {
+        progressFilter = {
+          min: min_progress ? parseFloat(min_progress) : 0,
+          max: max_progress ? parseFloat(max_progress) : 100
+        };
+      }
+
+      if (start_date_after) {
+        where.start_date = {
+          ...where.start_date,
+          gte: new Date(start_date_after)
+        };
+      }
+
+      if (start_date_before) {
+        where.start_date = {
+          ...where.start_date,
+          lte: new Date(start_date_before)
+        };
+      }
+
+      if (end_date_after) {
+        where.end_date = {
+          ...where.end_date,
+          gte: new Date(end_date_after)
+        };
+      }
+
+      if (end_date_before) {
+        where.end_date = {
+          ...where.end_date,
+          lte: new Date(end_date_before)
+        };
+      }
+
+      if (created_after) {
+        where.created_at = {
+          ...where.created_at,
+          gte: new Date(created_after)
+        };
+      }
+
+      if (created_before) {
+        where.created_at = {
+          ...where.created_at,
+          lte: new Date(created_before)
+        };
+      }
+
+      if (updated_after) {
+        where.updated_at = {
+          ...where.updated_at,
+          gte: new Date(updated_after)
+        };
+      }
+
+      if (updated_before) {
+        where.updated_at = {
+          ...where.updated_at,
+          lte: new Date(updated_before)
+        };
+      }
+
+      // Calculate pagination
+      const skip = (page - 1) * limit;
+
+      // Search campaigns with pagination
+      const [campaigns, totalCount] = await Promise.all([
+        prisma.campaigns.findMany({
+          where,
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            description: true,
+            goal_amount: true,
+            current_amount: true,
+            donor_count: true,
+            start_date: true,
+            end_date: true,
+            is_active: true,
+            is_featured: true,
+            category: true,
+            progress_bar_color: true,
+            image_url: true,
+            language: true,
+            created_at: true,
+            updated_at: true
+          },
+          orderBy: { [sortBy]: sortOrder },
+          skip,
+          take: limit
+        }),
+        prisma.campaigns.count({ where })
+      ]);
 
       // Convert BigInt values to strings and calculate progress
-      const processedCampaigns = campaigns.map(campaign => {
+      let processedCampaigns = campaigns.map(campaign => {
         const processed = convertBigIntToString(campaign);
-        processed.progress_percentage = campaign.goal_amount > 0 
+        processed.progress_percentage = campaign.goal_amount > 0
           ? Math.round((campaign.current_amount / campaign.goal_amount) * 100)
           : 0;
         return processed;
       });
 
+      // Apply progress filtering if specified
+      if (progressFilter) {
+        processedCampaigns = processedCampaigns.filter(campaign => {
+          const progress = campaign.progress_percentage;
+          return progress >= progressFilter.min && progress <= progressFilter.max;
+        });
+      }
+
+      const totalPages = Math.ceil(totalCount / limit);
+
       return {
         success: true,
         campaigns: processedCampaigns,
-        count: processedCampaigns.length
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        },
+        total: totalCount
       };
 
     } catch (error) {
@@ -659,7 +862,7 @@ class CampaignService {
         featured_campaigns: featuredCampaigns,
         total_goal_amount: totalGoalAmount._sum.goal_amount || 0,
         total_current_amount: totalCurrentAmount._sum.current_amount || 0,
-        overall_progress_percentage: totalGoalAmount._sum.goal_amount > 0 
+        overall_progress_percentage: totalGoalAmount._sum.goal_amount > 0
           ? Math.round((totalCurrentAmount._sum.current_amount / totalGoalAmount._sum.goal_amount) * 100)
           : 0,
         category_breakdown: categoryStats.map(stat => ({
@@ -667,7 +870,7 @@ class CampaignService {
           count: stat._count.category,
           goal_amount: stat._sum.goal_amount || 0,
           current_amount: stat._sum.current_amount || 0,
-          progress_percentage: stat._sum.goal_amount > 0 
+          progress_percentage: stat._sum.goal_amount > 0
             ? Math.round((stat._sum.current_amount / stat._sum.goal_amount) * 100)
             : 0
         }))

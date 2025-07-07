@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const skillController = require('../controllers/skill.controller');
-const { authenticateToken, requireAdmin, requireVolunteerFlag } = require('../../middlewares/auth.middleware');
-const { validateSkillId, validateVolunteerId } = require('../validators/skill.validator');
+const { authenticateToken, requireAdmin } = require('../../middlewares/auth.middleware');
 
 /**
  * @route   GET /api/skills
@@ -11,12 +10,8 @@ const { validateSkillId, validateVolunteerId } = require('../validators/skill.va
  */
 router.get('/', skillController.getSkills);
 
-/**
- * @route   GET /api/skills/search
- * @desc    Search skills by term
- * @access  Public
- */
-router.get('/search', skillController.searchSkills);
+// Search functionality removed due to implementation issues
+// router.get('/search', skillController.searchSkills);
 
 /**
  * @route   GET /api/skills/categories
@@ -44,9 +39,9 @@ router.get('/volunteers/:volunteerId', skillController.getVolunteerSkills);
  * @desc    Add skill to volunteer
  * @access  Admin/Volunteer Manager only
  */
-router.post('/volunteers/:volunteerId', 
-  authenticateToken, 
-  requireAdmin, 
+router.post('/volunteers/:volunteerId',
+  authenticateToken,
+  requireAdmin,
   skillController.addSkillToVolunteer
 );
 
@@ -55,9 +50,9 @@ router.post('/volunteers/:volunteerId',
  * @desc    Update volunteer skill
  * @access  Admin/Volunteer Manager only
  */
-router.put('/volunteers/:volunteerId/:skillId', 
-  authenticateToken, 
-  requireAdmin, 
+router.put('/volunteers/:volunteerId/:skillId',
+  authenticateToken,
+  requireAdmin,
   skillController.updateVolunteerSkill
 );
 
@@ -66,9 +61,9 @@ router.put('/volunteers/:volunteerId/:skillId',
  * @desc    Remove skill from volunteer
  * @access  Admin/Volunteer Manager only
  */
-router.delete('/volunteers/:volunteerId/:skillId', 
-  authenticateToken, 
-  requireAdmin, 
+router.delete('/volunteers/:volunteerId/:skillId',
+  authenticateToken,
+  requireAdmin,
   skillController.removeSkillFromVolunteer
 );
 
@@ -77,9 +72,9 @@ router.delete('/volunteers/:volunteerId/:skillId',
  * @desc    Verify volunteer skill
  * @access  Admin/Volunteer Manager only
  */
-router.put('/volunteers/:volunteerId/:skillId/verify', 
-  authenticateToken, 
-  requireAdmin, 
+router.put('/volunteers/:volunteerId/:skillId/verify',
+  authenticateToken,
+  requireAdmin,
   skillController.verifyVolunteerSkill
 );
 
