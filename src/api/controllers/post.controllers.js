@@ -64,6 +64,24 @@ const createPost = async (req, res) => {
       }
     }
 
+    // Normalize is_featured to boolean
+    if (typeof postData.is_featured === "string") {
+      postData.is_featured = postData.is_featured === "true";
+    } else {
+      postData.is_featured = false;
+    }
+
+    // Normalize tags: trim, remove empty, join as comma-separated string, or set to null
+    if (typeof postData.tags === "string") {
+      const tagsArr = postData.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      postData.tags = tagsArr.length > 0 ? tagsArr.join(",") : null;
+    } else {
+      postData.tags = null;
+    }
+
     // Validate post data
     const validation = validatePostData(postData);
     if (!validation.isValid) {
@@ -74,7 +92,7 @@ const createPost = async (req, res) => {
     }
 
     // Set the authenticated user as the author
-    const authorId = req.user.id;
+    const authorId = 5; // req.user.id;
     validation.sanitized.author_id = authorId;
 
     // Create post
@@ -487,6 +505,92 @@ const queryPosts = async (req, res) => {
   }
 };
 
+// Get all featured posts
+async function getFeaturedPosts(req, res) {
+  try {
+    const posts = await Post.getFeatured();
+    res.json({ success: true, data: posts });
+  } catch (error) {
+    logger.error("Error fetching featured posts:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// Get posts by author
+async function getPostsByAuthor(req, res) {
+  try {
+    const posts = await Post.getByAuthor(req.params.user_id);
+    res.json({ success: true, data: posts });
+  } catch (error) {
+    logger.error("Error fetching posts by author:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// Get posts by tag
+async function getPostsByTag(req, res) {
+  try {
+    const posts = await Post.getByTag(req.params.tag.toLowerCase());
+    res.json({ success: true, data: posts });
+  } catch (error) {
+    logger.error("Error fetching posts by tag:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// Get posts by type
+async function getPostsByType(req, res) {
+  try {
+    const posts = await Post.getByType(req.params.type);
+    res.json({ success: true, data: posts });
+  } catch (error) {
+    if (error.message === "Invalid post type") {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+    logger.error("Error fetching posts by type:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// Get related posts (by tags)
+async function getRelatedPosts(req, res) {
+  try {
+    const related = await Post.getRelated(req.params.id);
+    res.json({ success: true, data: related });
+  } catch (error) {
+    logger.error("Error fetching related posts:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// Increment post views
+async function incrementPostView(req, res) {
+  try {
+    const post = await Post.incrementViews(req.params.id);
+    if (!post) {
+      return res.status(404).json({ success: false, error: "Post not found" });
+    }
+    res.json({ success: true, data: post });
+  } catch (error) {
+    logger.error("Error incrementing post views:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+// Like or unlike post (toggle)
+async function togglePostLike(req, res) {
+  try {
+    const post = await Post.toggleLike(req.params.id);
+    if (!post) {
+      return res.status(404).json({ success: false, error: "Post not found" });
+    }
+    res.json({ success: true, data: post });
+  } catch (error) {
+    logger.error("Error toggling post like:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}
+
 module.exports = {
   checkPostStatus,
   createPost,
@@ -497,4 +601,11 @@ module.exports = {
   deletePost,
   searchPosts,
   queryPosts,
+  getFeaturedPosts,
+  getPostsByAuthor,
+  getPostsByTag,
+  getPostsByType,
+  getRelatedPosts,
+  incrementPostView,
+  togglePostLike,
 };

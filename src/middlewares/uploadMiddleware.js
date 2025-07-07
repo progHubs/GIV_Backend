@@ -169,39 +169,39 @@ const createStorage = (storageType = "local") => {
       });
     default:
       return multer.diskStorage({
-        destination: (req, file, cb) => {
-          let uploadPath = "uploads/";
+  destination: (req, file, cb) => {
+    let uploadPath = "uploads/";
 
-          if (FILE_TYPES.IMAGE.includes(file.mimetype)) {
-            uploadPath += "images/";
-          } else if (FILE_TYPES.DOCUMENT.includes(file.mimetype)) {
-            uploadPath += "documents/";
-          } else if (FILE_TYPES.SPREADSHEET.includes(file.mimetype)) {
-            uploadPath += "spreadsheets/";
+    if (FILE_TYPES.IMAGE.includes(file.mimetype)) {
+      uploadPath += "images/";
+    } else if (FILE_TYPES.DOCUMENT.includes(file.mimetype)) {
+      uploadPath += "documents/";
+    } else if (FILE_TYPES.SPREADSHEET.includes(file.mimetype)) {
+      uploadPath += "spreadsheets/";
           } else if (FILE_TYPES.PRESENTATION.includes(file.mimetype)) {
             uploadPath += "presentations/";
-          } else if (FILE_TYPES.VIDEO.includes(file.mimetype)) {
-            uploadPath += "videos/";
-          } else if (FILE_TYPES.AUDIO.includes(file.mimetype)) {
-            uploadPath += "audio/";
-          } else if (FILE_TYPES.ARCHIVE.includes(file.mimetype)) {
-            uploadPath += "archives/";
-          }
+    } else if (FILE_TYPES.VIDEO.includes(file.mimetype)) {
+      uploadPath += "videos/";
+    } else if (FILE_TYPES.AUDIO.includes(file.mimetype)) {
+      uploadPath += "audio/";
+    } else if (FILE_TYPES.ARCHIVE.includes(file.mimetype)) {
+      uploadPath += "archives/";
+    }
 
-          cb(null, uploadPath);
-        },
-        filename: (req, file, cb) => {
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
           const uniqueSuffix =
             Date.now() + "-" + Math.round(Math.random() * 1e9);
-          cb(
-            null,
+    cb(
+      null,
             file.fieldname +
               "-" +
               uniqueSuffix +
               path.extname(file.originalname)
-          );
-        },
-      });
+    );
+  },
+});
   }
 };
 
@@ -210,14 +210,14 @@ const createFileFilter = (allowedTypes = null) => {
   return (req, file, cb) => {
     // Check file type
     const allAllowedTypes = allowedTypes || [
-      ...FILE_TYPES.IMAGE,
-      ...FILE_TYPES.DOCUMENT,
-      ...FILE_TYPES.SPREADSHEET,
+    ...FILE_TYPES.IMAGE,
+    ...FILE_TYPES.DOCUMENT,
+    ...FILE_TYPES.SPREADSHEET,
       ...FILE_TYPES.PRESENTATION,
-      ...FILE_TYPES.VIDEO,
-      ...FILE_TYPES.AUDIO,
-      ...FILE_TYPES.ARCHIVE,
-    ];
+    ...FILE_TYPES.VIDEO,
+    ...FILE_TYPES.AUDIO,
+    ...FILE_TYPES.ARCHIVE,
+  ];
 
     if (!allAllowedTypes.includes(file.mimetype)) {
       return cb(
@@ -263,7 +263,7 @@ const createFileFilter = (allowedTypes = null) => {
       return cb(new Error("Invalid filename"), false);
     }
 
-    cb(null, true);
+      cb(null, true);
   };
 };
 
@@ -305,9 +305,9 @@ const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     switch (err.code) {
       case "LIMIT_FILE_SIZE":
-        return res.status(400).json({
+      return res.status(400).json({
           success: false,
-          error: "File size limit exceeded",
+        error: "File size limit exceeded",
           message: `File size exceeds the maximum allowed size.`,
           details: {
             maxSize: err.limit,
@@ -325,13 +325,13 @@ const handleUploadError = (err, req, res, next) => {
           success: false,
           error: "Unexpected file field",
           message: "File field name not expected.",
-        });
+      });
       default:
-        return res.status(400).json({
+    return res.status(400).json({
           success: false,
-          error: err.code,
-          message: err.message,
-        });
+      error: err.code,
+      message: err.message,
+    });
     }
   }
 

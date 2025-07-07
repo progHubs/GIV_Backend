@@ -23,10 +23,36 @@
     </div>
     <div class="mb-3">
       <label class="form-label">Language</label>
-      <select class="form-control" name="language">
+      <select class="form-control" name="language" required>
         <option value="en">English</option>
         <option value="am">Amharic</option>
       </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label"
+        >Tags
+        <span class="text-muted" style="font-size: 0.9em"
+          >(comma-separated, e.g. news,health,community)</span
+        ></label
+      >
+      <input
+        type="text"
+        class="form-control"
+        name="tags"
+        placeholder="news,health,community"
+      />
+    </div>
+    <div class="mb-3 form-check">
+      <input
+        type="checkbox"
+        class="form-check-input"
+        name="is_featured"
+        id="isFeaturedCheck"
+        value="true"
+      />
+      <label class="form-check-label" for="isFeaturedCheck"
+        >Featured Post?</label
+      >
     </div>
     <div class="mb-3">
       <label class="form-label">Feature Image</label>
@@ -35,6 +61,20 @@
         class="form-control"
         name="feature_image"
         accept="image/*"
+      />
+    </div>
+    <div class="mb-3">
+      <label class="form-label"
+        >Translation Group ID
+        <span class="text-muted" style="font-size: 0.9em"
+          >(optional, for multi-language grouping)</span
+        ></label
+      >
+      <input
+        type="text"
+        class="form-control"
+        name="translation_group_id"
+        placeholder="UUID (optional)"
       />
     </div>
     <button type="submit" class="btn btn-primary">
@@ -59,6 +99,10 @@
       debugElement.style.display = "none";
 
       const formData = new FormData(e.target);
+      // Handle is_featured checkbox (send as boolean string)
+      if (!formData.has("is_featured")) {
+        formData.set("is_featured", "false");
+      }
       const requestData = {};
       formData.forEach((value, key) => {
         requestData[key] = value;

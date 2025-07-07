@@ -288,6 +288,26 @@ const validatePostData = (data) => {
     sanitized.language = languageValidation.sanitized;
   }
 
+  // Validate tags (optional)
+  if (data.tags !== undefined) {
+    if (typeof data.tags === "string") {
+      const tagsArr = data.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      sanitized.tags = tagsArr.length > 0 ? tagsArr.join(",") : null;
+    } else {
+      sanitized.tags = null;
+    }
+  }
+
+  // Validate is_featured (optional, default false)
+  if (typeof data.is_featured === "boolean") {
+    sanitized.is_featured = data.is_featured;
+  } else {
+    sanitized.is_featured = false;
+  }
+
   return {
     isValid: errors.length === 0,
     errors,

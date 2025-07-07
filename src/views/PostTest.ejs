@@ -212,6 +212,90 @@
             Advanced Query
           </button>
         </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="featured-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#featured"
+            type="button"
+            role="tab"
+          >
+            Featured Posts
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="by-author-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#by-author"
+            type="button"
+            role="tab"
+          >
+            By Author
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="by-tag-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#by-tag"
+            type="button"
+            role="tab"
+          >
+            By Tag
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="by-type-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#by-type"
+            type="button"
+            role="tab"
+          >
+            By Type
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="related-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#related"
+            type="button"
+            role="tab"
+          >
+            Related Posts
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="views-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#views"
+            type="button"
+            role="tab"
+          >
+            Increment Views
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            id="like-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#like"
+            type="button"
+            role="tab"
+          >
+            Like/Unlike
+          </button>
+        </li>
       </ul>
 
       <!-- Tab Content -->
@@ -254,6 +338,119 @@
         <!-- Query Posts Tab -->
         <div class="tab-pane fade" id="query" role="tabpanel">
           <%- include('./routes/query-posts') %>
+        </div>
+
+        <!-- Featured Posts Tab -->
+        <div class="tab-pane fade" id="featured" role="tabpanel">
+          <div class="form-section">
+            <button id="btn-featured-posts" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Featured Posts</span>
+            </button>
+            <div id="response-featured" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- By Author Tab -->
+        <div class="tab-pane fade" id="by-author" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-author-id"
+              class="form-control mb-2"
+              placeholder="Author User ID"
+            />
+            <button id="btn-by-author" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Posts by Author</span>
+            </button>
+            <div id="response-by-author" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- By Tag Tab -->
+        <div class="tab-pane fade" id="by-tag" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-tag"
+              class="form-control mb-2"
+              placeholder="Tag (e.g. news)"
+            />
+            <button id="btn-by-tag" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Posts by Tag</span>
+            </button>
+            <div id="response-by-tag" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- By Type Tab -->
+        <div class="tab-pane fade" id="by-type" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-type"
+              class="form-control mb-2"
+              placeholder="Type (e.g. blog, news)"
+            />
+            <button id="btn-by-type" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Posts by Type</span>
+            </button>
+            <div id="response-by-type" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- Related Posts Tab -->
+        <div class="tab-pane fade" id="related" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-related-id"
+              class="form-control mb-2"
+              placeholder="Post ID"
+            />
+            <button id="btn-related" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Get Related Posts</span>
+            </button>
+            <div id="response-related" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- Increment Views Tab -->
+        <div class="tab-pane fade" id="views" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-views-id"
+              class="form-control mb-2"
+              placeholder="Post ID"
+            />
+            <button id="btn-views" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Increment Views</span>
+            </button>
+            <div id="response-views" class="response-box"></div>
+          </div>
+        </div>
+
+        <!-- Like/Unlike Tab -->
+        <div class="tab-pane fade" id="like" role="tabpanel">
+          <div class="form-section">
+            <input
+              type="text"
+              id="input-like-id"
+              class="form-control mb-2"
+              placeholder="Post ID"
+            />
+            <button id="btn-like" class="btn btn-primary mb-2">
+              <span class="spinner-border spinner-border-sm"></span>
+              <span class="btn-text">Like/Unlike Post</span>
+            </button>
+            <div id="response-like" class="response-box"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -541,6 +738,130 @@
       document.addEventListener("DOMContentLoaded", function () {
         checkAuthStatus();
       });
+
+      // Add JS handlers for advanced post routes
+      // Featured Posts
+      const btnFeatured = document.getElementById("btn-featured-posts");
+      if (btnFeatured) {
+        btnFeatured.addEventListener("click", async function () {
+          setButtonLoading(btnFeatured, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/featured/all`);
+            const data = await res.json();
+            displayResponse("response-featured", data, !data.success);
+          } catch (e) {
+            displayResponse("response-featured", e, true);
+          } finally {
+            setButtonLoading(btnFeatured, false);
+          }
+        });
+      }
+      // By Author
+      const btnByAuthor = document.getElementById("btn-by-author");
+      if (btnByAuthor) {
+        btnByAuthor.addEventListener("click", async function () {
+          const userId = document.getElementById("input-author-id").value;
+          setButtonLoading(btnByAuthor, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/author/${userId}`);
+            const data = await res.json();
+            displayResponse("response-by-author", data, !data.success);
+          } catch (e) {
+            displayResponse("response-by-author", e, true);
+          } finally {
+            setButtonLoading(btnByAuthor, false);
+          }
+        });
+      }
+      // By Tag
+      const btnByTag = document.getElementById("btn-by-tag");
+      if (btnByTag) {
+        btnByTag.addEventListener("click", async function () {
+          const tag = document.getElementById("input-tag").value;
+          setButtonLoading(btnByTag, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/tag/${tag}`);
+            const data = await res.json();
+            displayResponse("response-by-tag", data, !data.success);
+          } catch (e) {
+            displayResponse("response-by-tag", e, true);
+          } finally {
+            setButtonLoading(btnByTag, false);
+          }
+        });
+      }
+      // By Type
+      const btnByType = document.getElementById("btn-by-type");
+      if (btnByType) {
+        btnByType.addEventListener("click", async function () {
+          const type = document.getElementById("input-type").value;
+          setButtonLoading(btnByType, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/type/${type}`);
+            const data = await res.json();
+            displayResponse("response-by-type", data, !data.success);
+          } catch (e) {
+            displayResponse("response-by-type", e, true);
+          } finally {
+            setButtonLoading(btnByType, false);
+          }
+        });
+      }
+      // Related Posts
+      const btnRelated = document.getElementById("btn-related");
+      if (btnRelated) {
+        btnRelated.addEventListener("click", async function () {
+          const postId = document.getElementById("input-related-id").value;
+          setButtonLoading(btnRelated, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/id/${postId}/related`);
+            const data = await res.json();
+            displayResponse("response-related", data, !data.success);
+          } catch (e) {
+            displayResponse("response-related", e, true);
+          } finally {
+            setButtonLoading(btnRelated, false);
+          }
+        });
+      }
+      // Increment Views
+      const btnViews = document.getElementById("btn-views");
+      if (btnViews) {
+        btnViews.addEventListener("click", async function () {
+          const postId = document.getElementById("input-views-id").value;
+          setButtonLoading(btnViews, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/id/${postId}/view`, {
+              method: "POST",
+            });
+            const data = await res.json();
+            displayResponse("response-views", data, !data.success);
+          } catch (e) {
+            displayResponse("response-views", e, true);
+          } finally {
+            setButtonLoading(btnViews, false);
+          }
+        });
+      }
+      // Like/Unlike
+      const btnLike = document.getElementById("btn-like");
+      if (btnLike) {
+        btnLike.addEventListener("click", async function () {
+          const postId = document.getElementById("input-like-id").value;
+          setButtonLoading(btnLike, true);
+          try {
+            const res = await fetch(`${API_BASE_URL}/id/${postId}/like`, {
+              method: "POST",
+            });
+            const data = await res.json();
+            displayResponse("response-like", data, !data.success);
+          } catch (e) {
+            displayResponse("response-like", e, true);
+          } finally {
+            setButtonLoading(btnLike, false);
+          }
+        });
+      }
     </script>
   </body>
 </html>

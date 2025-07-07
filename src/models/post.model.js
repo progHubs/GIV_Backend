@@ -397,6 +397,87 @@ class Post {
       throw error;
     }
   }
+
+  static async getFeatured() {
+    const posts = await prisma.posts.findMany({
+      where: { is_featured: true },
+      orderBy: { created_at: "desc" },
+    });
+    return posts.map(serializePost);
+  }
+
+  static async getByAuthor(userId) {
+    const posts = await prisma.posts.findMany({
+      where: { author_id: BigInt(userId) },
+      orderBy: { created_at: "desc" },
+    });
+    return posts.map(serializePost);
+  }
+
+  static async getByTag(tag) {
+    const posts = await prisma.posts.findMany({
+      where: { tags: { contains: tag } },
+      orderBy: { created_at: "desc" },
+    });
+    return posts.map(serializePost);
+  }
+
+  static async getByType(type) {
+    // Validate type against enum
+    const validTypes = ["blog", "news", "press_release"];
+    if (!validTypes.includes(type)) throw new Error("Invalid post type");
+    const posts = await prisma.posts.findMany({
+      where: { post_type: type },
+      orderBy: { created_at: "desc" },
+    });
+    return posts.map(serializePost);
+  }
+
+  static async getRelated(id) {
+    const post = await prisma.posts.findUnique({ where: { id: BigInt(id) } });
+    if (!post || !post.tags) return [];
+    const tags = post.tags
+      .split(",")
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    if (tags.length === 0) return [];
+    const related = await prisma.posts.findMany({
+      where: {
+        id: { not: BigInt(id) },
+        OR: tags.map((tag) => ({ tags: { contains: tag } })),
+      },
+      orderBy: { created_at: "desc" },
+      take: 10,
+    });
+    return related.map(serializePost);
+  }
+
+  static async incrementViews(id) {
+    const postExists = await prisma.posts.findUnique({
+      where: { id: BigInt(id) },
+    });
+    if (!postExists) return null;
+    const post = await prisma.posts.update({
+      where: { id: BigInt(id) },
+      data: { views: { increment: 1 } },
+      select: { id: true, views: true },
+    });
+    return serializePost(post);
+  }
+
+  static async toggleLike(id) {
+    const postExists = await prisma.posts.findUnique({
+      where: { id: BigInt(id) },
+    });
+    if (!postExists) return null;
+    // For demo: just increment likes (no per-user tracking)
+    const post = await prisma.posts.update({
+      where: { id: BigInt(id) },
+      data: { likes: { increment: 1 } },
+      select: { id: true, likes: true },
+    });
+    return serializePost(post);
+  }
 }
 
 module.exports = Post;

@@ -1,4 +1,4 @@
-const rateLimit = require('express-rate-limit');
+const rateLimit = require("express-rate-limit");
 
 /**
  * Create a rate limiter with custom configuration
@@ -9,7 +9,7 @@ const createRateLimiter = (options = {}) => {
   const {
     windowMs = 15 * 60 * 1000, // 15 minutes
     max = 100, // limit each IP to 100 requests per windowMs
-    message = 'Too many requests from this IP, please try again later.',
+    message = "Too many requests from this IP, please try again later.",
     standardHeaders = true,
     legacyHeaders = false,
     skipSuccessfulRequests = false,
@@ -19,10 +19,10 @@ const createRateLimiter = (options = {}) => {
       res.status(429).json({
         success: false,
         errors: [message],
-        code: 'RATE_LIMIT_EXCEEDED',
-        retryAfter: Math.ceil(windowMs / 1000)
+        code: "RATE_LIMIT_EXCEEDED",
+        retryAfter: Math.ceil(windowMs / 1000),
       });
-    }
+    },
   } = options;
 
   return rateLimit({
@@ -34,7 +34,7 @@ const createRateLimiter = (options = {}) => {
     skipSuccessfulRequests,
     skipFailedRequests,
     keyGenerator,
-    handler
+    handler,
     // Uses default memory store
   });
 };
@@ -46,7 +46,7 @@ const createRateLimiter = (options = {}) => {
 const generalLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
-  message: 'Too many API requests from this IP, please try again later.'
+  message: "Too many API requests from this IP, please try again later.",
 });
 
 /**
@@ -56,8 +56,9 @@ const generalLimiter = createRateLimiter({
 const authLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,
-  message: 'Too many authentication attempts from this IP, please try again later.',
-  skipSuccessfulRequests: true // Don't count successful requests
+  message:
+    "Too many authentication attempts from this IP, please try again later.",
+  skipSuccessfulRequests: true, // Don't count successful requests
 });
 
 /**
@@ -66,9 +67,9 @@ const authLimiter = createRateLimiter({
  */
 const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3,
-  message: 'Too many login attempts from this IP, please try again later.',
-  skipSuccessfulRequests: true
+  max: 10,
+  message: "Too many login attempts from this IP, please try again later.",
+  skipSuccessfulRequests: true,
 });
 
 /**
@@ -77,9 +78,10 @@ const loginLimiter = createRateLimiter({
  */
 const registrationLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 2,
-  message: 'Too many registration attempts from this IP, please try again later.',
-  skipSuccessfulRequests: true
+  max: 10,
+  message:
+    "Too many registration attempts from this IP, please try again later.",
+  skipSuccessfulRequests: true,
 });
 
 /**
@@ -88,9 +90,10 @@ const registrationLimiter = createRateLimiter({
  */
 const passwordResetLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3,
-  message: 'Too many password reset requests from this IP, please try again later.',
-  skipSuccessfulRequests: true
+  max: 10,
+  message:
+    "Too many password reset requests from this IP, please try again later.",
+  skipSuccessfulRequests: true,
 });
 
 /**
@@ -99,9 +102,10 @@ const passwordResetLimiter = createRateLimiter({
  */
 const emailVerificationLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5,
-  message: 'Too many email verification requests from this IP, please try again later.',
-  skipSuccessfulRequests: true
+  max: 10,
+  message:
+    "Too many email verification requests from this IP, please try again later.",
+  skipSuccessfulRequests: true,
 });
 
 /**
@@ -111,8 +115,9 @@ const emailVerificationLimiter = createRateLimiter({
 const accountLockoutLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
-  message: 'Account temporarily locked due to too many failed attempts. Please try again in 1 hour.',
-  skipSuccessfulRequests: true
+  message:
+    "Account temporarily locked due to too many failed attempts. Please try again in 1 hour.",
+  skipSuccessfulRequests: true,
 });
 
 /**
@@ -122,7 +127,7 @@ const accountLockoutLimiter = createRateLimiter({
 const adminLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 50,
-  message: 'Too many admin requests from this IP, please try again later.'
+  message: "Too many admin requests from this IP, please try again later.",
 });
 
 /**
@@ -132,7 +137,7 @@ const adminLimiter = createRateLimiter({
 const uploadLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
-  message: 'Too many file uploads from this IP, please try again later.'
+  message: "Too many file uploads from this IP, please try again later.",
 });
 
 /**
@@ -142,11 +147,15 @@ const uploadLimiter = createRateLimiter({
  * @param {string} message - Error message
  * @returns {Function} - Express middleware
  */
-const customLimiter = (max, windowMs = 15 * 60 * 1000, message = 'Rate limit exceeded') => {
+const customLimiter = (
+  max,
+  windowMs = 15 * 60 * 1000,
+  message = "Rate limit exceeded"
+) => {
   return createRateLimiter({
     windowMs,
     max,
-    message
+    message,
   });
 };
 
@@ -176,5 +185,5 @@ module.exports = {
   uploadLimiter,
   customLimiter,
   skipRateLimit,
-  createRateLimiter
-}; 
+  createRateLimiter,
+};
