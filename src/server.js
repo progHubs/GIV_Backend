@@ -41,6 +41,7 @@ const analyticsRoutes = require("./api/routes/analytics.routes");
 const emailRoutes = require("./api/routes/email.routes");
 const stripeRoutes = require("./api/routes/stripe.routes");
 const uploadRoutes = require("./api/routes/upload.routes");
+const commentRoutes = require("./api/routes/comment.routes");
 
 // Import cleanup function
 const cleanupRevokedTokens = require("./jobs/cleanupRevokedTokens");
@@ -208,6 +209,7 @@ app.use(`${apiPrefix}/analytics`, analyticsRoutes);
 app.use(`${apiPrefix}/emails`, emailRoutes);
 app.use(`${apiPrefix}/payments/stripe`, stripeRoutes);
 app.use(`${apiPrefix}/upload`, uploadRoutes);
+app.use(`${apiPrefix}/comments`, commentRoutes);
 
 // --- Stripe Success/Cancel Pages ---
 app.get("/donation-success", (req, res) => {
