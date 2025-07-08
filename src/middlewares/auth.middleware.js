@@ -66,16 +66,16 @@ const authenticateToken = async (req, res, next) => {
     }
 
     // Check if email is verified (optional, can be configured)
-    if (
-      process.env.REQUIRE_EMAIL_VERIFICATION === "true" &&
-      !user.email_verified
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: "Email verification required",
-        code: "EMAIL_NOT_VERIFIED",
-      });
-    }
+    // if (
+    //   process.env.REQUIRE_EMAIL_VERIFICATION === "true" &&
+    //   !user.email_verified
+    // ) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Email verification required",
+    //     code: "EMAIL_NOT_VERIFIED",
+    //   });
+    // }
 
     // Attach user to request
     req.user = {

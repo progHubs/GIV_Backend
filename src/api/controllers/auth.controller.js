@@ -181,7 +181,7 @@ class AuthController {
     try {
       console.log('Refresh request body:', req.body);
       console.log('Refresh request cookies:', req.cookies);
-      
+
       const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
       console.log('Extracted refresh token:', refreshToken ? 'Present' : 'Missing');
@@ -197,7 +197,7 @@ class AuthController {
       // Verify refresh token and generate new token pair
       const { verifyToken } = require('../../utils/jwt.util');
       const tokenService = require('../../services/token.service');
-      
+
       let decoded;
       try {
         // Use the correct audience that matches the token generation
@@ -373,9 +373,9 @@ class AuthController {
    */
   async resetPassword(req, res) {
     try {
-      const { token, newPassword } = req.body;
+      const { token, new_password } = req.body;
 
-      if (!token || !newPassword) {
+      if (!token || !new_password) {
         return res.status(400).json({
           success: false,
           errors: ['Token and new password are required'],
@@ -383,7 +383,7 @@ class AuthController {
         });
       }
 
-      const result = await authService.resetPassword(token, newPassword);
+      const result = await authService.resetPassword(token, new_password);
 
       if (!result.success) {
         return res.status(400).json({
