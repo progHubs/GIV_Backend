@@ -291,6 +291,7 @@ model partners {
   name                   String             @db.VarChar(255)
   logo_url               String?            @db.VarChar(512)
   type                   partners_type
+  category               String?            @db.VarChar(50)
   website                String?            @db.VarChar(512)
   contact_email          String?            @db.VarChar(255)
   quote                  String?            @db.Text
@@ -306,6 +307,7 @@ model partners {
   @@index([language], map: "idx_language")
   @@index([translation_group_id], map: "idx_translation_group")
   @@index([type], map: "idx_type")
+  @@index([category], map: "idx_category")
 }
 
 model posts {

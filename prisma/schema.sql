@@ -312,6 +312,7 @@ CREATE TABLE partners (
     name VARCHAR(255) NOT NULL,
     logo_url VARCHAR(512),
     type ENUM('ngo', 'corporate', 'government', 'diaspora') NOT NULL,
+    category VARCHAR(50),
     website VARCHAR(512),
     contact_email VARCHAR(255),
     quote TEXT,
@@ -323,6 +324,7 @@ CREATE TABLE partners (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_type (type),
+    INDEX idx_category (category),
     INDEX idx_language (language),
     INDEX idx_translation_group (translation_group_id),
     INDEX idx_active (is_active)
