@@ -123,8 +123,13 @@ class TestimonialController {
    * Delete Testimonial
    */
     async deleteTestimonial(req, res) {
-        const id = req.params.id
         try {
+            const id = req.params.id
+
+            // Validate that ID is provided
+            if (!id) {
+                return res.status(400).json({ success: false, message: "ID Required" });
+            }
             const testimonial = await TestimonialService.delete(id)
             res.status(200).json({
                 success: true,
@@ -148,6 +153,10 @@ class TestimonialController {
     async getTranslationTestimonial(req, res) {
         try {
             const id = req.params.id
+            // Validate that ID is provided
+            if (!id) {
+                return res.status(400).json({ success: false, message: "ID Required" });
+            }
             const testimonial = await testimonialService.getTranslation(id)
             const formatted = testimonial.map(t => ({
                 ...t,
