@@ -60,7 +60,7 @@ app.use(
         connectSrc: ["'self'", "https:", "http:", "localhost:*"],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
+        mediaSrc: ["'self'", "https://res.cloudinary.com"],
         frameSrc: ["'none'"],
       },
     },

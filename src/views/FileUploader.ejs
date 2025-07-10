@@ -1,335 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>File Upload Test</title>
-    <style>
-      body {
-        font-family: sans-serif;
-        margin: 2rem;
-      }
-      .section {
-        margin-bottom: 2rem;
-      }
-      .spinner {
-        display: none;
-        margin-left: 1em;
-      }
-      .spinner.show {
-        display: inline-block;
-      }
-      .result {
-        background: #f4f4f4;
-        border: 1px solid #ccc;
-        padding: 1em;
-        margin-top: 1em;
-        font-size: 0.95em;
-      }
-      .error {
-        color: #b00;
-      }
-      label {
-        font-weight: bold;
-      }
-      input[type="file"] {
-        margin-bottom: 0.5em;
-      }
-      button {
-        margin-left: 0.5em;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>File Upload Test Page</h2>
+<head>
+  <meta charset="UTF-8">
+  <title>File Uploader Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f9f9f9; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px #0001; }
+    h1 { text-align: center; }
+    .preview { margin-top: 2rem; }
+    .preview img, .preview video, .preview audio, .preview iframe { max-width: 100%; margin-top: 1rem; border-radius: 4px; }
+    .link { margin-top: 1rem; word-break: break-all; }
+    .error { color: #b00; margin-top: 1rem; }
+    label { display: block; margin-top: 1rem; }
+    select, input[type=file], button { margin-top: 0.5rem; }
+    .success { color: #080; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>File Uploader Test</h1>
+    <form id="uploadForm">
+      <label for="fileType">File Type:</label>
+      <select id="fileType" name="fileType" required>
+        <option value="image">Image</option>
+        <option value="images">Multiple Images</option>
+        <option value="video">Video</option>
+        <option value="document">Document</option>
+        <option value="pdf">PDF</option>
+        <option value="mixed">Mixed (Images, Documents, Videos)</option>
+      </select>
+      <label for="fileInput">Select File(s):</label>
+      <input type="file" id="fileInput" name="file" required multiple>
+      <button type="submit">Upload</button>
+    </form>
+    <div class="preview" id="preview"></div>
+    <div class="error" id="error"></div>
+  </div>
+  <script>
+    const endpoints = {
+      image:   { url: '/api/v1/upload/image', field: 'image', multiple: false },
+      images:  { url: '/api/v1/upload/images', field: 'images', multiple: true },
+      video:   { url: '/api/v1/upload/video', field: 'video', multiple: false },
+      document:{ url: '/api/v1/upload/document', field: 'document', multiple: false },
+      pdf:     { url: '/api/v1/upload/pdf', field: 'pdf', multiple: false },
+      mixed:   { url: '/api/v1/upload/mixed', field: null, multiple: true },
+    };
 
-    <div class="section">
-      <form id="singleImageForm">
-        <label>Single Image Upload:</label>
-        <input type="file" name="image" accept="image/*" required />
-        <button type="submit">Upload</button>
-        <span class="spinner" id="spinner-single">⏳</span>
-      </form>
-      <pre class="result" id="result-single"></pre>
-    </div>
+    const form = document.getElementById('uploadForm');
+    const fileTypeSelect = document.getElementById('fileType');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const errorDiv = document.getElementById('error');
 
-    <div class="section">
-      <form id="multiImageForm">
-        <label>Multiple Images Upload:</label>
-        <input type="file" name="images" accept="image/*" multiple required />
-        <button type="submit">Upload</button>
-        <span class="spinner" id="spinner-multi">⏳</span>
-      </form>
-      <pre class="result" id="result-multi"></pre>
-    </div>
+    fileTypeSelect.addEventListener('change', () => {
+      const type = fileTypeSelect.value;
+      fileInput.multiple = endpoints[type].multiple;
+      fileInput.value = '';
+    });
 
-    <div class="section">
-      <form id="videoForm">
-        <label>Video Upload:</label>
-        <input type="file" name="video" accept="video/*" required />
-        <button type="submit">Upload</button>
-        <span class="spinner" id="spinner-video">⏳</span>
-      </form>
-      <pre class="result" id="result-video"></pre>
-    </div>
-
-    <div class="section">
-      <form id="pdfForm">
-        <label>PDF Upload:</label>
-        <input type="file" name="pdf" accept="application/pdf" required />
-        <button type="submit">Upload</button>
-        <span class="spinner" id="spinner-pdf">⏳</span>
-      </form>
-      <pre class="result" id="result-pdf"></pre>
-    </div>
-
-    <div class="section">
-      <form id="docForm">
-        <label>Document Upload (PDF, DOC, DOCX, TXT):</label>
-        <input
-          type="file"
-          name="document"
-          accept=".pdf,.doc,.docx,.txt,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-          required
-        />
-        <button type="submit">Upload</button>
-        <span class="spinner" id="spinner-doc">⏳</span>
-      </form>
-      <pre class="result" id="result-doc"></pre>
-    </div>
-
-    <div class="section">
-      <form id="mixedForm">
-        <label>Mixed Files Upload:</label>
-        <input type="file" name="files" multiple required />
-        <button type="submit">Upload</button>
-        <span class="spinner" id="spinner-mixed">⏳</span>
-      </form>
-      <pre class="result" id="result-mixed"></pre>
-    </div>
-
-    <div class="section">
-      <form id="progressForm">
-        <label>Progress Tracking Upload:</label>
-        <input type="file" name="files" multiple required />
-        <button type="submit">Upload</button>
-        <span class="spinner" id="spinner-progress">⏳</span>
-      </form>
-      <pre class="result" id="result-progress"></pre>
-    </div>
-
-    <div class="section">
-      <form id="optimizeForm">
-        <label>Optimize Image (Cloudinary ID):</label>
-        <input
-          type="text"
-          name="cloudinaryId"
-          placeholder="Cloudinary public ID"
-          required
-        />
-        <input type="number" name="quality" min="1" max="100" value="85" />
-        <button type="submit">Optimize</button>
-        <span class="spinner" id="spinner-optimize">⏳</span>
-      </form>
-      <pre class="result" id="result-optimize"></pre>
-    </div>
-
-    <script>
-      const API_BASE = "/api/v1/upload";
-      function getAuthToken() {
-        return localStorage.getItem("authToken") || "demo-token";
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      preview.innerHTML = '';
+      errorDiv.textContent = '';
+      const type = fileTypeSelect.value;
+      const endpoint = endpoints[type];
+      const files = fileInput.files;
+      if (!files.length) {
+        errorDiv.textContent = 'Please select a file.';
+        return;
       }
-
-      function showSpinner(id, show) {
-        document.getElementById(id).classList.toggle("show", show);
-      }
-      function showResult(id, data, isError) {
-        const el = document.getElementById(id);
-        el.textContent =
-          typeof data === "string" ? data : JSON.stringify(data, null, 2);
-        el.className = "result" + (isError ? " error" : "");
-      }
-
-      // Single image
-      document.getElementById("singleImageForm").onsubmit = async function (e) {
-        e.preventDefault();
-        showSpinner("spinner-single", true);
-        showResult("result-single", "");
-        const form = e.target;
-        const fd = new FormData(form);
-        try {
-          const res = await fetch(`${API_BASE}/image`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${getAuthToken()}` },
-            body: fd,
-          });
-          const data = await res.json();
-          showResult("result-single", data, !data.success);
-        } catch (err) {
-          showResult("result-single", err.message, true);
+      const formData = new FormData();
+      if (type === 'mixed') {
+        // For mixed, assign files to their fields by mimetype
+        for (const file of files) {
+          if (file.type.startsWith('image/')) {
+            formData.append('images', file);
+          } else if (file.type.startsWith('video/')) {
+            formData.append('videos', file);
+          } else {
+            formData.append('documents', file);
+          }
         }
-        showSpinner("spinner-single", false);
-      };
-
-      // Multiple images
-      document.getElementById("multiImageForm").onsubmit = async function (e) {
-        e.preventDefault();
-        showSpinner("spinner-multi", true);
-        showResult("result-multi", "");
-        const form = e.target;
-        const fd = new FormData();
-        for (const file of form.images.files) fd.append("images", file);
-        try {
-          const res = await fetch(`${API_BASE}/images`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${getAuthToken()}` },
-            body: fd,
-          });
-          const data = await res.json();
-          showResult("result-multi", data, !data.success);
-        } catch (err) {
-          showResult("result-multi", err.message, true);
+      } else if (endpoint.multiple) {
+        for (const file of files) {
+          formData.append(endpoint.field, file);
         }
-        showSpinner("spinner-multi", false);
-      };
-
-      // Video upload
-      document.getElementById("videoForm").onsubmit = async function (e) {
-        e.preventDefault();
-        showSpinner("spinner-video", true);
-        showResult("result-video", "");
-        const form = e.target;
-        const fd = new FormData(form);
-        try {
-          const res = await fetch(`${API_BASE}/video`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${getAuthToken()}` },
-            body: fd,
-          });
-          const data = await res.json();
-          showResult("result-video", data, !data.success);
-        } catch (err) {
-          showResult("result-video", err.message, true);
-        }
-        showSpinner("spinner-video", false);
-      };
-
-      // PDF upload
-      document.getElementById("pdfForm").onsubmit = async function (e) {
-        e.preventDefault();
-        showSpinner("spinner-pdf", true);
-        showResult("result-pdf", "");
-        const form = e.target;
-        const fd = new FormData(form);
-        try {
-          const res = await fetch(`${API_BASE}/pdf`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${getAuthToken()}` },
-            body: fd,
-          });
-          const data = await res.json();
-          showResult("result-pdf", data, !data.success);
-        } catch (err) {
-          showResult("result-pdf", err.message, true);
-        }
-        showSpinner("spinner-pdf", false);
-      };
-
-      // Document upload
-      document.getElementById("docForm").onsubmit = async function (e) {
-        e.preventDefault();
-        showSpinner("spinner-doc", true);
-        showResult("result-doc", "");
-        const form = e.target;
-        const fd = new FormData(form);
-        try {
-          const res = await fetch(`${API_BASE}/document`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${getAuthToken()}` },
-            body: fd,
-          });
-          const data = await res.json();
-          showResult("result-doc", data, !data.success);
-        } catch (err) {
-          showResult("result-doc", err.message, true);
-        }
-        showSpinner("spinner-doc", false);
-      };
-
-      // Mixed files
-      document.getElementById("mixedForm").onsubmit = async function (e) {
-        e.preventDefault();
-        showSpinner("spinner-mixed", true);
-        showResult("result-mixed", "");
-        const form = e.target;
-        const fd = new FormData();
-        for (const file of form.files.files) fd.append("files", file);
-        try {
-          const res = await fetch(`${API_BASE}/mixed`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${getAuthToken()}` },
-            body: fd,
-          });
-          const data = await res.json();
-          showResult("result-mixed", data, !data.success);
-        } catch (err) {
-          showResult("result-mixed", err.message, true);
-        }
-        showSpinner("spinner-mixed", false);
-      };
-
-      // Progress tracking
-      document.getElementById("progressForm").onsubmit = async function (e) {
-        e.preventDefault();
-        showSpinner("spinner-progress", true);
-        showResult("result-progress", "");
-        const form = e.target;
-        const fd = new FormData();
-        for (const file of form.files.files) fd.append("files", file);
-        const uploadId = "test-" + Math.random().toString(36).slice(2);
-        try {
-          const res = await fetch(`${API_BASE}/with-progress`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${getAuthToken()}`,
-              "x-upload-id": uploadId,
-            },
-            body: fd,
-          });
-          const data = await res.json();
-          showResult("result-progress", data, !data.success);
-        } catch (err) {
-          showResult("result-progress", err.message, true);
-        }
-        showSpinner("spinner-progress", false);
-      };
-
-      // Optimize image
-      document.getElementById("optimizeForm").onsubmit = async function (e) {
-        e.preventDefault();
-        showSpinner("spinner-optimize", true);
-        showResult("result-optimize", "");
-        const form = e.target;
-        const body = JSON.stringify({
-          cloudinaryId: form.cloudinaryId.value,
-          options: { quality: parseInt(form.quality.value) },
+      } else {
+        formData.append(endpoint.field, files[0]);
+      }
+      try {
+        const res = await fetch(endpoint.url, {
+          method: 'POST',
+          body: formData
         });
-        try {
-          const res = await fetch(`${API_BASE}/optimize-image`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${getAuthToken()}`,
-              "Content-Type": "application/json",
-            },
-            body,
-          });
-          const data = await res.json();
-          showResult("result-optimize", data, !data.success);
-        } catch (err) {
-          showResult("result-optimize", err.message, true);
+        const data = await res.json();
+        if (!data.success) {
+          errorDiv.textContent = data.error || 'Upload failed.';
+          return;
         }
-        showSpinner("spinner-optimize", false);
-      };
-    </script>
-  </body>
+        preview.innerHTML = '<div class="success">Upload successful!</div>';
+        // Handle different response structures
+        if (type === 'images') {
+          data.data.files.forEach(showFilePreview);
+        } else if (type === 'mixed') {
+          // Show all types
+          ['images','videos','documents'].forEach(group => {
+            if (data.data[group]) {
+              data.data[group].forEach(showFilePreview);
+            }
+          });
+        } else if (data.data.files) {
+          data.data.files.forEach(showFilePreview);
+        } else if (data.data) {
+          showFilePreview(data.data);
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Error: ' + err.message;
+      }
+    });
+
+    function showFilePreview(file) {
+      if (!file || !file.url) return;
+      const div = document.createElement('div');
+      div.className = 'file-preview';
+      // Show file type
+      div.innerHTML = `<strong>Type:</strong> ${file.mimetype || ''}<br>`;
+      // Show link
+      div.innerHTML += `<div class="link"><strong>Cloudinary Link:</strong> <a href="${file.url}" target="_blank">${file.url}</a></div>`;
+      // Preview by type
+      if (file.mimetype && file.mimetype.startsWith('image/')) {
+        div.innerHTML += `<img src="${file.url}" alt="Image preview">`;
+      } else if (file.mimetype && file.mimetype.startsWith('video/')) {
+        div.innerHTML += `<video src="${file.url}" controls style="max-width:100%;height:auto;"></video>`;
+      } else if (file.mimetype && file.mimetype.startsWith('audio/')) {
+        div.innerHTML += `<audio src="${file.url}" controls></audio>`;
+      } else if (file.mimetype === 'application/pdf') {
+        div.innerHTML += `<iframe src="${file.url}" width="100%" height="400"></iframe>`;
+      } else {
+        div.innerHTML += `<div><a href="${file.url}" target="_blank">Download/View File</a></div>`;
+      }
+      preview.appendChild(div);
+    }
+  </script>
+</body>
 </html>
