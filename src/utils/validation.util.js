@@ -765,37 +765,45 @@ const validateId = (id) => {
 };
 
 /**
- * Recursively convert all BigInt values in an object/array to strings for JSON serialization
+ * Recursively convert all BigInt, Date, and Decimal values in an object/array for JSON serialization
  * @param {any} obj
  * @returns {any}
  */
 function convertBigIntToString(obj) {
-  if (Array.isArray(obj)) {
-    return obj.map(convertBigIntToString);
-  } else if (obj instanceof Date) {
-    return obj.toISOString();
-  } else if (obj && typeof obj === "object") {
-    const result = {};
-    for (const key in obj) {
-      if (typeof obj[key] === "bigint") {
-        result[key] = obj[key].toString();
-      } else if (obj[key] instanceof Date) {
-        result[key] = obj[key].toISOString();
-      } else if (
-        Array.isArray(obj[key]) ||
-        (obj[key] && typeof obj[key] === "object")
-      ) {
-        result[key] = convertBigIntToString(obj[key]);
-      } else {
-        result[key] = obj[key];
-      }
-    }
-    return result;
-  } else if (typeof obj === "bigint") {
-    return obj.toString();
-  } else {
+  if (obj === null || obj === undefined) {
     return obj;
   }
+
+  // Convert BigInt
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+
+  // Handle Date objects - preserve them as ISO strings
+  if (obj instanceof Date) {
+    return obj.toISOString();
+  }
+
+  // Convert Decimal.js objects (Prisma decimal) - check for toFixed method
+  if (typeof obj === 'object' && obj !== null && typeof obj.toFixed === 'function') {
+    return obj.toFixed(2);
+  }
+
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(convertBigIntToString);
+  }
+
+  // Handle objects
+  if (typeof obj === 'object') {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = convertBigIntToString(value);
+    }
+    return result;
+  }
+
+  return obj;
 }
 
 /**

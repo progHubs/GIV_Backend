@@ -70,6 +70,7 @@ CREATE TABLE campaigns (
     end_date DATE,
     is_active BOOLEAN DEFAULT TRUE,
     is_featured BOOLEAN DEFAULT FALSE,
+    is_completed BOOLEAN DEFAULT FALSE COMMENT 'Automatically set to TRUE when current_amount >= goal_amount',
     category VARCHAR(50),
     progress_bar_color VARCHAR(20),
     image_url VARCHAR(512),
@@ -86,6 +87,7 @@ CREATE TABLE campaigns (
     INDEX idx_slug (slug),
     INDEX idx_category (category),
     INDEX idx_active_featured (is_active, is_featured),
+    INDEX idx_completed (is_completed),
     INDEX idx_language (language),
     INDEX idx_translation_group (translation_group_id)
 ) ENGINE=InnoDB;

@@ -10,6 +10,13 @@ exports.createStripeSession = async (req, res) => {
   try {
     const { amount, tier, recurring, campaign_id } = req.body;
     const user = req.user || null;
+
+    console.log('🔐 Session creation - User authentication status:', {
+      hasUser: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+      isAuthenticated: !!user
+    });
     // Validate input
     if ((!amount && !tier) || (amount && tier)) {
       return res.status(400).json({ error: 'Provide either amount or tier, not both.' });
@@ -89,29 +96,111 @@ exports.createStripeSession = async (req, res) => {
   }
 };
 
+// GET /api/v1/payments/stripe/session/:sessionId
+exports.getStripeSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID is required'
+      });
+    }
+
+    // Retrieve session from Stripe
+    const session = await stripeService.retrieveSession(sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found'
+      });
+    }
+
+    // Extract metadata and session details
+    const { campaign_id, donor_id, is_anonymous, donation_type } = session.metadata || {};
+
+    // Try to find the corresponding donation record
+    let donation = null;
+    if (session.payment_intent) {
+      try {
+        donation = await donationService.getDonationByPaymentIntent(session.payment_intent);
+      } catch (error) {
+        console.log('No donation found for payment intent:', session.payment_intent);
+      }
+    }
+
+    // Prepare response data
+    const responseData = {
+      session_id: session.id,
+      donation_id: donation?.id || null,
+      campaign_id: campaign_id || '',
+      amount: session.amount_total ? (session.amount_total / 100).toFixed(2) : '0.00',
+      currency: session.currency || 'USD',
+      payment_status: session.payment_status || 'completed',
+      receipt_url: session.receipt_url || null,
+      customer_email: session.customer_email || null,
+      payment_intent_id: session.payment_intent || null,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: responseData
+    });
+
+  } catch (error) {
+    console.error('Error retrieving Stripe session:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve session details',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 // POST /api/v1/payments/stripe/webhook
 exports.stripeWebhook = async (req, res) => {
+  console.log('🔔 Webhook received:', {
+    headers: req.headers,
+    hasSignature: !!req.headers['stripe-signature'],
+    bodyLength: req.body ? req.body.length : 0
+  });
+
   const sig = req.headers['stripe-signature'];
   let event;
   try {
     event = stripeService.constructWebhookEvent(req.body, sig);
+    console.log('✅ Webhook signature verified. Event type:', event.type);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('❌ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
   try {
     // Handle events
     if (event.type === 'checkout.session.completed') {
+      console.log('🎯 Processing checkout.session.completed event');
       const session = event.data.object;
+      console.log('📋 Session metadata:', session.metadata);
       // Extract metadata
       const { campaign_id, donor_id, is_anonymous, donation_type } = session.metadata || {};
-      await donationService.handleStripeDonationSuccess({
+      console.log('💰 Calling donation service with:', {
+        campaign_id,
+        donor_id,
+        is_anonymous: is_anonymous === 'true',
+        donation_type,
+        amount: session.amount_total
+      });
+
+      const result = await donationService.handleStripeDonationSuccess({
         session,
         campaign_id,
         donor_id,
         is_anonymous: is_anonymous === 'true',
         donation_type,
       });
+
+      console.log('✅ Donation service result:', result);
     } else if (event.type === 'invoice.paid') {
       // Explicit handling for recurring donations (subscription payments)
       const invoice = event.data.object;
@@ -153,10 +242,14 @@ exports.stripeWebhook = async (req, res) => {
         is_anonymous: is_anonymous === 'true',
         donation_type,
       });
+    } else {
+      console.log('ℹ️ Unhandled webhook event type:', event.type);
     }
+
+    console.log('✅ Webhook processed successfully');
     res.json({ received: true });
   } catch (err) {
-    console.error('Error handling Stripe webhook:', err);
+    console.error('❌ Error handling Stripe webhook:', err);
     res.status(500).send('Webhook handler error');
   }
 }; 

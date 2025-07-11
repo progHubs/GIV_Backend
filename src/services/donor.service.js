@@ -1,37 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
-const { validateDonorData } = require('../utils/validation.util');
+const { validateDonorData, convertBigIntToString } = require('../utils/validation.util');
 const logger = require('../utils/logger.util');
 
 const prisma = new PrismaClient();
-
-/**
- * Helper function to convert BigInt values to strings in objects
- * @param {any} obj - Object to process
- * @returns {any} - Object with BigInt values converted to strings
- */
-const convertBigIntToString = (obj) => {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (typeof obj === 'bigint') {
-    return obj.toString();
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(convertBigIntToString);
-  }
-
-  if (typeof obj === 'object') {
-    const result = {};
-    for (const [key, value] of Object.entries(obj)) {
-      result[key] = convertBigIntToString(value);
-    }
-    return result;
-  }
-
-  return obj;
-};
 
 /**
  * Donor Service for GIV Society Backend

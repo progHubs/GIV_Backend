@@ -17,7 +17,7 @@ class DonationService {
       let createdDonorProfile = false;
 
       // Anonymous donation (no user)
-      if (!userId || donorId === ANONYMOUS_DONOR_ID) {
+      if (!userId) {
         donorId = ANONYMOUS_DONOR_ID;
       } else {
         // Registered user
@@ -219,110 +219,156 @@ class DonationService {
    * @param {Object} params - { session, campaign_id, donor_id, is_anonymous, donation_type }
    */
   async handleStripeDonationSuccess({ session, campaign_id, donor_id, is_anonymous, donation_type }) {
-    try {
-      // 1. Extract Stripe info
-      const paymentIntentId = session.payment_intent || session.id;
-      const amount = session.amount_total ? session.amount_total / 100 : null; // Stripe gives cents
-      const currency = session.currency ? session.currency.toUpperCase() : 'USD';
-      const receiptUrl = session.receipt_url || (session.charges && session.charges.data[0]?.receipt_url) || null;
-      const paymentMethod = 'stripe';
-      const donatedAt = session.created ? new Date(session.created * 1000) : new Date();
-      const notes = session.metadata?.notes || null;
-      const campaignId = campaign_id ? parseInt(campaign_id) : null;
-      const isAnonymous = !!is_anonymous;
-      const donorId = isAnonymous ? ANONYMOUS_DONOR_ID : (donor_id ? parseInt(donor_id) : ANONYMOUS_DONOR_ID);
-      const type = donation_type || 'one_time';
+    // Use transaction to prevent connection pool issues
+    return await prisma.$transaction(async (tx) => {
+      try {
+        // 1. Extract Stripe info
+        const paymentIntentId = session.payment_intent || session.id;
+        const amount = session.amount_total ? session.amount_total / 100 : null; // Stripe gives cents
+        const currency = session.currency ? session.currency.toUpperCase() : 'USD';
+        const receiptUrl = session.receipt_url || (session.charges && session.charges.data[0]?.receipt_url) || null;
+        const paymentMethod = 'stripe';
+        const donatedAt = session.created ? new Date(session.created * 1000) : new Date();
+        const notes = session.metadata?.notes || null;
+        const campaignId = campaign_id ? parseInt(campaign_id) : null;
+        const isAnonymous = !!is_anonymous;
+        const type = donation_type || 'one_time';
 
-      // 2. Try to find an existing pending donation by transaction_id (idempotency)
-      let donation = await prisma.donations.findFirst({
-        where: {
-          transaction_id: paymentIntentId
+        // Determine donor ID and ensure donor profile exists
+        let donorId;
+        if (isAnonymous || !donor_id || donor_id === '0') {
+          donorId = ANONYMOUS_DONOR_ID;
+        } else {
+          donorId = parseInt(donor_id);
+
+          // Ensure donor profile exists for authenticated users
+          const existingDonorProfile = await tx.donor_profiles.findUnique({
+            where: { user_id: BigInt(donorId) }
+          });
+
+          if (!existingDonorProfile) {
+            // Create donor profile for first-time donor
+            await tx.donor_profiles.create({
+              data: {
+                user_id: donorId,
+                is_recurring_donor: type === 'recurring',
+                is_anonymous: false,
+                total_donated: 0.00
+              }
+            });
+
+            // Update user's is_donor flag
+            await tx.users.update({
+              where: { id: BigInt(donorId) },
+              data: { is_donor: true }
+            });
+          }
         }
-      });
 
-      // 3. If not found, create a new donation record
-      if (!donation) {
-        donation = await prisma.donations.create({
-          data: {
-            donor_id: donorId,
-            campaign_id: campaignId,
-            amount: amount,
-            currency: currency,
-            donation_type: type,
-            payment_method: paymentMethod,
-            payment_status: 'completed',
-            transaction_id: paymentIntentId,
-            receipt_url: receiptUrl,
-            is_acknowledged: false,
-            is_tax_deductible: true,
-            is_anonymous: isAnonymous,
-            notes: notes,
-            donated_at: donatedAt,
-            created_at: new Date(),
-            updated_at: new Date(),
+        console.log('💰 Donation processing details:', {
+          donorId,
+          isAnonymous,
+          campaignId,
+          amount,
+          type
+        });
+
+        // 2. Try to find an existing pending donation by transaction_id (idempotency)
+        let donation = await tx.donations.findFirst({
+          where: {
+            transaction_id: paymentIntentId
           }
         });
-      } else {
-        // 4. If found, update to completed
-        donation = await prisma.donations.update({
-          where: { id: donation.id },
-          data: {
-            payment_status: 'completed',
-            transaction_id: paymentIntentId,
-            payment_method: paymentMethod,
-            receipt_url: receiptUrl,
-            is_anonymous: isAnonymous,
-            updated_at: new Date(),
-          }
-        });
-      }
 
-      // 5. Update donor profile stats (skip for anonymous)
-      if (donorId !== ANONYMOUS_DONOR_ID) {
-        await prisma.donor_profiles.update({
-          where: { user_id: donorId },
-          data: {
-            total_donated: { increment: amount },
-            last_donation_date: new Date(),
-          }
-        });
-      }
-
-      // 6. Update campaign stats
-      if (campaignId) {
-        await prisma.campaigns.update({
-          where: { id: campaignId },
-          data: {
-            current_amount: { increment: amount },
-            donor_count: { increment: 1 },
-          }
-        });
-      }
-
-      // 7. Send receipt if not anonymous and email available
-      if (!isAnonymous && session.customer_email) {
-        try {
-          await emailService.sendDonationReceipt(session.customer_email, donation);
-        } catch (e) {
-          logger.warn('Failed to send Stripe donation receipt email:', e);
+        // 3. If not found, create a new donation record
+        if (!donation) {
+          donation = await tx.donations.create({
+            data: {
+              donor_id: donorId,
+              campaign_id: campaignId,
+              amount: amount,
+              currency: currency,
+              donation_type: type,
+              payment_method: paymentMethod,
+              payment_status: 'completed',
+              transaction_id: paymentIntentId,
+              receipt_url: receiptUrl,
+              is_acknowledged: false,
+              is_tax_deductible: true,
+              is_anonymous: isAnonymous,
+              notes: notes,
+              donated_at: donatedAt,
+              created_at: new Date(),
+              updated_at: new Date(),
+            }
+          });
+        } else {
+          // 4. If found, update to completed
+          donation = await tx.donations.update({
+            where: { id: donation.id },
+            data: {
+              payment_status: 'completed',
+              transaction_id: paymentIntentId,
+              payment_method: paymentMethod,
+              receipt_url: receiptUrl,
+              is_anonymous: isAnonymous,
+              updated_at: new Date(),
+            }
+          });
         }
+
+        // 5. Update donor profile stats (skip for anonymous)
+        if (donorId !== ANONYMOUS_DONOR_ID) {
+          await tx.donor_profiles.update({
+            where: { user_id: donorId },
+            data: {
+              total_donated: { increment: amount },
+              last_donation_date: new Date(),
+            }
+          });
+        }
+
+        // 6. Update campaign stats
+        if (campaignId) {
+          await tx.campaigns.update({
+            where: { id: campaignId },
+            data: {
+              current_amount: { increment: amount },
+              donor_count: { increment: 1 },
+            }
+          });
+        }
+
+        // 7. Send receipt if not anonymous and email available
+        if (!isAnonymous && session.customer_email) {
+          try {
+            await emailService.sendDonationReceipt(session.customer_email, donation);
+          } catch (e) {
+            logger.warn('Failed to send Stripe donation receipt email:', e);
+          }
+        }
+
+        // 8. Log for audit
+        logger.info('Stripe donation processed:', {
+          donation_id: donation.id,
+          transaction_id: paymentIntentId,
+          donor_id: donorId,
+          campaign_id: campaignId,
+          amount,
+          is_anonymous: isAnonymous
+        });
+
+        return { success: true, donation: convertBigIntToString(donation) };
+      } catch (error) {
+        logger.error('Error handling Stripe donation success:', error);
+        throw error; // Let transaction handle the rollback
       }
-
-      // 8. Log for audit
-      logger.info('Stripe donation processed:', {
-        donation_id: donation.id,
-        transaction_id: paymentIntentId,
-        donor_id: donorId,
-        campaign_id: campaignId,
-        amount,
-        is_anonymous: isAnonymous
-      });
-
-      return { success: true, donation: convertBigIntToString(donation) };
-    } catch (error) {
-      logger.error('Error handling Stripe donation success:', error);
+    }, {
+      timeout: 30000, // 30 second timeout
+    }).catch(error => {
+      logger.error('Transaction failed for Stripe donation:', error);
       return { success: false, error: 'Failed to process Stripe donation', code: 'STRIPE_DONATION_ERROR' };
-    }
+    });
   }
 
   /**
@@ -527,6 +573,46 @@ class DonationService {
         error: 'Failed to search donations',
         code: 'DONATION_SEARCH_ERROR'
       };
+    }
+  }
+
+  // Get donation by payment intent ID
+  async getDonationByPaymentIntent(paymentIntentId) {
+    try {
+      const donation = await prisma.donations.findFirst({
+        where: {
+          transaction_id: paymentIntentId
+        },
+        include: {
+          campaigns: {
+            select: {
+              id: true,
+              title: true,
+              slug: true
+            }
+          },
+          donor_profiles: {
+            include: {
+              users: {
+                select: {
+                  id: true,
+                  full_name: true,
+                  email: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!donation) {
+        return null;
+      }
+
+      return convertBigIntToString(donation);
+    } catch (error) {
+      logger.error('Error getting donation by payment intent:', error);
+      throw error;
     }
   }
 }

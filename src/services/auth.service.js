@@ -15,7 +15,8 @@ const {
   validateRegistrationData,
   validateLoginData,
   validatePasswordChangeData,
-  validatePasswordResetData
+  validatePasswordResetData,
+  convertBigIntToString
 } = require('../utils/validation.util');
 const emailService = require('./email.service.js');
 const securityService = require('./security.service');
@@ -124,10 +125,7 @@ class AuthService {
 
         return {
           success: true,
-          user: {
-            ...reactivatedUser,
-            id: reactivatedUser.id.toString()
-          },
+          user: convertBigIntToString(reactivatedUser),
           tokens,
           verificationToken,
           message: process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
@@ -193,10 +191,7 @@ class AuthService {
 
       return {
         success: true,
-        user: {
-          ...user,
-          id: user.id.toString()
-        },
+        user: convertBigIntToString(user),
         tokens,
         verificationToken,
         message: process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
@@ -326,32 +321,7 @@ class AuthService {
 
       return {
         success: true,
-        user: {
-          id: user.id.toString(),
-          full_name: user.full_name,
-          email: user.email,
-          role: user.role,
-          language_preference: user.language_preference,
-          email_verified: user.email_verified,
-          profile_image_url: user.profile_image_url,
-          volunteer_profile: user.volunteer_profiles ? {
-            ...user.volunteer_profiles,
-            user_id: user.volunteer_profiles.user_id.toString(),
-            volunteer_skills: user.volunteer_profiles.volunteer_skills ? user.volunteer_profiles.volunteer_skills.map(vs => ({
-              ...vs,
-              volunteer_id: vs.volunteer_id.toString(),
-              skill_id: vs.skill_id.toString(),
-              skills: {
-                ...vs.skills,
-                id: vs.skills.id.toString()
-              }
-            })) : []
-          } : null,
-          donor_profile: user.donor_profiles ? {
-            ...user.donor_profiles,
-            user_id: user.donor_profiles.user_id.toString()
-          } : null
-        },
+        user: convertBigIntToString(user),
         tokens,
         sessionId
       };
@@ -400,37 +370,12 @@ class AuthService {
         };
       }
 
+      // Convert BigInt values to strings and handle dates properly
+      const processedUser = convertBigIntToString(user);
+
       return {
         success: true,
-        user: {
-          id: user.id.toString(),
-          full_name: user.full_name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          language_preference: user.language_preference,
-          email_verified: user.email_verified,
-          profile_image_url: user.profile_image_url,
-          created_at: user.created_at,
-          updated_at: user.updated_at,
-          volunteer_profile: user.volunteer_profiles ? {
-            ...user.volunteer_profiles,
-            user_id: user.volunteer_profiles.user_id.toString(),
-            volunteer_skills: user.volunteer_profiles.volunteer_skills ? user.volunteer_profiles.volunteer_skills.map(vs => ({
-              ...vs,
-              volunteer_id: vs.volunteer_id.toString(),
-              skill_id: vs.skill_id.toString(),
-              skills: {
-                ...vs.skills,
-                id: vs.skills.id.toString()
-              }
-            })) : []
-          } : null,
-          donor_profile: user.donor_profiles ? {
-            ...user.donor_profiles,
-            user_id: user.donor_profiles.user_id.toString()
-          } : null
-        }
+        user: processedUser
       };
 
     } catch (error) {

@@ -19,6 +19,7 @@ model campaigns {
   end_date             DateTime?           @db.Date
   is_active            Boolean?            @default(true)
   is_featured          Boolean?            @default(false)
+  is_completed         Boolean?            @default(false)
   category             String?             @db.VarChar(50)
   progress_bar_color   String?             @db.VarChar(20)
   image_url            String?             @db.VarChar(512)
@@ -37,6 +38,7 @@ model campaigns {
   @@index([created_by], map: "created_by")
   @@index([is_active, is_featured], map: "idx_active_featured")
   @@index([category], map: "idx_category")
+  @@index([is_completed], map: "idx_completed")
   @@index([language], map: "idx_language")
   @@index([slug], map: "idx_slug")
   @@index([translation_group_id], map: "idx_translation_group")
