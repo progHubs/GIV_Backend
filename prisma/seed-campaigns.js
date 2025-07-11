@@ -1,279 +1,216 @@
 const { PrismaClient } = require('@prisma/client');
+const { v4: uuidv4 } = require('uuid');
 
 const prisma = new PrismaClient();
 
+// Allowed categories from validator (must match validator exactly)
+const categories = [
+  'medical_outreach',
+  'mental_health',
+  'youth_development',
+  'disease_prevention',
+  'education',
+  'emergency_relief',
+  'community_development',
+  'environmental',
+  'other',
+];
+
+// Some sample campaign titles
+const sampleTitles = [
+  'Clean Water for All',
+  'Mental Health Awareness Drive',
+  'Youth Empowerment Program',
+  'Disease Prevention Initiative',
+  'Education for Every Child',
+  'Emergency Relief Fund',
+  'Community Development Project',
+  'Environmental Protection Campaign',
+  'Medical Outreach Mission',
+  'Support for Orphans',
+  'Women in Tech',
+  'Food for the Hungry',
+  'Solar Power for Schools',
+  'Tree Planting Marathon',
+  'Disaster Response Team',
+  'Mobile Health Clinics',
+  'Scholarships for Girls',
+  'Clean Energy for Villages',
+  'Vaccination Awareness',
+  'Safe Motherhood Initiative',
+  'Literacy for Adults',
+  'Sports for Peace',
+  'Hygiene Education',
+  'Flood Relief',
+  'Cancer Screening Camps',
+  'Tech for Good',
+  'Feeding the Homeless',
+  'Green Schools Project',
+  'Childhood Nutrition',
+  'Water Wells Construction',
+  'Disability Inclusion',
+  'Refugee Support',
+  'Elderly Care',
+  'Animal Welfare',
+  'Clean Streets Movement',
+  'COVID-19 Response',
+  'Blood Donation Drive',
+  'School Supplies for Kids',
+  'Safe Playgrounds',
+  'HIV/AIDS Awareness',
+  'Malaria Eradication',
+  'Youth Leadership Training',
+  'Job Skills for Youth',
+  'Community Libraries',
+  'Waste Management',
+  'Renewable Energy Awareness',
+  'Safe Drinking Water',
+  'Support for Farmers',
+  'Disaster Preparedness',
+  'Women Health Camps',
+  'Child Protection',
+];
+
+// Some sample hex colors
+const colors = [
+  '#3B82F6', '#10B981', '#F59E42', '#EF4444', '#6366F1', '#FBBF24', '#22D3EE', '#A21CAF', '#84CC16', '#F472B6'
+];
+
+// Some sample images
+const images = [
+  'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/674010/pexels-photo-674010.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/1133957/pexels-photo-1133957.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/416160/pexels-photo-416160.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/267885/pexels-photo-267885.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3184436/pexels-photo-3184436.jpeg?auto=compress&cs=tinysrgb&w=600',
+  'https://images.pexels.com/photos/3184419/pexels-photo-3184419.jpeg?auto=compress&cs=tinysrgb&w=600',
+];
+
+// Some sample video URLs
+const videos = [
+  'https://www.youtube.com/watch?v=ysz5S6PUM-U',
+  'https://www.youtube.com/watch?v=ScMzIvxBSi4',
+  '',
+];
+
+// Helper to generate a slug from a title
+function slugify(title) {
+  return title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim('-');
+}
+
+// Helper to generate a random date in the future (returns full ISO string)
+function randomFutureDateTime(daysFromNow = 1, maxDays = 365) {
+  const now = new Date();
+  const days = daysFromNow + Math.floor(Math.random() * (maxDays - daysFromNow));
+  const date = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  return date.toISOString(); // full ISO string
+}
+
+// Helper to generate a random success story
+function randomSuccessStory(i) {
+  return {
+    title: `Success Story ${i + 1}`,
+    description: `This is a description for success story ${i + 1}. The campaign made a significant impact in the community.`,
+    image_url: images[Math.floor(Math.random() * images.length)],
+    date: randomFutureDateTime(-365, 365), // full ISO string
+  };
+}
+
 async function main() {
-  console.log('🌱 Starting campaigns seeding...');
-
-  try {
-    // Insert campaigns (do not clear existing data)
-    console.log('🎯 Inserting campaigns...');
-    const campaigns = await Promise.all([
-      prisma.campaigns.create({
-        data: {
-          title: 'Clean Water for All',
-          slug: 'clean-water-for-all',
-          description: 'Providing access to clean and safe drinking water in rural communities.',
-          goal_amount: 20000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-07-01'),
-          end_date: new Date('2024-12-31'),
-          is_active: true,
-          is_featured: true,
-          category: 'Water',
-          progress_bar_color: '#3498db',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Back to School Supplies',
-          slug: 'back-to-school-supplies',
-          description: 'Supplying essential school materials to children in need.',
-          goal_amount: 10000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-08-01'),
-          end_date: new Date('2024-09-30'),
-          is_active: true,
-          is_featured: false,
-          category: 'Education',
-          progress_bar_color: '#e67e22',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Healthcare for Mothers',
-          slug: 'healthcare-for-mothers',
-          description: 'Supporting maternal health and safe childbirth.',
-          goal_amount: 30000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-07-15'),
-          end_date: new Date('2024-11-30'),
-          is_active: true,
-          is_featured: true,
-          category: 'Healthcare',
-          progress_bar_color: '#e74c3c',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Youth Empowerment',
-          slug: 'youth-empowerment',
-          description: 'Empowering youth through skills training and mentorship.',
-          goal_amount: 15000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-09-01'),
-          end_date: new Date('2024-12-01'),
-          is_active: true,
-          is_featured: false,
-          category: 'Youth',
-          progress_bar_color: '#2ecc71',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Feed the Hungry',
-          slug: 'feed-the-hungry',
-          description: 'Providing food aid to families facing hunger.',
-          goal_amount: 25000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-07-10'),
-          end_date: new Date('2024-10-31'),
-          is_active: true,
-          is_featured: false,
-          category: 'Food',
-          progress_bar_color: '#f1c40f',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Disaster Relief Fund',
-          slug: 'disaster-relief-fund',
-          description: 'Supporting communities affected by natural disasters.',
-          goal_amount: 40000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-06-15'),
-          end_date: new Date('2024-12-31'),
-          is_active: true,
-          is_featured: false,
-          category: 'Relief',
-          progress_bar_color: '#9b59b6',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Women in Tech',
-          slug: 'women-in-tech',
-          description: 'Promoting technology education for women and girls.',
-          goal_amount: 18000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-08-15'),
-          end_date: new Date('2024-11-15'),
-          is_active: true,
-          is_featured: false,
-          category: 'Technology',
-          progress_bar_color: '#16a085',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Tree Planting Initiative',
-          slug: 'tree-planting-initiative',
-          description: 'Planting trees to combat deforestation and climate change.',
-          goal_amount: 12000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-07-20'),
-          end_date: new Date('2024-10-20'),
-          is_active: true,
-          is_featured: true,
-          category: 'Environment',
-          progress_bar_color: '#27ae60',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Support for Orphans',
-          slug: 'support-for-orphans',
-          description: 'Providing shelter, education, and care for orphans.',
-          goal_amount: 22000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-09-10'),
-          end_date: new Date('2024-12-31'),
-          is_active: true,
-          is_featured: false,
-          category: 'Children',
-          progress_bar_color: '#2980b9',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      }),
-      prisma.campaigns.create({
-        data: {
-          title: 'Accessible Education for All',
-          slug: 'accessible-education-for-all',
-          description: 'Making education accessible to children with disabilities.',
-          goal_amount: 16000.00,
-          current_amount: 0.00,
-          start_date: new Date('2024-08-20'),
-          end_date: new Date('2024-12-20'),
-          is_active: true,
-          is_featured: false,
-          category: 'Education',
-          progress_bar_color: '#8e44ad',
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      })
-    ]);
-
-    console.log(`✅ Inserted ${campaigns.length} campaigns`);
-
-    // Add 50 more campaigns
-    const moreCampaigns = [];
-    const categories = [
-      'Healthcare', 'Education', 'Environment', 'Food', 'Water', 'Youth', 'Children', 'Technology', 'Relief', 'Community'
-    ];
-    const colors = [
-      '#1abc9c', '#2ecc71', '#3498db', '#9b59b6', '#34495e', '#16a085', '#27ae60', '#2980b9', '#8e44ad', '#f39c12',
-      '#d35400', '#c0392b', '#7f8c8d', '#e67e22', '#e74c3c', '#f1c40f', '#95a5a6', '#bdc3c7', '#ff5733', '#6c3483'
-    ];
-    for (let i = 1; i <= 50; i++) {
-      const idx = i % categories.length;
-      moreCampaigns.push(
-        prisma.campaigns.create({
-          data: {
-            title: `Campaign Example ${i}`,
-            slug: `campaign-example-${i}`,
-            description: `This is a sample description for campaign number ${i}. Supporting the cause of ${categories[idx]}.`,
-            goal_amount: 10000 + i * 100,
-            current_amount: 0.00,
-            start_date: new Date(`2024-09-${(i % 28) + 1}`),
-            end_date: new Date(`2024-12-${(i % 28) + 1}`),
-            is_active: true,
-            is_featured: false,
-            category: categories[idx],
-            progress_bar_color: colors[idx],
-            image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-            donor_count: 0,
-            created_by: 5,
-            language: 'en'
-          }
-        })
-      );
+  const campaigns = [];
+  const usedSlugs = new Set();
+  for (let i = 0; i < 50; i++) {
+    // Pick a unique title
+    let title = sampleTitles[i % sampleTitles.length] + (i >= sampleTitles.length ? ` ${i + 1}` : '');
+    let slug = slugify(title);
+    // Ensure slug is unique
+    let origSlug = slug;
+    let slugCounter = 1;
+    while (usedSlugs.has(slug)) {
+      slug = `${origSlug}-${slugCounter++}`;
     }
-    // Mark every 10th campaign as featured (in addition to the original 3)
-    for (let i = 9; i < 50; i += 10) {
-      moreCampaigns[i] = prisma.campaigns.create({
-        data: {
-          title: `Campaign Example ${i + 1}`,
-          slug: `campaign-example-${i + 1}`,
-          description: `This is a sample description for campaign number ${i + 1}. Supporting the cause of ${categories[(i + 1) % categories.length]}.`,
-          goal_amount: 10000 + (i + 1) * 100,
-          current_amount: 0.00,
-          start_date: new Date(`2024-09-${((i + 1) % 28) + 1}`),
-          end_date: new Date(`2024-12-${((i + 1) % 28) + 1}`),
-          is_active: true,
-          is_featured: true,
-          category: categories[(i + 1) % categories.length],
-          progress_bar_color: colors[(i + 1) % colors.length],
-          image_url: 'https://images.pexels.com/photos/6301075/pexels-photo-6301075.jpeg?auto=compress&cs=tinysrgb&w=600',
-          donor_count: 0,
-          created_by: 5,
-          language: 'en'
-        }
-      });
+    usedSlugs.add(slug);
+
+    // Random goal and current amount
+    const goal_amount = 1000 + Math.floor(Math.random() * 100000);
+    const current_amount = Math.floor(Math.random() * goal_amount);
+
+    // Dates (full ISO-8601 DateTime)
+    const start_date = randomFutureDateTime(1, 180);
+    const end_date = randomFutureDateTime(181, 365);
+
+    // Category (from validator)
+    const category = categories[i % categories.length];
+
+    // Colors, images, videos
+    const progress_bar_color = colors[i % colors.length];
+    const image_url = images[i % images.length];
+    const video_url = videos[i % videos.length];
+
+    // Success stories
+    const numStories = 1 + Math.floor(Math.random() * 3);
+    const success_stories = [];
+    for (let j = 0; j < numStories; j++) {
+      success_stories.push(randomSuccessStory(j));
     }
-    const moreResults = await Promise.all(moreCampaigns);
-    console.log(`✅ Inserted ${moreResults.length} additional campaigns`);
-  } catch (error) {
-    console.error('❌ Error during campaigns seeding:', error);
-    throw error;
-  } finally {
-    await prisma.$disconnect();
+
+    // Language
+    const language = i % 5 === 0 ? 'am' : 'en';
+
+    // is_featured and is_active
+    const is_featured = i < 6;
+    const is_active = i < 2 ? false : true;
+
+    // translation_group_id
+    const translation_group_id = uuidv4();
+
+    campaigns.push({
+      title,
+      slug,
+      description: `This is a detailed description for the campaign: ${title}. It aims to make a positive impact in the community through various activities and initiatives.`,
+      goal_amount,
+      current_amount,
+      start_date,
+      end_date,
+      is_active,
+      is_featured,
+      category,
+      progress_bar_color,
+      image_url,
+      video_url,
+      donor_count: Math.floor(Math.random() * 1000),
+      success_stories: JSON.stringify(success_stories),
+      created_by: 5,
+      language,
+      translation_group_id,
+      created_at: new Date(),
+      updated_at: new Date(),
+      deleted_at: null,
+    });
   }
+
+  // Insert campaigns one by one to handle unique constraints and JSON fields
+  let inserted = 0;
+  for (const campaign of campaigns) {
+    try {
+      await prisma.campaigns.create({ data: campaign });
+      inserted++;
+    } catch (err) {
+      console.error('Failed to insert campaign:', campaign.title, err.message);
+    }
+  }
+  console.log(`Inserted ${inserted} campaigns.`);
 }
 
 main()
-  .then(async () => {
-    console.log('✅ Campaigns seeding completed');
-    process.exit(0);
-  })
-  .catch(async (e) => {
-    console.error('❌ Campaigns seeding failed:', e);
+  .catch((e) => {
+    console.error(e);
     process.exit(1);
-  }); 
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

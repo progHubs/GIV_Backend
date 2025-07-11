@@ -166,6 +166,7 @@ const baseCampaignSchema = {
   video_url: Joi.string()
     .uri()
     .max(512)
+    .allow('', null)
     .optional()
     .messages({
       'string.uri': 'Video URL must be a valid URL',
@@ -436,7 +437,7 @@ const translationSchema = Joi.object({
   language: Joi.string().valid('en', 'am').required(),
   progress_bar_color: Joi.string().max(20).optional(),
   image_url: Joi.string().uri().optional(),
-  video_url: Joi.string().uri().optional(),
+  video_url: Joi.string().uri().allow('', null).optional(),
   donor_count: Joi.number().integer().min(0).optional(),
   success_stories: Joi.any().optional(),
   current_amount: Joi.number().precision(2).optional(),

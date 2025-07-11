@@ -18,6 +18,7 @@ function optionalAuthenticateToken(req, res, next) {
 
 // Public route - anyone can create a donation (anonymous or authenticated)
 router.post('/', optionalAuthenticateToken, donationController.createDonation);
+router.get('/', optionalAuthenticateToken, donationController.getDonations);
 
 // Admin-only routes (must come before /:id route)
 router.get('/stats', authenticateToken, requireAdmin, donationController.getDonationStats);
@@ -28,7 +29,6 @@ router.delete('/:id', authenticateToken, requireAdmin, donationController.delete
 router.get('/search', authenticateToken, donationController.searchDonations);
 
 // Authenticated routes - users must be logged in
-router.get('/', authenticateToken, donationController.getDonations);
 router.get('/:id', authenticateToken, donationController.getDonationById);
 
 module.exports = router;

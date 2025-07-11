@@ -18,6 +18,10 @@ const convertBigIntToString = (obj) => {
   if (typeof obj === 'bigint') {
     return obj.toString();
   }
+  // Handle Date objects - preserve them as ISO strings
+  if (obj instanceof Date) {
+    return obj.toISOString();
+  }
   // Convert Decimal.js objects (Prisma decimal)
   if (typeof obj === 'object' && obj !== null && typeof obj.toFixed === 'function') {
     return obj.toFixed(2);
@@ -161,6 +165,16 @@ class CampaignService {
         processed.progress_percentage = campaign.goal_amount > 0
           ? Math.round((campaign.current_amount / campaign.goal_amount) * 100)
           : 0;
+
+        // Parse success_stories if present
+        if (processed.success_stories && typeof processed.success_stories === 'string') {
+          try {
+            processed.success_stories = JSON.parse(processed.success_stories);
+          } catch (e) {
+            processed.success_stories = [];
+          }
+        }
+
         return processed;
       });
 
@@ -209,23 +223,7 @@ class CampaignService {
 
       // Generate slug if not provided
       if (!sanitized.slug) {
-        sanitized.slug = this.generateSlug(sanitized.title);
-      }
-
-      // Check if slug already exists
-      const existingCampaign = await prisma.campaigns.findFirst({
-        where: {
-          slug: sanitized.slug,
-          deleted_at: null
-        }
-      });
-
-      if (existingCampaign) {
-        return {
-          success: false,
-          errors: ['Campaign with this slug already exists'],
-          code: 'SLUG_EXISTS'
-        };
+        sanitized.slug = await this.generateUniqueSlug(sanitized.title);
       }
 
       // Generate translation group ID if not provided
@@ -309,9 +307,15 @@ class CampaignService {
    */
   async getCampaignById(campaignId) {
     try {
+      // Try to find by ID first (if it's a number), then by slug
+      const isNumericId = !isNaN(parseInt(campaignId));
+
       const campaign = await prisma.campaigns.findFirst({
         where: {
-          id: parseInt(campaignId),
+          OR: [
+            isNumericId ? { id: parseInt(campaignId) } : {},
+            { slug: campaignId }
+          ].filter(condition => Object.keys(condition).length > 0),
           deleted_at: null
         },
         select: {
@@ -410,6 +414,16 @@ class CampaignService {
       }
 
       const { sanitized } = validation;
+
+      // Fix: JSON.stringify success_stories if present
+      if (sanitized.success_stories) {
+        if (Array.isArray(sanitized.success_stories)) {
+          sanitized.success_stories = JSON.stringify(sanitized.success_stories);
+        } else if (typeof sanitized.success_stories === 'object') {
+          sanitized.success_stories = JSON.stringify(sanitized.success_stories);
+        }
+        // If it's already a string, leave it as is
+      }
 
       // Check slug uniqueness if being updated
       if (sanitized.slug && sanitized.slug !== existingCampaign.slug) {
@@ -760,6 +774,16 @@ class CampaignService {
         processed.progress_percentage = campaign.goal_amount > 0
           ? Math.round((campaign.current_amount / campaign.goal_amount) * 100)
           : 0;
+
+        // Parse success_stories if present
+        if (processed.success_stories && typeof processed.success_stories === 'string') {
+          try {
+            processed.success_stories = JSON.parse(processed.success_stories);
+          } catch (e) {
+            processed.success_stories = [];
+          }
+        }
+
         return processed;
       });
 
@@ -906,6 +930,35 @@ class CampaignService {
   }
 
   /**
+   * Generate unique slug from title by adding ID suffix if needed
+   * @param {string} title - Campaign title
+   * @returns {Promise<string>} - Generated unique slug
+   */
+  async generateUniqueSlug(title) {
+    const baseSlug = this.generateSlug(title);
+    let slug = baseSlug;
+    let counter = 1;
+
+    // Keep checking until we find a unique slug
+    while (true) {
+      const existingCampaign = await prisma.campaigns.findFirst({
+        where: {
+          slug: slug,
+          deleted_at: null
+        }
+      });
+
+      if (!existingCampaign) {
+        return slug;
+      }
+
+      // If slug exists, append counter
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
+
+  /**
    * Get all translations for a campaign (by translation_group_id)
    * @param {string|number} campaignId
    * @returns {Promise<Object>}
@@ -973,12 +1026,23 @@ class CampaignService {
       if (!user || !['admin', 'editor'].includes(user.role)) return { success: false, error: 'Insufficient permissions' };
       const translation = await prisma.campaigns.findFirst({ where: { translation_group_id: campaign.translation_group_id, language, deleted_at: null } });
       if (!translation) return { success: false, error: 'Translation not found for this language' };
+
+      // Fix: JSON.stringify success_stories if present
+      const updateData = { ...data };
+      if (updateData.success_stories) {
+        if (Array.isArray(updateData.success_stories)) {
+          updateData.success_stories = JSON.stringify(updateData.success_stories);
+        } else if (typeof updateData.success_stories === 'object') {
+          updateData.success_stories = JSON.stringify(updateData.success_stories);
+        }
+      }
+
       const updated = await prisma.campaigns.update({
         where: { id: translation.id },
         data: {
-          ...data,
-          start_date: data.start_date ? new Date(data.start_date) : undefined,
-          end_date: data.end_date ? new Date(data.end_date) : undefined,
+          ...updateData,
+          start_date: updateData.start_date ? new Date(updateData.start_date) : undefined,
+          end_date: updateData.end_date ? new Date(updateData.end_date) : undefined,
           updated_at: new Date(),
         },
       });
