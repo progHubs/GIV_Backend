@@ -858,45 +858,45 @@ class CampaignService {
         where.category = category;
       }
 
-      // Get basic stats
-      const [
-        totalCampaigns,
-        activeCampaigns,
-        featuredCampaigns,
-        completedCampaigns,
-        totalGoalAmount,
-        totalCurrentAmount,
-        categoryStats
-      ] = await Promise.all([
-        prisma.campaigns.count({ where }),
-        prisma.campaigns.count({ where: { ...where, is_active: true } }),
-        prisma.campaigns.count({ where: { ...where, is_featured: true } }),
-        prisma.campaigns.count({ where: { ...where, is_completed: true } }),
-        prisma.campaigns.aggregate({
-          where,
-          _sum: { goal_amount: true }
-        }),
-        prisma.campaigns.aggregate({
-          where,
-          _sum: { current_amount: true }
-        }),
-        prisma.campaigns.groupBy({
-          by: ['category'],
-          where,
-          _count: { category: true },
-          _sum: { goal_amount: true, current_amount: true }
-        })
-      ]);
+      // Get basic stats with sequential queries to avoid connection pool exhaustion
+      const totalCampaigns = await prisma.campaigns.count({ where });
+
+      // Get total amounts
+      const totalAmounts = await prisma.campaigns.aggregate({
+        where,
+        _sum: { goal_amount: true, current_amount: true }
+      });
+
+      // Get status counts sequentially
+      const activeCampaigns = await prisma.campaigns.count({
+        where: { ...where, is_active: true }
+      });
+
+      const featuredCampaigns = await prisma.campaigns.count({
+        where: { ...where, is_featured: true }
+      });
+
+      const completedCampaigns = await prisma.campaigns.count({
+        where: { ...where, is_completed: true }
+      });
+
+      // Get category breakdown
+      const categoryStats = await prisma.campaigns.groupBy({
+        by: ['category'],
+        where,
+        _count: { category: true },
+        _sum: { goal_amount: true, current_amount: true }
+      });
 
       const stats = {
         total_campaigns: totalCampaigns,
         active_campaigns: activeCampaigns,
         featured_campaigns: featuredCampaigns,
         completed_campaigns: completedCampaigns,
-        total_goal_amount: totalGoalAmount._sum.goal_amount || 0,
-        total_current_amount: totalCurrentAmount._sum.current_amount || 0,
-        overall_progress_percentage: totalGoalAmount._sum.goal_amount > 0
-          ? Math.round((totalCurrentAmount._sum.current_amount / totalGoalAmount._sum.goal_amount) * 100)
+        total_goal_amount: totalAmounts._sum.goal_amount || 0,
+        total_current_amount: totalAmounts._sum.current_amount || 0,
+        overall_progress_percentage: totalAmounts._sum.goal_amount > 0
+          ? Math.round((totalAmounts._sum.current_amount / totalAmounts._sum.goal_amount) * 100)
           : 0,
         category_breakdown: categoryStats.map(stat => ({
           category: stat.category,

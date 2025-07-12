@@ -747,56 +747,47 @@ class UserService {
    */
   async getUserStats() {
     try {
-      const [
-        totalUsers,
-        verifiedUsers,
-        volunteerUsers,
-        donorUsers,
-        adminUsers,
-        recentUsers
-      ] = await Promise.all([
-        // Total users
-        prisma.users.count({
-          where: { deleted_at: null }
-        }),
-        // Verified users
-        prisma.users.count({
-          where: {
-            deleted_at: null,
-            email_verified: true
+      // Get stats sequentially to avoid connection pool exhaustion
+      const totalUsers = await prisma.users.count({
+        where: { deleted_at: null }
+      });
+
+      const verifiedUsers = await prisma.users.count({
+        where: {
+          deleted_at: null,
+          email_verified: true
+        }
+      });
+
+      const volunteerUsers = await prisma.users.count({
+        where: {
+          deleted_at: null,
+          volunteer_profiles: { isNot: null }
+        }
+      });
+
+      const donorUsers = await prisma.users.count({
+        where: {
+          deleted_at: null,
+          donor_profiles: { isNot: null }
+        }
+      });
+
+      const adminUsers = await prisma.users.count({
+        where: {
+          deleted_at: null,
+          role: 'admin'
+        }
+      });
+
+      const recentUsers = await prisma.users.count({
+        where: {
+          deleted_at: null,
+          created_at: {
+            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
           }
-        }),
-        // Users with volunteer profiles
-        prisma.users.count({
-          where: {
-            deleted_at: null,
-            volunteer_profiles: { isNot: null }
-          }
-        }),
-        // Users with donor profiles
-        prisma.users.count({
-          where: {
-            deleted_at: null,
-            donor_profiles: { isNot: null }
-          }
-        }),
-        // Admin users
-        prisma.users.count({
-          where: {
-            deleted_at: null,
-            role: 'admin'
-          }
-        }),
-        // Users created in last 30 days
-        prisma.users.count({
-          where: {
-            deleted_at: null,
-            created_at: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-            }
-          }
-        })
-      ]);
+        }
+      });
 
       return {
         success: true,
