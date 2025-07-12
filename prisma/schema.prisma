@@ -522,14 +522,6 @@ enum programs_category {
   disease_prevention
 }
 
-enum event_participants_status {
-  registered
-  confirmed
-  reminded
-  attended
-  no_show
-}
-
 enum partners_type {
   ngo
   corporate
@@ -667,4 +659,12 @@ enum campaigns_language {
 enum events_language {
   en
   am
+}
+
+enum event_participants_status {
+  registered
+  confirmed
+  reminded
+  attended
+  no_show
 }

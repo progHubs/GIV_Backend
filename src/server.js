@@ -90,12 +90,27 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("combined"));
 }
 
-// Register ONLY the webhook route with express.raw BEFORE express.json
-app.post(
-  "/api/v1/payments/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  require("./api/controllers/stripe.controller").stripeWebhook
-);
+// Body parsing middleware with security limits
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({
+        success: false,
+        errors: ['Invalid JSON payload'],
+        code: 'INVALID_JSON'
+      });
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10mb',
+  parameterLimit: 100 // Limit number of parameters
+}));
 
 // --- Core Middleware ---
 app.use(
