@@ -58,6 +58,7 @@ class CampaignService {
         language,
         is_active,
         is_featured,
+        is_completed,
         start_date,
         end_date
       } = filters;
@@ -98,6 +99,10 @@ class CampaignService {
         where.is_featured = is_featured === 'true' ? true : false;
       }
 
+      if (is_completed !== undefined) {
+        where.is_completed = is_completed === 'true' ? true : false;
+      }
+
       if (start_date) {
         where.start_date = {
           gte: new Date(start_date)
@@ -128,6 +133,7 @@ class CampaignService {
             end_date: true,
             is_active: true,
             is_featured: true,
+            is_completed: true,
             category: true,
             progress_bar_color: true,
             image_url: true,
@@ -857,6 +863,7 @@ class CampaignService {
         totalCampaigns,
         activeCampaigns,
         featuredCampaigns,
+        completedCampaigns,
         totalGoalAmount,
         totalCurrentAmount,
         categoryStats
@@ -864,6 +871,7 @@ class CampaignService {
         prisma.campaigns.count({ where }),
         prisma.campaigns.count({ where: { ...where, is_active: true } }),
         prisma.campaigns.count({ where: { ...where, is_featured: true } }),
+        prisma.campaigns.count({ where: { ...where, is_completed: true } }),
         prisma.campaigns.aggregate({
           where,
           _sum: { goal_amount: true }
@@ -884,6 +892,7 @@ class CampaignService {
         total_campaigns: totalCampaigns,
         active_campaigns: activeCampaigns,
         featured_campaigns: featuredCampaigns,
+        completed_campaigns: completedCampaigns,
         total_goal_amount: totalGoalAmount._sum.goal_amount || 0,
         total_current_amount: totalCurrentAmount._sum.current_amount || 0,
         overall_progress_percentage: totalGoalAmount._sum.goal_amount > 0
