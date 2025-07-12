@@ -64,18 +64,33 @@ class DonationService {
         }
       });
 
-      // Update campaign stats
-      await prisma.campaigns.update({
+      // Update campaign stats and check for completion
+      const campaign = await prisma.campaigns.findUnique({
         where: { id: data.campaign_id },
-        data: {
-          current_amount: {
-            increment: data.amount
-          },
-          donor_count: {
-            increment: 1
-          },
-        }
+        select: { current_amount: true, goal_amount: true, is_completed: true }
       });
+
+      if (campaign) {
+        const newCurrentAmount = parseFloat(campaign.current_amount) + data.amount;
+        const goalAmount = parseFloat(campaign.goal_amount);
+
+        // Check if campaign should be completed
+        const shouldComplete = !campaign.is_completed && newCurrentAmount >= goalAmount && goalAmount > 0;
+
+        // Update campaign with new stats and completion status
+        await prisma.campaigns.update({
+          where: { id: data.campaign_id },
+          data: {
+            current_amount: { increment: data.amount },
+            donor_count: { increment: 1 },
+            ...(shouldComplete && {
+              is_completed: true,
+              is_active: false,
+              is_featured: false
+            })
+          }
+        });
+      }
 
       // Send receipt if not anonymous
       if (donorId !== ANONYMOUS_DONOR_ID && user && user.email) {
@@ -322,21 +337,42 @@ class DonationService {
           await tx.donor_profiles.update({
             where: { user_id: donorId },
             data: {
-              total_donated: { increment: amount },
+              total_donated: { increment: amount},
               last_donation_date: new Date(),
             }
           });
         }
 
-        // 6. Update campaign stats
+        // 6. Update campaign stats and check for completion
         if (campaignId) {
-          await tx.campaigns.update({
+          // First, get current campaign data
+          const campaign = await tx.campaigns.findUnique({
             where: { id: campaignId },
-            data: {
-              current_amount: { increment: amount },
-              donor_count: { increment: 1 },
-            }
+            select: { current_amount: true, goal_amount: true, is_completed: true }
           });
+
+          if (campaign) {
+            const donationAmountInDollars = amount
+            const newCurrentAmount = parseFloat(campaign.current_amount) + donationAmountInDollars;
+            const goalAmount = parseFloat(campaign.goal_amount);
+
+            // Check if campaign should be completed
+            const shouldComplete = !campaign.is_completed && newCurrentAmount >= goalAmount && goalAmount > 0;
+
+            // Update campaign with new stats and completion status
+            await tx.campaigns.update({
+              where: { id: campaignId },
+              data: {
+                current_amount: { increment: donationAmountInDollars },
+                donor_count: { increment: 1 },
+                ...(shouldComplete && {
+                  is_completed: true,
+                  is_active: false,
+                  is_featured: false
+                })
+              }
+            });
+          }
         }
 
         // 7. Send receipt if not anonymous and email available
