@@ -20,6 +20,7 @@ class CampaignController {
         language: req.query.language || 'en',
         is_active: req.query.is_active,
         is_featured: req.query.is_featured,
+        is_completed: req.query.is_completed,
         start_date: req.query.start_date,
         end_date: req.query.end_date
       };

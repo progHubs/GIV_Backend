@@ -60,6 +60,15 @@ class DonationController {
     return res.status(200).json({ success: true, data: result.stats });
   }
 
+  // Recalculate donor totals (admin utility)
+  async recalculateDonorTotals(req, res) {
+    const result = await donationService.recalculateDonorTotals();
+    if (!result.success) {
+      return res.status(500).json({ success: false, error: result.error, code: result.code });
+    }
+    return res.status(200).json({ success: true, message: result.message, data: result.results });
+  }
+
   // Update donation status (admin)
   async updateDonationStatus(req, res) {
     const { id } = req.params;

@@ -22,6 +22,7 @@ router.get('/', optionalAuthenticateToken, donationController.getDonations);
 
 // Admin-only routes (must come before /:id route)
 router.get('/stats', authenticateToken, requireAdmin, donationController.getDonationStats);
+router.post('/recalculate-totals', authenticateToken, requireAdmin, donationController.recalculateDonorTotals);
 router.patch('/:id/status', authenticateToken, requireAdmin, donationController.updateDonationStatus);
 router.delete('/:id', authenticateToken, requireAdmin, donationController.deleteDonation);
 

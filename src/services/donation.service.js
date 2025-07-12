@@ -133,6 +133,26 @@ class DonationService {
       const [donations, totalCount] = await Promise.all([
         prisma.donations.findMany({
           where,
+          include: {
+            campaigns: {
+              select: {
+                id: true,
+                title: true,
+                category: true
+              }
+            },
+            donor_profiles: {
+              include: {
+                users: {
+                  select: {
+                    id: true,
+                    full_name: true,
+                    email: true
+                  }
+                }
+              }
+            }
+          },
           orderBy: { [sortBy]: sortOrder },
           skip,
           take: limit,
@@ -159,7 +179,29 @@ class DonationService {
         throw new Error('Invalid donation ID');
       }
       const donationId = typeof id === 'string' ? id : String(id);
-      const donation = await prisma.donations.findUnique({ where: { id: BigInt(donationId) } });
+      const donation = await prisma.donations.findUnique({
+        where: { id: BigInt(donationId) },
+        include: {
+          campaigns: {
+            select: {
+              id: true,
+              title: true,
+              category: true
+            }
+          },
+          donor_profiles: {
+            include: {
+              users: {
+                select: {
+                  id: true,
+                  full_name: true,
+                  email: true
+                }
+              }
+            }
+          }
+        }
+      });
       if (!donation) {
         return { success: false, error: 'Donation not found', code: 'DONATION_NOT_FOUND' };
       }
@@ -182,17 +224,23 @@ class DonationService {
       if (filters.donor_id !== undefined) where.donor_id = filters.donor_id;
       if (filters.payment_status) where.payment_status = filters.payment_status;
       if (filters.donation_type) where.donation_type = filters.donation_type;
-      const [totalDonations, totalAmount, completedAmount] = await Promise.all([
+      const [totalDonations, totalAmount, completedAmount, completedDonations, pendingDonations, failedDonations] = await Promise.all([
         prisma.donations.count({ where }),
         prisma.donations.aggregate({ where, _sum: { amount: true } }),
-        prisma.donations.aggregate({ where: { ...where, payment_status: 'completed' }, _sum: { amount: true } })
+        prisma.donations.aggregate({ where: { ...where, payment_status: 'completed' }, _sum: { amount: true } }),
+        prisma.donations.count({ where: { ...where, payment_status: 'completed' } }),
+        prisma.donations.count({ where: { ...where, payment_status: 'pending' } }),
+        prisma.donations.count({ where: { ...where, payment_status: 'failed' } })
       ]);
       return {
         success: true,
         stats: convertBigIntToString({
           total_donations: totalDonations,
           total_amount: totalAmount._sum.amount || 0,
-          completed_amount: completedAmount._sum.amount || 0
+          completed_amount: completedAmount._sum.amount || 0,
+          completed_donations: completedDonations,
+          pending_donations: pendingDonations,
+          failed_donations: failedDonations
         })
       };
     } catch (error) {
@@ -332,16 +380,14 @@ class DonationService {
           });
         }
 
-        // 5. Update donor profile stats (skip for anonymous)
-        if (donorId !== ANONYMOUS_DONOR_ID) {
-          await tx.donor_profiles.update({
-            where: { user_id: donorId },
-            data: {
-              total_donated: { increment: amount},
-              last_donation_date: new Date(),
-            }
-          });
-        }
+        // 5. Update donor profile stats (including anonymous)
+        await tx.donor_profiles.update({
+          where: { user_id: donorId },
+          data: {
+            total_donated: { increment: amount },
+            last_donation_date: new Date(),
+          }
+        });
 
         // 6. Update campaign stats and check for completion
         if (campaignId) {
@@ -651,6 +697,72 @@ class DonationService {
       throw error;
     }
   }
+
+  // Recalculate donor profile totals (admin utility)
+  async recalculateDonorTotals() {
+    try {
+      // Get all donor profiles
+      const donorProfiles = await prisma.donor_profiles.findMany({
+        select: { user_id: true }
+      });
+
+      const results = [];
+
+      for (const profile of donorProfiles) {
+        // Calculate total donations for this donor
+        const totalResult = await prisma.donations.aggregate({
+          where: {
+            donor_id: profile.user_id,
+            payment_status: 'completed'
+          },
+          _sum: { amount: true },
+          _count: true
+        });
+
+        const totalAmount = totalResult._sum.amount || 0;
+        const donationCount = totalResult._count;
+
+        // Get last donation date
+        const lastDonation = await prisma.donations.findFirst({
+          where: {
+            donor_id: profile.user_id,
+            payment_status: 'completed'
+          },
+          orderBy: { donated_at: 'desc' },
+          select: { donated_at: true }
+        });
+
+        // Update donor profile
+        await prisma.donor_profiles.update({
+          where: { user_id: profile.user_id },
+          data: {
+            total_donated: totalAmount,
+            last_donation_date: lastDonation?.donated_at || null
+          }
+        });
+
+        results.push({
+          user_id: profile.user_id.toString(),
+          total_donated: totalAmount.toString(),
+          donation_count: donationCount,
+          last_donation_date: lastDonation?.donated_at
+        });
+      }
+
+      return {
+        success: true,
+        message: 'Donor totals recalculated successfully',
+        results: results
+      };
+    } catch (error) {
+      logger.error('Error recalculating donor totals:', error);
+      return {
+        success: false,
+        error: 'Failed to recalculate donor totals',
+        code: 'RECALCULATION_ERROR'
+      };
+    }
+  }
 }
 
-module.exports = new DonationService(); 
+module.exports = new DonationService();
